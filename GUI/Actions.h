@@ -9,7 +9,7 @@ VOID Restart()
 	if (hModule != NULL)
 	{
 		PFN_RtlAdjustPrivilege pfnRtl = (PFN_RtlAdjustPrivilege)GetProcAddress(hModule, "RtlAdjustPrivilege"); PFN_ZwShutdownSystem pfnShutdown = (PFN_ZwShutdownSystem)GetProcAddress(hModule, "ZwShutdownSystem");
-		if (pfnRtl != NULL & pfnShutdown != NULL)
+		if (pfnRtl != NULL && pfnShutdown != NULL)
 		{
 			int en = 0;
 			int nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, TRUE, &en);
