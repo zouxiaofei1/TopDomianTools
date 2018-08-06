@@ -1,5 +1,8 @@
 #pragma once
 #include "stdafx.h"
+void Catchi();
+void s(int cathy);
+void s(LPCWSTR cathy);
 VOID Restart()
 {
 	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
@@ -67,7 +70,7 @@ int CaptureImage(HWND hwnd, CONST CHAR *dirPath, CONST CHAR *filename)
 		GetSystemMetrics(SM_CYSCREEN),
 		SRCCOPY))
 	{
-		s(-1);
+		//s(-1);
 		goto done;
 	}
 
@@ -80,7 +83,7 @@ int CaptureImage(HWND hwnd, CONST CHAR *dirPath, CONST CHAR *filename)
 
 	if (!hbmScreen)
 	{
-		s(1);
+		//s(1);
 		goto done;
 	}
 
@@ -94,7 +97,7 @@ int CaptureImage(HWND hwnd, CONST CHAR *dirPath, CONST CHAR *filename)
 		0, 0,        // 来源DC的 x,y 坐标
 		SRCCOPY))   // 粘贴方式
 	{
-		s(2);
+		//s(2);
 		goto done;
 	}
 

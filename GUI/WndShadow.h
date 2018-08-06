@@ -82,8 +82,12 @@ protected:
 	static pfnDwmIsCompositionEnabled s_DwmIsCompositionEnabled;
 
 	HWND m_hWnd;
-
-	LONG m_OriParentProc;	// Original WndProc of parent window
+#ifdef _M_IX86
+#define Long long
+#else
+#define Long long long
+#endif
+	Long m_OriParentProc;	// Original WndProc of parent window
 
 	enum ShadowStatus
 	{
