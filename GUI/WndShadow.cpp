@@ -1,3 +1,7 @@
+//从以下网址复制
+//https://www.codeproject.com/Articles/16362/Bring-your-frame-window-a-shadow
+//By Mingliang Zhu, 15 Jun 2007 
+//自行修改Set/GetwindowLong使其支持64Bit
 #include "stdafx.h"
 #include "WndShadow.h"
 
@@ -308,7 +312,7 @@ void CWndShadow::Update(HWND hParent)
 
 	BOOL bRet = s_UpdateLayeredWindow(m_hWnd, NULL, &ptDst, &WndSize, hMemDC,
 		&ptSrc, 0, &blendPixelFunction, ULW_ALPHA);
-
+	UNREFERENCED_PARAMETER(bRet);
 	_ASSERT(bRet); // something was wrong....
 
 				   // Delete used resources
@@ -395,10 +399,6 @@ void CWndShadow::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 	for (int i = 0; i < m_nSharpness - m_nSize; i++)
 	{
 		nEroTimes++;
-		//ptAnchorsTmp[1][0] = szParent.cx;
-		//ptAnchorsTmp[1][1] = 0;
-		//ptAnchorsTmp[szParent.cy + 1][0] = szParent.cx;
-		//ptAnchorsTmp[szParent.cy + 1][1] = 0;
 		for (int j = 1; j < nAnchors + 1; j++)
 		{
 			ptAnchorsTmp[j][0] = max(ptAnchors[j - 1][0], max(ptAnchors[j][0], ptAnchors[j + 1][0])) + 1;
@@ -427,23 +427,18 @@ void CWndShadow::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 			else if (dLength <= nKernelSize)
 			{
 				UINT32 nFactor = ((UINT32)((1 - (dLength - nCenterSize) / (m_nSharpness + 1)) * m_nDarkness));
-				*pKernelIter = nFactor << 24 | PreMultiply(m_Color, nFactor);
+				*pKernelIter =(unsigned char) nFactor << 24 | PreMultiply(m_Color, nFactor);
 			}
 			else
 				*pKernelIter = 0;
-			//TRACE("%d ", *pKernelIter >> 24);
 			pKernelIter++;
 		}
-		//TRACE("\n");
 	}
-	// Generate blurred border
 	for (int i = nKernelSize; i < szShadow.cy - nKernelSize; i++)
 	{
 		int j;
 		if (ptAnchors[i][0] < ptAnchors[i][1])
 		{
-
-			// Start of line
 			for (j = ptAnchors[i][0];
 				j < min(max(ptAnchors[i - 1][0], ptAnchors[i + 1][0]) + 1, ptAnchors[i][1]);
 				j++)
