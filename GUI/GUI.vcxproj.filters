@@ -27,10 +27,10 @@
     <ClInclude Include="GUI.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Actions.h">
+    <ClInclude Include="TestFunctions.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TestFunctions.h">
+    <ClInclude Include="Actions.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

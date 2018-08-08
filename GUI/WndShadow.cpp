@@ -104,8 +104,10 @@ bool CWndShadow::Initialize(HINSTANCE hInstance)
 void CWndShadow::Create(HWND hParentWnd)
 {
 	// Do nothing if the system does not support layered windows
-	if (NULL == s_UpdateLayeredWindow)
+	if (NULL == s_UpdateLayeredWindow) {
+		//MessageBox(0, L"1", 0, 0);
 		return;
+	}
 
 	// Already initialized
 	_ASSERT(s_hInstance != INVALID_HANDLE_VALUE);
@@ -116,16 +118,16 @@ void CWndShadow::Create(HWND hParentWnd)
 
 	// Create the shadow window
 	m_hWnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT, strWndClassName, NULL,
-		/*WS_VISIBLE | WS_CAPTION | */WS_POPUPWINDOW,
+		/*WS_VISIBLE | WS_CAPTION | */WS_POPUP,
 		CW_USEDEFAULT, 0, 0, 0, hParentWnd, NULL, s_hInstance, NULL);
 
 	// Determine the initial show state of shadow according to Aero
 	m_Status = SS_ENABLED;	// Enabled by default
-	BOOL bAero = FALSE;
-	if (s_DwmIsCompositionEnabled)
-		s_DwmIsCompositionEnabled(&bAero);
-	if (bAero)
-		m_Status |= SS_DISABLEDBYAERO;
+	//BOOL bAero = FALSE;
+	//if (s_DwmIsCompositionEnabled)
+	//	s_DwmIsCompositionEnabled(&bAero);
+	//if (bAero)
+	//	m_Status |= SS_DISABLEDBYAERO;
 
 	Show(hParentWnd);	// Show the shadow if conditions are met
 
