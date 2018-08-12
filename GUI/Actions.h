@@ -196,3 +196,61 @@ bool RunEXE(wchar_t *CmdLine)
 	PROCESS_INFORMATION pi = { 0 };
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 }
+
+
+#define ProcessBasicInformation 0  
+typedef struct
+{
+	DWORD ExitStatus;
+	DWORD PebBaseAddress;
+	DWORD AffinityMask;
+	DWORD BasePriority;
+	ULONG UniqueProcessId;
+	ULONG InheritedFromUniqueProcessId;
+}   PROCESS_BASIC_INFORMATION;
+typedef LONG(__stdcall *PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
+
+
+DWORD GetParentProcessID(DWORD dwProcessId)
+{
+	LONG status;
+	DWORD dwParentPID = -1;
+	HANDLE hProcess;
+	PROCESS_BASIC_INFORMATION pbi;
+
+	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(
+		GetModuleHandle(L"ntdll"), "NtQueryInformationProcess");
+
+	if (NULL == NtQueryInformationProcess)return -1;
+	// Get process handle
+	hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
+	if (!hProcess)return -1;
+
+	// Retrieve information
+	status = NtQueryInformationProcess(hProcess,
+		ProcessBasicInformation,
+		(PVOID)&pbi,
+		sizeof(PROCESS_BASIC_INFORMATION),
+		NULL);
+	// Copy parent Id on success
+	if (!status)dwParentPID = pbi.InheritedFromUniqueProcessId;
+	CloseHandle(hProcess);
+	return dwParentPID;
+}
+
+void Catchi()
+{
+	DEVMODE curDevMode;
+	curDevMode.dmSize = sizeof(DEVMODE);
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &curDevMode);
+
+	int width = curDevMode.dmPelsWidth, heigth = curDevMode.dmPelsHeight;
+	HDC hdcWindow = GetDC(NULL);
+	int nBitPerPixel = GetDeviceCaps(hdcWindow, BITSPIXEL);
+	CImage image;
+	image.Create(width, heigth, nBitPerPixel);
+	BitBlt(image.GetDC(), 0, 0, width, heigth, hdcWindow, 0, 0, SRCCOPY);
+	ReleaseDC(NULL, hdcWindow);
+	image.ReleaseDC();
+	image.Save(L"C:\\SAtemp\\ScreenShot.bmp");
+}
