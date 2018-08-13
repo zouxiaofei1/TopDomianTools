@@ -41,7 +41,7 @@ int __cdecl sub_430CD0(void *Src, LPCWSTR lpSubKey, LPCWSTR lpValueName)
 		v3 = L"Software\\TopDomain\\e-Learning Class\\Student";
 	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, v3, 0, 0x20006u, &phkResult))
 		goto LABEL_25;
-	v4 = _time64(0);
+	v4 = (unsigned int)_time64(0);
 	srand(v4);
 	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;
 	v6 = (BYTE *)operator new[](v5);

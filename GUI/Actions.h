@@ -71,9 +71,7 @@ BOOL GetOSDisplayString(wchar_t *pszOS)
 	OSVERSIONINFOEX osvi;
 	SYSTEM_INFO si;
 	PGNSI pGNSI;
-	PGPI pGPI;
 	BOOL bOsVersionInfoEx;
-	DWORD dwType;
 
 	ZeroMemory(&si, sizeof(SYSTEM_INFO));
 	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
@@ -83,7 +81,7 @@ BOOL GetOSDisplayString(wchar_t *pszOS)
 
 	if (!bOsVersionInfoEx) return FALSE;
 
-	wchar_t tmp[21];
+	wchar_t tmp[101];
 	_itow_s(osvi.dwMajorVersion, tmp, 10);
 	wcscpy(pszOS, tmp);
 	wcscat(pszOS, L".");
@@ -104,7 +102,7 @@ BOOL GetOSDisplayString(wchar_t *pszOS)
 		osvi.dwMajorVersion = ovi.dwMajorVersion;
 		osvi.dwMinorVersion = ovi.dwMinorVersion;
 		osvi.dwBuildNumber = ovi.dwBuildNumber;
-		wchar_t tmp[21];
+		wchar_t tmp[101];
 		_itow_s(osvi.dwMajorVersion, tmp, 10);
 		wcscpy(pszOS, tmp);
 		wcscat(pszOS, L".");
