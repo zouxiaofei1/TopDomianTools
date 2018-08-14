@@ -12,17 +12,17 @@
 #endif
 
 // Some definitions for VC++ 6.0 without newest SDK
-#ifndef WS_EX_LAYERED
-#define WS_EX_LAYERED 0x00080000
-#endif
+//#ifndef WS_EX_LAYERED
+//#define WS_EX_LAYERED 0x00080000
+//#endif
 
-#ifndef AC_SRC_ALPHA
-#define AC_SRC_ALPHA 0x01
-#endif
+//#ifndef AC_SRC_ALPHA
+//#define AC_SRC_ALPHA 0x01
+//#endif
 
-#ifndef ULW_ALPHA
-#define ULW_ALPHA 0x00000002
-#endif
+//#ifndef ULW_ALPHA
+//#define ULW_ALPHA 0x00000002
+//#endif
 
 // Vista aero related message
 #ifndef WM_DWMCOMPOSITIONCHANGED
