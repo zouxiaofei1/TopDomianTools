@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "stdafx.h"
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -107,15 +107,15 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 
 {
 	wchar_t szDriverImagePath[256];
-	//�õ�����������·��
+	//得到完整的驱动路径
 	GetFullPathName(lpszDriverPath, 256, szDriverImagePath, NULL);
 	//s(szDriverImagePath);
 	BOOL bRet = FALSE;
 
-	SC_HANDLE hServiceMgr = NULL;//SCM�������ľ��
-	SC_HANDLE hServiceDDK = NULL;//NT��������ķ�����
+	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
+	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
 
-								 //�򿪷�����ƹ�����
+								 //打开服务控制管理器
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 
 	if (hServiceMgr == NULL)
@@ -125,15 +125,15 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		goto BeforeLeave;
 	}
 
-	//������������Ӧ�ķ���
+	//创建驱动所对应的服务
 	hServiceDDK = CreateService(hServiceMgr,
-		lpszDriverName, //�����������ע����е�����  
-		lpszDriverName, // ע������������ DisplayName ֵ  
-		SERVICE_ALL_ACCESS, // ������������ķ���Ȩ��  
-		SERVICE_KERNEL_DRIVER,// ��ʾ���صķ�������������  
-		SERVICE_DEMAND_START, // ע������������ Start ֵ  
-		SERVICE_ERROR_IGNORE, // ע������������ ErrorControl ֵ  
-		szDriverImagePath, // ע������������ ImagePath ֵ  
+		lpszDriverName, //驱动程序的在注册表中的名字  
+		lpszDriverName, // 注册表驱动程序的 DisplayName 值  
+		SERVICE_ALL_ACCESS, // 加载驱动程序的访问权限  
+		SERVICE_KERNEL_DRIVER,// 表示加载的服务是驱动程序  
+		SERVICE_DEMAND_START, // 注册表驱动程序的 Start 值  
+		SERVICE_ERROR_IGNORE, // 注册表驱动程序的 ErrorControl 值  
+		szDriverImagePath, // 注册表驱动程序的 ImagePath 值  
 		NULL,
 		NULL,
 		NULL,
@@ -142,7 +142,7 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 
 	DWORD dwRtn;
 
-	//�жϷ����Ƿ�ʧ��
+	//判断服务是否失败
 	if (hServiceDDK == NULL)
 	{
 		dwRtn = GetLastError();
@@ -161,7 +161,7 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		}
 	}
 
-	//�����������
+	//开启此项服务
 	bRet = StartService(hServiceDDK, NULL, NULL);
 	if (!bRet)
 	{
@@ -188,28 +188,28 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		}
 	}
 	bRet = TRUE;
-	//�뿪ǰ�رվ��
+	//离开前关闭句柄
 BeforeLeave:
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
 }
 
-//ж����������  
+//卸载驱动程序  
 BOOL UnloadNTDriver(LPCWSTR szSvrName)
 {
 	BOOL bRet = FALSE;
-	SC_HANDLE hServiceMgr = NULL;//SCM�������ľ��
-	SC_HANDLE hServiceDDK = NULL;//NT��������ķ�����
+	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
+	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
 	SERVICE_STATUS SvrSta;
-	//��SCM������
+	//打开SCM管理器
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (hServiceMgr == NULL)
 	{
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//����������Ӧ�ķ���
+	//打开驱动所对应的服务
 	hServiceDDK = OpenService(hServiceMgr, szSvrName, SERVICE_ALL_ACCESS);
 
 	if (hServiceDDK == NULL)
@@ -217,13 +217,13 @@ BOOL UnloadNTDriver(LPCWSTR szSvrName)
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//ֹͣ�����������ֹͣʧ�ܣ�ֻ�������������ܣ��ٶ�̬���ء�  
+	//停止驱动程序，如果停止失败，只有重新启动才能，再动态加载。  
 	ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta);
-	//��̬ж����������  
+	//动态卸载驱动程序。  
 	DeleteService(hServiceDDK);
 	bRet = TRUE;
 BeforeLeave:
-	//�뿪ǰ�رմ򿪵ľ��
+	//离开前关闭打开的句柄
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
@@ -240,4 +240,83 @@ unsigned int Hash(const wchar_t *str)
 	}
 
 	return (hash & 0x7FFFFFFF);
+}
+#define CreateStrs \
+	Main.CreateString(L"安装成功，请按Scroll Lock键查看效果！", L"OneOK");\
+	Main.CreateString(L"安装失败\n文件不存在", L"OneFail");\
+	Main.CreateString(L"卸载成功", L"unQSOK");\
+	Main.CreateString(L"提示", L"Info");\
+	Main.CreateString(L"一键安装", L"setQS");\
+	Main.CreateString(L"卸载", L"unQS");\
+	Main.CreateString(L"启动失败", L"StartFail");\
+	Main.CreateString(L"Sethc删除失败！权限不足", L"DSR3Fail");\
+	Main.CreateString(L"Sethc删除失败！\n可能因为权限不足/驱动文件不存在", L"DSR0Fail");\
+	Main.CreateString(L"Sethc复制失败！\n权限不足", L"CSFail");\
+	Main.CreateString(L"Sethc复制失败！\n文件不存在", L"NoSethc");\
+	Main.CreateString(L"NTSD复制失败！\n权限不足", L"CNTSDFail");\
+	Main.CreateString(L"NTSD复制失败！\n文件不存在", L"NoNTSD");\
+	Main.CreateString(L"打开键值失败!\n可能因为没有足够权限或极域未安装", L"ACFail");\
+	Main.CreateString(L"修改键值失败!\n(未知错误)", L"ACUKE");\
+	Main.CreateString(L"修改成功", L"ACOK");\
+	Main.CreateString(L"出错了...可能是因为键值不存在\n按确定强制读取", L"VPFail");\
+	Main.CreateString(L"出错了...\n按确定强制读取", L"VPUKE");\
+	Main.CreateString(L"密码为空或键值不存在", L"VPNULL");\
+	Main.CreateString(L"删除文件", L"Tdelete");\
+	Main.CreateString(L"复制文件", L"Tcopy");\
+	Main.CreateString(L"按快捷键Ctrl+B切换", L"Tctrl+b");\
+	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
+	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
+	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
+	Main.CreateString(L"版本：C++ v1.8.4 测试版", L"Tver");\
+	Main.CreateString(L"64Bit Update 132", L"Tver2");\
+\
+	Main.CreateString(L"CopyLeft(Ɔ) SA软件 2015 - 2018", L"_Tleft");\
+	Main.CreateString(L"SA软件 2015 - 2018", L"Tleft");\
+	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\
+	Main.CreateString(L"极域破解v1.8.4 不是管理员", L"Tmain");\
+	Main.CreateString(L"极域破解v1.8.4", L"Tmain2");\
+	Main.CreateString(L"这不是文件 / 文件夹！", L"TINotF");\
+	Main.CreateString(L"请启动360！360可能会报加载驱动，请放行！\n如果执行后蓝屏，请把dump送至作者邮箱", L"360Start");\
+	Main.CreateString(L"加载驱动失败!\n可能是因为权限不足/操作被360拦截/文件不存在", L"360Fail");\
+	Main.CreateString(L"当前非管理员模式，蓝屏可能无效", L"BSODAsk");\
+	Main.CreateString(L"密码为:", L"pswdis");\
+	Main.CreateString(L"极域电子教室 - 已连接至教师端", L"tnd");\
+	CatchWnd.CreateString(L"剩余 ", L"Timer1");\
+	CatchWnd.CreateString(L" 秒", L"Timer2");\
+	CatchWnd.CreateString(NULL, L"back");\
+	Main.CreateString(L"explorer.exe", L"E_runinVD");\
+	Main.CreateString(L"输入端口", L"E_ApplyCh");\
+	Main.CreateString(L"输入密码", L"E_CP");\
+	Main.CreateString(L"浏览文件/文件夹", L"E_View");\
+	Main.CreateString(L"StudentMain", L"E_TDname");\
+	Main.CreateString(L"确定要把密码改成", L"CPAsk1");\
+	Main.CreateString(L"么？", L"CPAsk2");\
+	Main.CreateString(L"下载成功", L"Loaded");\
+	Main.CreateString(L"正在下载", L"Loading");\
+	Main.CreateString(L"- 不可用 ", L"Useless");\
+	Main.CreateString(L"- 可用 ", L"Usable");\
+	Main.CreateString(L"- 推荐 ", L"Rec");\
+	Main.CreateString(L"按 Ctrl+P 组合键可显示/隐藏此窗口", L"Ttip1");\
+	Main.CreateString(L"一般情况下建议使用“一键安装”或“虚拟桌面”", L"Ttip2");\
+	Main.CreateString(L"系统位数:", L"Tbit");\
+	Main.CreateString(L"系统版本:", L"Twinver");\
+	Main.CreateString(L"cmd状态:", L"Tcmd");\
+	Main.CreateString(L"极域版本:", L"TTDv");\
+	Main.CreateString(L"IP地址:", L"TIP");\
+	Main.CreateString(L"存在", L"TcmdOK");\
+	Main.CreateString(L"不存在", L"TcmdNO");\
+	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
+	CatchWnd.CreateString(L" 个窗口", L"Eat2");
+
+bool Findquotations(wchar_t* zxf, wchar_t zxf2[])
+{
+	wchar_t tmp0;
+	wchar_t *tmp1 = wcsstr(zxf, L"\"");
+	wchar_t *tmp2 = wcsstr(tmp1 + 1, L"\"");
+	if (tmp1 == 0 || tmp2 == 0)return false;
+	tmp0 = *tmp2;
+	*tmp2 = 0;
+	wcscpy(zxf2, tmp1 + 1);
+	*tmp2 = tmp0;
+	return true;
 }
