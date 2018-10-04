@@ -250,7 +250,7 @@ int CaptureImage()
 	HANDLE hFile;
 	DWORD dwSizeofDIB;
 	DWORD dwBytesWritten = 0;
-	hdcScreen = GetDC(NULL); // È«ÆÁÄ»DC
+	hdcScreen = GetDC(NULL); // ????DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
 	DEVMODE curDevMod = { 0 };
 	curDevMod.dmSize = sizeof(DEVMODE);
@@ -289,3 +289,4 @@ int CaptureImage()
 	DeleteObject(hdcMemDC);
 	return 0;
 }
+

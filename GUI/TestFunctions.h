@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 #include "stdafx.h"
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -114,15 +114,15 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 
 {
 	wchar_t szDriverImagePath[256];
-	//å¾—åˆ°å®Œæ•´çš„é©±åŠ¨è·¯å¾„
+	//µÃµ½ÍêÕûµÄÇı¶¯Â·¾¶
 	GetFullPathName(lpszDriverPath, 256, szDriverImagePath, NULL);
 	//s(szDriverImagePath);
 	BOOL bRet = FALSE;
 
-	SC_HANDLE hServiceMgr = NULL;//SCMç®¡ç†å™¨çš„å¥æŸ„
-	SC_HANDLE hServiceDDK = NULL;//NTé©±åŠ¨ç¨‹åºçš„æœåŠ¡å¥æŸ„
+	SC_HANDLE hServiceMgr = NULL;//SCM¹ÜÀíÆ÷µÄ¾ä±ú
+	SC_HANDLE hServiceDDK = NULL;//NTÇı¶¯³ÌĞòµÄ·şÎñ¾ä±ú
 
-								 //æ‰“å¼€æœåŠ¡æ§åˆ¶ç®¡ç†å™¨
+								 //´ò¿ª·şÎñ¿ØÖÆ¹ÜÀíÆ÷
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 
 	if (hServiceMgr == NULL)
@@ -132,15 +132,15 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		goto BeforeLeave;
 	}
 
-	//åˆ›å»ºé©±åŠ¨æ‰€å¯¹åº”çš„æœåŠ¡
+	//´´½¨Çı¶¯Ëù¶ÔÓ¦µÄ·şÎñ
 	hServiceDDK = CreateService(hServiceMgr,
-		lpszDriverName, //é©±åŠ¨ç¨‹åºçš„åœ¨æ³¨å†Œè¡¨ä¸­çš„åå­—  
-		lpszDriverName, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ DisplayName å€¼  
-		SERVICE_ALL_ACCESS, // åŠ è½½é©±åŠ¨ç¨‹åºçš„è®¿é—®æƒé™  
-		SERVICE_KERNEL_DRIVER,// è¡¨ç¤ºåŠ è½½çš„æœåŠ¡æ˜¯é©±åŠ¨ç¨‹åº  
-		SERVICE_DEMAND_START, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ Start å€¼  
-		SERVICE_ERROR_IGNORE, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ ErrorControl å€¼  
-		szDriverImagePath, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ ImagePath å€¼  
+		lpszDriverName, //Çı¶¯³ÌĞòµÄÔÚ×¢²á±íÖĞµÄÃû×Ö  
+		lpszDriverName, // ×¢²á±íÇı¶¯³ÌĞòµÄ DisplayName Öµ  
+		SERVICE_ALL_ACCESS, // ¼ÓÔØÇı¶¯³ÌĞòµÄ·ÃÎÊÈ¨ÏŞ  
+		SERVICE_KERNEL_DRIVER,// ±íÊ¾¼ÓÔØµÄ·şÎñÊÇÇı¶¯³ÌĞò  
+		SERVICE_DEMAND_START, // ×¢²á±íÇı¶¯³ÌĞòµÄ Start Öµ  
+		SERVICE_ERROR_IGNORE, // ×¢²á±íÇı¶¯³ÌĞòµÄ ErrorControl Öµ  
+		szDriverImagePath, // ×¢²á±íÇı¶¯³ÌĞòµÄ ImagePath Öµ  
 		NULL,
 		NULL,
 		NULL,
@@ -149,7 +149,7 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 
 	DWORD dwRtn;
 
-	//åˆ¤æ–­æœåŠ¡æ˜¯å¦å¤±è´¥
+	//ÅĞ¶Ï·şÎñÊÇ·ñÊ§°Ü
 	if (hServiceDDK == NULL)
 	{
 		dwRtn = GetLastError();
@@ -168,7 +168,7 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		}
 	}
 
-	//å¼€å¯æ­¤é¡¹æœåŠ¡
+	//¿ªÆô´ËÏî·şÎñ
 	bRet = StartService(hServiceDDK, NULL, NULL);
 	if (!bRet)
 	{
@@ -195,28 +195,28 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 		}
 	}
 	bRet = TRUE;
-	//ç¦»å¼€å‰å…³é—­å¥æŸ„
+	//Àë¿ªÇ°¹Ø±Õ¾ä±ú
 BeforeLeave:
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
 }
 
-//å¸è½½é©±åŠ¨ç¨‹åº  
+//Ğ¶ÔØÇı¶¯³ÌĞò  
 BOOL UnloadNTDriver(LPCWSTR szSvrName)
 {
 	BOOL bRet = FALSE;
-	SC_HANDLE hServiceMgr = NULL;//SCMç®¡ç†å™¨çš„å¥æŸ„
-	SC_HANDLE hServiceDDK = NULL;//NTé©±åŠ¨ç¨‹åºçš„æœåŠ¡å¥æŸ„
+	SC_HANDLE hServiceMgr = NULL;//SCM¹ÜÀíÆ÷µÄ¾ä±ú
+	SC_HANDLE hServiceDDK = NULL;//NTÇı¶¯³ÌĞòµÄ·şÎñ¾ä±ú
 	SERVICE_STATUS SvrSta;
-	//æ‰“å¼€SCMç®¡ç†å™¨
+	//´ò¿ªSCM¹ÜÀíÆ÷
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (hServiceMgr == NULL)
 	{
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//æ‰“å¼€é©±åŠ¨æ‰€å¯¹åº”çš„æœåŠ¡
+	//´ò¿ªÇı¶¯Ëù¶ÔÓ¦µÄ·şÎñ
 	hServiceDDK = OpenService(hServiceMgr, szSvrName, SERVICE_ALL_ACCESS);
 
 	if (hServiceDDK == NULL)
@@ -224,13 +224,13 @@ BOOL UnloadNTDriver(LPCWSTR szSvrName)
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//åœæ­¢é©±åŠ¨ç¨‹åºï¼Œå¦‚æœåœæ­¢å¤±è´¥ï¼Œåªæœ‰é‡æ–°å¯åŠ¨æ‰èƒ½ï¼Œå†åŠ¨æ€åŠ è½½ã€‚  
+	//Í£Ö¹Çı¶¯³ÌĞò£¬Èç¹ûÍ£Ö¹Ê§°Ü£¬Ö»ÓĞÖØĞÂÆô¶¯²ÅÄÜ£¬ÔÙ¶¯Ì¬¼ÓÔØ¡£  
 	ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta);
-	//åŠ¨æ€å¸è½½é©±åŠ¨ç¨‹åºã€‚  
+	//¶¯Ì¬Ğ¶ÔØÇı¶¯³ÌĞò¡£  
 	DeleteService(hServiceDDK);
 	bRet = TRUE;
 BeforeLeave:
-	//ç¦»å¼€å‰å…³é—­æ‰“å¼€çš„å¥æŸ„
+	//Àë¿ªÇ°¹Ø±Õ´ò¿ªµÄ¾ä±ú
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
@@ -249,71 +249,71 @@ unsigned int Hash(const wchar_t *str)
 	return (hash & 0x7FFFFFFF);
 }
 #define CreateStrs \
-	Main.CreateString(L"å®‰è£…æˆåŠŸï¼Œè¯·æŒ‰Scroll Locké”®æŸ¥çœ‹æ•ˆæœï¼", L"OneOK");\
-	Main.CreateString(L"å®‰è£…å¤±è´¥\næ–‡ä»¶ä¸å­˜åœ¨", L"OneFail");\
-	Main.CreateString(L"å¸è½½æˆåŠŸ", L"unQSOK");\
-	Main.CreateString(L"æç¤º", L"Info");\
-	Main.CreateString(L"ä¸€é”®å®‰è£…", L"setQS");\
-	Main.CreateString(L"å¸è½½", L"unQS");\
-	Main.CreateString(L"å¯åŠ¨å¤±è´¥", L"StartFail");\
-	Main.CreateString(L"Sethcåˆ é™¤å¤±è´¥ï¼æƒé™ä¸è¶³", L"DSR3Fail");\
-	Main.CreateString(L"Sethcåˆ é™¤å¤±è´¥ï¼\nå¯èƒ½å› ä¸ºæƒé™ä¸è¶³/é©±åŠ¨æ–‡ä»¶ä¸å­˜åœ¨", L"DSR0Fail");\
-	Main.CreateString(L"Sethcå¤åˆ¶å¤±è´¥ï¼\næƒé™ä¸è¶³", L"CSFail");\
-	Main.CreateString(L"Sethcå¤åˆ¶å¤±è´¥ï¼\næ–‡ä»¶ä¸å­˜åœ¨", L"NoSethc");\
-	Main.CreateString(L"NTSDå¤åˆ¶å¤±è´¥ï¼\næƒé™ä¸è¶³", L"CNTSDFail");\
-	Main.CreateString(L"NTSDå¤åˆ¶å¤±è´¥ï¼\næ–‡ä»¶ä¸å­˜åœ¨", L"NoNTSD");\
-	Main.CreateString(L"æ‰“å¼€é”®å€¼å¤±è´¥!\nå¯èƒ½å› ä¸ºæ²¡æœ‰è¶³å¤Ÿæƒé™æˆ–æåŸŸæœªå®‰è£…", L"ACFail");\
-	Main.CreateString(L"ä¿®æ”¹é”®å€¼å¤±è´¥!\n(æœªçŸ¥é”™è¯¯)", L"ACUKE");\
-	Main.CreateString(L"ä¿®æ”¹æˆåŠŸ", L"ACOK");\
-	Main.CreateString(L"å‡ºé”™äº†...å¯èƒ½æ˜¯å› ä¸ºé”®å€¼ä¸å­˜åœ¨\næŒ‰ç¡®å®šå¼ºåˆ¶è¯»å–", L"VPFail");\
-	Main.CreateString(L"å‡ºé”™äº†...\næŒ‰ç¡®å®šå¼ºåˆ¶è¯»å–", L"VPUKE");\
-	Main.CreateString(L"å¯†ç ä¸ºç©ºæˆ–é”®å€¼ä¸å­˜åœ¨", L"VPNULL");\
-	Main.CreateString(L"åˆ é™¤æ–‡ä»¶", L"Tdelete");\
-	Main.CreateString(L"å¤åˆ¶æ–‡ä»¶", L"Tcopy");\
-	Main.CreateString(L"æŒ‰å¿«æ·é”®Ctrl+Båˆ‡æ¢", L"Tctrl+b");\
-	Main.CreateString(L"æåŸŸä¸åŒç‰ˆæœ¬å¯†ç æ ¼å¼ä¸ä¸€æ ·", L"Tcp1");\
-	Main.CreateString(L"å¹¶ä¸ä¸€å®šèƒ½ä¿®æ”¹æˆåŠŸ", L"Tcp2");\
-	Main.CreateString(L"ä½œè€…ï¼šminecraft cxy villager", L"Tcoder");\
-	Main.CreateString(L"ç‰ˆæœ¬ï¼šC++ v1.8.4 æµ‹è¯•ç‰ˆ", L"Tver");\
+	Main.CreateString(L"°²×°³É¹¦£¬Çë°´Scroll Lock¼ü²é¿´Ğ§¹û£¡", L"OneOK");\
+	Main.CreateString(L"°²×°Ê§°Ü\nÎÄ¼ş²»´æÔÚ", L"OneFail");\
+	Main.CreateString(L"Ğ¶ÔØ³É¹¦", L"unQSOK");\
+	Main.CreateString(L"ÌáÊ¾", L"Info");\
+	Main.CreateString(L"Ò»¼ü°²×°", L"setQS");\
+	Main.CreateString(L"Ğ¶ÔØ", L"unQS");\
+	Main.CreateString(L"Æô¶¯Ê§°Ü", L"StartFail");\
+	Main.CreateString(L"SethcÉ¾³ıÊ§°Ü£¡È¨ÏŞ²»×ã", L"DSR3Fail");\
+	Main.CreateString(L"SethcÉ¾³ıÊ§°Ü£¡\n¿ÉÄÜÒòÎªÈ¨ÏŞ²»×ã/Çı¶¯ÎÄ¼ş²»´æÔÚ", L"DSR0Fail");\
+	Main.CreateString(L"Sethc¸´ÖÆÊ§°Ü£¡\nÈ¨ÏŞ²»×ã", L"CSFail");\
+	Main.CreateString(L"Sethc¸´ÖÆÊ§°Ü£¡\nÎÄ¼ş²»´æÔÚ", L"NoSethc");\
+	Main.CreateString(L"NTSD¸´ÖÆÊ§°Ü£¡\nÈ¨ÏŞ²»×ã", L"CNTSDFail");\
+	Main.CreateString(L"NTSD¸´ÖÆÊ§°Ü£¡\nÎÄ¼ş²»´æÔÚ", L"NoNTSD");\
+	Main.CreateString(L"´ò¿ª¼üÖµÊ§°Ü!\n¿ÉÄÜÒòÎªÃ»ÓĞ×ã¹»È¨ÏŞ»ò¼«ÓòÎ´°²×°", L"ACFail");\
+	Main.CreateString(L"ĞŞ¸Ä¼üÖµÊ§°Ü!\n(Î´Öª´íÎó)", L"ACUKE");\
+	Main.CreateString(L"ĞŞ¸Ä³É¹¦", L"ACOK");\
+	Main.CreateString(L"³ö´íÁË...¿ÉÄÜÊÇÒòÎª¼üÖµ²»´æÔÚ\n°´È·¶¨Ç¿ÖÆ¶ÁÈ¡", L"VPFail");\
+	Main.CreateString(L"³ö´íÁË...\n°´È·¶¨Ç¿ÖÆ¶ÁÈ¡", L"VPUKE");\
+	Main.CreateString(L"ÃÜÂëÎª¿Õ»ò¼üÖµ²»´æÔÚ", L"VPNULL");\
+	Main.CreateString(L"É¾³ıÎÄ¼ş", L"Tdelete");\
+	Main.CreateString(L"¸´ÖÆÎÄ¼ş", L"Tcopy");\
+	Main.CreateString(L"°´¿ì½İ¼üCtrl+BÇĞ»»", L"Tctrl+b");\
+	Main.CreateString(L"¼«Óò²»Í¬°æ±¾ÃÜÂë¸ñÊ½²»Ò»Ñù", L"Tcp1");\
+	Main.CreateString(L"²¢²»Ò»¶¨ÄÜĞŞ¸Ä³É¹¦", L"Tcp2");\
+	Main.CreateString(L"×÷Õß£ºminecraft cxy villager", L"Tcoder");\
+	Main.CreateString(L"°æ±¾£ºC++ v1.8.4 ²âÊÔ°æ", L"Tver");\
 	Main.CreateString(L"64Bit Update 132", L"Tver2");\
 \
-	Main.CreateString(L"CopyLeft(Æ†) SAè½¯ä»¶ 2015 - 2018", L"_Tleft");\
-	Main.CreateString(L"SAè½¯ä»¶ 2015 - 2018", L"Tleft");\
-	Main.CreateString(L"ç‰ˆæƒ - ä¸å­˜åœ¨çš„", L"Tleft2");\
-	Main.CreateString(L"æåŸŸç ´è§£v1.8.4 ä¸æ˜¯ç®¡ç†å‘˜", L"Tmain");\
-	Main.CreateString(L"æåŸŸç ´è§£v1.8.4", L"Tmain2");\
-	Main.CreateString(L"è¿™ä¸æ˜¯æ–‡ä»¶ / æ–‡ä»¶å¤¹ï¼", L"TINotF");\
-	Main.CreateString(L"è¯·å¯åŠ¨360ï¼360å¯èƒ½ä¼šæŠ¥åŠ è½½é©±åŠ¨ï¼Œè¯·æ”¾è¡Œï¼\nå¦‚æœæ‰§è¡Œåè“å±ï¼Œè¯·æŠŠdumpé€è‡³ä½œè€…é‚®ç®±", L"360Start");\
-	Main.CreateString(L"åŠ è½½é©±åŠ¨å¤±è´¥!\nå¯èƒ½æ˜¯å› ä¸ºæƒé™ä¸è¶³/æ“ä½œè¢«360æ‹¦æˆª/æ–‡ä»¶ä¸å­˜åœ¨", L"360Fail");\
-	Main.CreateString(L"å½“å‰éç®¡ç†å‘˜æ¨¡å¼ï¼Œè“å±å¯èƒ½æ— æ•ˆ", L"BSODAsk");\
-	Main.CreateString(L"å¯†ç ä¸º:", L"pswdis");\
-	Main.CreateString(L"æåŸŸç”µå­æ•™å®¤ - å·²è¿æ¥è‡³æ•™å¸ˆç«¯", L"tnd");\
-	CatchWnd.CreateString(L"å‰©ä½™ ", L"Timer1");\
-	CatchWnd.CreateString(L" ç§’", L"Timer2");\
+	Main.CreateString(L"CopyLeft(?) SAÈí¼ş 2015 - 2018", L"_Tleft");\
+	Main.CreateString(L"SAÈí¼ş 2015 - 2018", L"Tleft");\
+	Main.CreateString(L"°æÈ¨ - ²»´æÔÚµÄ", L"Tleft2");\
+	Main.CreateString(L"¼«ÓòÆÆ½âv1.8.4 ²»ÊÇ¹ÜÀíÔ±", L"Tmain");\
+	Main.CreateString(L"¼«ÓòÆÆ½âv1.8.4", L"Tmain2");\
+	Main.CreateString(L"Õâ²»ÊÇÎÄ¼ş / ÎÄ¼ş¼Ğ£¡", L"TINotF");\
+	Main.CreateString(L"ÇëÆô¶¯360£¡360¿ÉÄÜ»á±¨¼ÓÔØÇı¶¯£¬Çë·ÅĞĞ£¡\nÈç¹ûÖ´ĞĞºóÀ¶ÆÁ£¬Çë°ÑdumpËÍÖÁ×÷ÕßÓÊÏä", L"360Start");\
+	Main.CreateString(L"¼ÓÔØÇı¶¯Ê§°Ü!\n¿ÉÄÜÊÇÒòÎªÈ¨ÏŞ²»×ã/²Ù×÷±»360À¹½Ø/ÎÄ¼ş²»´æÔÚ", L"360Fail");\
+	Main.CreateString(L"µ±Ç°·Ç¹ÜÀíÔ±Ä£Ê½£¬À¶ÆÁ¿ÉÄÜÎŞĞ§", L"BSODAsk");\
+	Main.CreateString(L"ÃÜÂëÎª:", L"pswdis");\
+	Main.CreateString(L"¼«Óòµç×Ó½ÌÊÒ - ÒÑÁ¬½ÓÖÁ½ÌÊ¦¶Ë", L"tnd");\
+	CatchWnd.CreateString(L"Ê£Óà ", L"Timer1");\
+	CatchWnd.CreateString(L" Ãë", L"Timer2");\
 	CatchWnd.CreateString(NULL, L"back");\
 	Main.CreateString(L"explorer.exe", L"E_runinVD");\
-	Main.CreateString(L"è¾“å…¥ç«¯å£", L"E_ApplyCh");\
-	Main.CreateString(L"è¾“å…¥å¯†ç ", L"E_CP");\
-	Main.CreateString(L"æµè§ˆæ–‡ä»¶/æ–‡ä»¶å¤¹", L"E_View");\
+	Main.CreateString(L"ÊäÈë¶Ë¿Ú", L"E_ApplyCh");\
+	Main.CreateString(L"ÊäÈëÃÜÂë", L"E_CP");\
+	Main.CreateString(L"ä¯ÀÀÎÄ¼ş/ÎÄ¼ş¼Ğ", L"E_View");\
 	Main.CreateString(L"StudentMain", L"E_TDname");\
-	Main.CreateString(L"ç¡®å®šè¦æŠŠå¯†ç æ”¹æˆ", L"CPAsk1");\
-	Main.CreateString(L"ä¹ˆï¼Ÿ", L"CPAsk2");\
-	Main.CreateString(L"ä¸‹è½½æˆåŠŸ", L"Loaded");\
-	Main.CreateString(L"æ­£åœ¨ä¸‹è½½", L"Loading");\
-	Main.CreateString(L"- ä¸å¯ç”¨ ", L"Useless");\
-	Main.CreateString(L"- å¯ç”¨ ", L"Usable");\
-	Main.CreateString(L"- æ¨è ", L"Rec");\
-	Main.CreateString(L"æŒ‰ Ctrl+P ç»„åˆé”®å¯æ˜¾ç¤º/éšè—æ­¤çª—å£", L"Ttip1");\
-	Main.CreateString(L"ä¸€èˆ¬æƒ…å†µä¸‹å»ºè®®ä½¿ç”¨â€œä¸€é”®å®‰è£…â€æˆ–â€œè™šæ‹Ÿæ¡Œé¢â€", L"Ttip2");\
-	Main.CreateString(L"ç³»ç»Ÿä½æ•°:", L"Tbit");\
-	Main.CreateString(L"ç³»ç»Ÿç‰ˆæœ¬:", L"Twinver");\
-	Main.CreateString(L"cmdçŠ¶æ€:", L"Tcmd");\
-	Main.CreateString(L"æåŸŸç‰ˆæœ¬:", L"TTDv");\
-	Main.CreateString(L"IPåœ°å€:", L"TIP");\
-	Main.CreateString(L"å­˜åœ¨", L"TcmdOK");\
-	Main.CreateString(L"ä¸å­˜åœ¨", L"TcmdNO");\
-	CatchWnd.CreateString(L"å·²ç»åƒæ‰äº† ", L"Eat1");\
-	CatchWnd.CreateString(L" ä¸ªçª—å£", L"Eat2");
+	Main.CreateString(L"È·¶¨Òª°ÑÃÜÂë¸Ä³É", L"CPAsk1");\
+	Main.CreateString(L"Ã´£¿", L"CPAsk2");\
+	Main.CreateString(L"ÏÂÔØ³É¹¦", L"Loaded");\
+	Main.CreateString(L"ÕıÔÚÏÂÔØ", L"Loading");\
+	Main.CreateString(L"- ²»¿ÉÓÃ ", L"Useless");\
+	Main.CreateString(L"- ¿ÉÓÃ ", L"Usable");\
+	Main.CreateString(L"- ÍÆ¼ö ", L"Rec");\
+	Main.CreateString(L"°´ Ctrl+P ×éºÏ¼ü¿ÉÏÔÊ¾/Òş²Ø´Ë´°¿Ú", L"Ttip1");\
+	Main.CreateString(L"Ò»°ãÇé¿öÏÂ½¨ÒéÊ¹ÓÃ¡°Ò»¼ü°²×°¡±»ò¡°ĞéÄâ×ÀÃæ¡±", L"Ttip2");\
+	Main.CreateString(L"ÏµÍ³Î»Êı:", L"Tbit");\
+	Main.CreateString(L"ÏµÍ³°æ±¾:", L"Twinver");\
+	Main.CreateString(L"cmd×´Ì¬:", L"Tcmd");\
+	Main.CreateString(L"¼«Óò°æ±¾:", L"TTDv");\
+	Main.CreateString(L"IPµØÖ·:", L"TIP");\
+	Main.CreateString(L"´æÔÚ", L"TcmdOK");\
+	Main.CreateString(L"²»´æÔÚ", L"TcmdNO");\
+	CatchWnd.CreateString(L"ÒÑ¾­³ÔµôÁË ", L"Eat1");\
+	CatchWnd.CreateString(L" ¸ö´°¿Ú", L"Eat2");
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])
 {
