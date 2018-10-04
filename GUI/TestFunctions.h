@@ -9,6 +9,13 @@ void s(int cathy)
 	_itow_s(cathy, Cathytmp, 10);
 	MessageBox(NULL, Cathytmp, L"", NULL);
 }
+void out(int cathy)
+{
+	wchar_t Cathytmp[34];
+	_itow_s(cathy, Cathytmp, 10);
+	wcscat_s(Cathytmp, L"\n");
+	OutputDebugString(Cathytmp);
+}
 void s(LPCSTR cathy)
 {
 	MessageBoxA(NULL, cathy, "", NULL);
