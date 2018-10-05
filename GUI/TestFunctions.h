@@ -1,5 +1,10 @@
 #pragma once
 #include "stdafx.h"
+#ifndef _WIN64
+#define Bitstr L"32Bit Update 167"
+#else
+#define Bitstr L"64Bit Update 167"
+#endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
 void wcharTochar(const wchar_t *wchar, char *chr, int length);
@@ -31,7 +36,7 @@ void wcharTochar(const wchar_t *wchar, char *chr, int length)
 {
 	WideCharToMultiByte(CP_ACP, 0, wchar, -1, chr, length, NULL, NULL);
 }
-
+#pragma warning(disable:4244)
 int __cdecl sub_430CD0(void *Src, LPCWSTR lpSubKey, LPCWSTR lpValueName)
 {
 	const WCHAR *v3;
@@ -109,7 +114,7 @@ int __cdecl sub_430CD0(void *Src, LPCWSTR lpSubKey, LPCWSTR lpValueName)
 	}
 	return result;
 }
-
+#pragma warning(default:4244)
 BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 
 {
@@ -172,10 +177,9 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
 	bRet = StartService(hServiceDDK, NULL, NULL);
 	if (!bRet)
 	{
-		DWORD dwRtn = GetLastError();
+		dwRtn = GetLastError();
 		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_ALREADY_RUNNING)
 		{
-			//s(9999);
 			bRet = FALSE;
 			goto BeforeLeave;
 		}
@@ -275,8 +279,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
 	Main.CreateString(L"版本：C++ v1.8.4 测试版", L"Tver");\
-	Main.CreateString(L"64Bit Update 132", L"Tver2");\
-\
+	Main.CreateString(Bitstr, L"Tver2");\
 	Main.CreateString(L"CopyLeft(?) SA软件 2015 - 2018", L"_Tleft");\
 	Main.CreateString(L"SA软件 2015 - 2018", L"Tleft");\
 	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\

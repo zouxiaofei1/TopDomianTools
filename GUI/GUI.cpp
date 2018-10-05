@@ -78,7 +78,7 @@ CWndShadow Cshadow;//主窗口阴影特效
 HDC tdc, Hdc;//吃窗口缓冲hdc + 贴图hdc
 HBITMAP HBMP;//吃窗口hbmp
 
-BOOL top;//是否置顶
+BOOL TOP;//是否置顶
 const int numGames = 6;//游戏数
 BOOL GameExist[numGames + 1];
 TCHAR GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
@@ -222,7 +222,10 @@ public:
 
 	BOOL InsideButton(int bzz, POINT &point)
 	{
-		return (Button[bzz].Left*DPI <= point.x &&Button[bzz].Top*DPI <= point.y && (Button[bzz].Left + Button[bzz].Width)*DPI >= point.x && (Button[bzz].Top + Button[bzz].Height) *DPI >= point.y);
+		return (Button[bzz].Left*DPI <= point.x &&
+			Button[bzz].Top*DPI <= point.y &&
+			(long)((Button[bzz].Left + Button[bzz].Width)*DPI) >= point.x
+			&& (long)((Button[bzz].Top + Button[bzz].Height) *DPI) >= point.y);
 	}
 
 	int InsideCheck(int cur, POINT &point)
@@ -333,8 +336,8 @@ public:
 					else
 						DrawTextW(hdc, GetStr(L"Loading"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 				}
-				DeleteObject(tmp);
-				DeleteObject(tmb);
+				if (tmp != NULL)DeleteObject(tmp);
+				if (tmb != NULL)DeleteObject(tmb);
 			}
 
 			if (cur != 0)return;
@@ -541,9 +544,9 @@ public:
 	{
 		if (Edit[cur].strWidth <= Edit[cur].Width*DPI)
 		{
-			if (point.x < (Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2)return 0;
-			if (point.x > (Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2)return wcslen(Edit[cur].str);
-			point.x = point.x - (Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2;
+			if (point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2))return 0;
+			if (point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2))return wcslen(Edit[cur].str);
+			point.x -= (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
 		}
 		else
 			point.x = point.x - Edit[cur].Left*DPI + Edit[cur].XOffset;
@@ -587,8 +590,7 @@ public:
 			CloseClipboard();
 		}
 		wchar_t Buffer[1001] = { 0 };
-		charTowchar(buffer, Buffer, strlen(buffer) * 2);
-		//s(Buffer);
+		if (buffer != NULL)charTowchar(buffer, Buffer, strlen(buffer) * 2);
 		wchar_t zxf[2001] = { 0 };
 		int pos1 = min(Edit[cur].Pos1, Edit[cur].Pos2), pos2 = max(Edit[cur].Pos1, Edit[cur].Pos2);
 		if (pos1 == -1)
@@ -761,7 +763,7 @@ public:
 			EmptyClipboard();
 			clipbuffer = GlobalAlloc(GMEM_DDESHARE, strlen(Source) + 1);
 			buffer = (char*)GlobalLock(clipbuffer);
-			strcpy(buffer, LPCSTR(Source));
+			if (buffer != NULL)strcpy(buffer, LPCSTR(Source));
 			GlobalUnlock(clipbuffer);
 			SetClipboardData(CF_TEXT, clipbuffer);
 			CloseClipboard();
@@ -783,7 +785,7 @@ public:
 		else
 			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos1, &se);
 		if (Edit[cur].XOffset == 0)
-			SetCaretPos(se.cx + (Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2, (Edit[cur].Top + Edit[cur].Height / 2 - 4) *DPI - Edit[cur].strHeight / 2);
+			SetCaretPos(se.cx + (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) - Edit[cur].strWidth / 2, (Edit[cur].Top + Edit[cur].Height / 2 - 4) *DPI - Edit[cur].strHeight / 2);
 		else
 			SetCaretPos(se.cx + Edit[cur].Left*DPI - Edit[cur].XOffset, (Edit[cur].Top + Edit[cur].Height / 2 - 4)*DPI - Edit[cur].strHeight / 2);
 		ShowCaret(hWnd);
@@ -821,9 +823,9 @@ public:
 		rc.bottom = Check[cur].Top *DPI + 15 * DPI;
 		return rc;
 	}
-	BOOL InsideEdit(int cur, POINT point)
+	inline BOOL InsideEdit(int cur, POINT point)
 	{
-		return ((Edit[cur].Left - 5)*DPI <= point.x &&Edit[cur].Top*DPI <= point.y && (Edit[cur].Left + Edit[cur].Width + 5)*DPI >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
+		return ((Edit[cur].Left - 5)*DPI <= point.x &&Edit[cur].Top*DPI <= point.y && (long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
 	}
 
 	VOID LeftButtonDown()
@@ -863,7 +865,8 @@ public:
 					if (Obredraw)
 						RedrawType = 3,
 						RedrawCur = i;
-					InvalidateRect(hWnd, &GetRECTc(i), FALSE);
+					RECT rc = GetRECTc(i);
+					InvalidateRect(hWnd, &rc, FALSE);
 					break;
 				}
 			}
@@ -886,7 +889,8 @@ public:
 					if (Obredraw)
 						RedrawType = 2,
 						RedrawCur = i;
-					InvalidateRect(hWnd, &GetRECT(i), FALSE);
+					RECT rc = GetRECT(i);
+					InvalidateRect(hWnd, &rc, FALSE);
 					return;
 				}
 			}
@@ -912,7 +916,8 @@ public:
 						Button[CurCover].Percent -= Delta;
 						if (Button[CurCover].Percent < 0)Button[CurCover].Percent = 0;
 					}
-					InvalidateRect(hWnd, &GetRECT(CurCover), FALSE);
+					RECT rc = GetRECT(CurCover);
+					InvalidateRect(hWnd, &rc, FALSE);
 					CurCover = -1;
 					UpdateWindow(hWnd);
 
@@ -930,7 +935,8 @@ public:
 				if (InsideCheck(CoverCheck, point) == 0)
 				{
 					if (Obredraw)RedrawType = 3, RedrawCur = CoverCheck;
-					InvalidateRect(hWnd, &GetRECTc(CoverCheck), FALSE);
+					RECT rc = GetRECTc(CoverCheck);
+					InvalidateRect(hWnd, &rc, FALSE);
 					CoverCheck = 0;
 					UpdateWindow(hWnd);
 				}
@@ -974,12 +980,13 @@ public:
 		if (Obredraw)
 			RedrawType = 5,
 			RedrawCur = cur;
-		InvalidateRect(hWnd, &GetRECTe(cur), TRUE);
+		RECT rc = GetRECTe(cur);
+		InvalidateRect(hWnd, &rc, TRUE);
 	}
-	void InfoBox(LPCWSTR str)
+	void InfoBox(LPCWSTR Str)
 	{
-		if (!slient)MessageBox(hWnd, str, GetStr(L"Info"), MB_ICONINFORMATION);
-		else printf("%ls\n", str);
+		if (!slient)MessageBox(hWnd, Str, GetStr(L"Info"), MB_ICONINFORMATION);
+		else printf("%ls\n", Str);
 	}
 	VOID RefreshXOffset(int cur)
 	{
@@ -1007,7 +1014,7 @@ public:
 		DeleteDC(mdc);
 		DeleteObject(bmp);
 	}
-	int GetNumByIDe(LPCWSTR ID)
+	inline INT GetNumByIDe(LPCWSTR ID)
 	{
 		for (int i = 1; i <= CurEdit; ++i)if (wcscmp(ID, Edit[i].ID) == 0)return i;
 		return 0;
@@ -1038,12 +1045,12 @@ public:
 		UpdateWindow(hWnd);
 	}
 
-	VOID CreateMain(INT Left, INT Top, INT Wid, INT Hei, LPCWSTR Name, LONG Defs, bool obredraw)
+	VOID CreateMain(INT Left, INT Top, INT Wid, INT Hei, LPCWSTR name, LONG Defs, bool obredraw)
 	{
 		Obredraw = obredraw;
 		Width = Wid;
 		Height = Hei;
-		hWnd = CreateWindowW(szWindowClass, Name, Defs, Left, Top, Wid * DPI, Hei * DPI, NULL, nullptr, hInstance, nullptr);
+		hWnd = CreateWindowW(szWindowClass, name, Defs, Left, Top, Wid * DPI, Hei * DPI, NULL, nullptr, hInstance, nullptr);
 		Timer = GetTickCount();
 		//s(Timer);
 		SetTimer(hWnd, 4, 100, (TIMERPROC)TimerProc);
@@ -1068,9 +1075,9 @@ public:
 	{
 		return but[Hash(ID)];
 	}
-	void SetHDC(HDC Hdc)
+	void SetHDC(HDC HDc)
 	{
-		hdc = Hdc;
+		hdc = HDc;
 		bitmap = CreateCompatibleBitmap(hdc, 10000, 200);
 	}
 	void Try2CreateExp()
@@ -1195,8 +1202,8 @@ public:
 	int Width, Height;
 	HWND hWnd;
 	HINSTANCE hInstance;
-	int Timer;
-	bool ShowExp = false;
+	DWORD Timer;
+	BOOL ShowExp = FALSE;
 	int CurButtonBack;
 	bool ExpExist = false;
 private:
@@ -1219,16 +1226,20 @@ public:
 	HRESULT __stdcall QueryInterface(const IID &, void **) { return E_NOINTERFACE; }
 	ULONG STDMETHODCALLTYPE AddRef(void) { return 1; }//暂时没用的函数，从msdn上抄下来的
 	ULONG STDMETHODCALLTYPE Release(void) { return 1; }
-	HRESULT STDMETHODCALLTYPE OnStartBinding(DWORD dwReserved, IBinding *pib) { return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE GetPriority(LONG *pnPriority) { return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnLowResource(DWORD reserved) { return S_OK; }
-	virtual HRESULT STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szError) { return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE GetBindInfo(DWORD *grfBINDF, BINDINFO *pbindinfo) { return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) { return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnObjectAvailable(REFIID riid, IUnknown *punk) { return E_NOTIMPL; }
+	HRESULT STDMETHODCALLTYPE OnStartBinding(DWORD dwReserved, IBinding *pib) { UNREFERENCED_PARAMETER(dwReserved); UNREFERENCED_PARAMETER(pib); return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE GetPriority(LONG *pnPriority) { UNREFERENCED_PARAMETER(pnPriority); return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE OnLowResource(DWORD reserved) { UNREFERENCED_PARAMETER(reserved); return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szError) { UNREFERENCED_PARAMETER(hresult); UNREFERENCED_PARAMETER(szError); return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE GetBindInfo(DWORD *grfBINDF, BINDINFO *pbindinfo) { UNREFERENCED_PARAMETER(grfBINDF); UNREFERENCED_PARAMETER(pbindinfo); return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) {
+		UNREFERENCED_PARAMETER(grfBSCF); UNREFERENCED_PARAMETER(dwSize); UNREFERENCED_PARAMETER(pformatetc); UNREFERENCED_PARAMETER(pstgmed); return E_NOTIMPL;
+	}
+	virtual HRESULT STDMETHODCALLTYPE OnObjectAvailable(REFIID riid, IUnknown *punk) { UNREFERENCED_PARAMETER(riid); UNREFERENCED_PARAMETER(punk); return E_NOTIMPL; }
 
 	virtual HRESULT __stdcall OnProgress(ULONG ulProgress, ULONG ulProgressMax, ULONG ulStatusCode, LPCWSTR szStatusText)
 	{
+		UNREFERENCED_PARAMETER(ulStatusCode);
+		UNREFERENCED_PARAMETER(szStatusText);
 		if (ulProgressMax != 0)
 		{
 			double percentage = double(ulProgress * 1.0 / ulProgressMax * 100);
@@ -1246,6 +1257,7 @@ public:
 };
 BOOL CALLBACK EnumFunc(HWND hwnd, LPARAM lParam)
 {
+	UNREFERENCED_PARAMETER(lParam);
 	ULONG nProcessID;
 	LONG A;
 	A = GetWindowLongW(hwnd, GWL_STYLE) & WS_VISIBLE;
@@ -1280,6 +1292,7 @@ void FindTop(wchar_t *name)
 
 BOOL CALLBACK lpEnumFunc(HWND hwnd, LPARAM lParam)
 {
+	UNREFERENCED_PARAMETER(lParam);
 	ULONG nProcessID; HANDLE hProcessHandle;
 	LONG A;
 	A = GetWindowLongW(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST;
@@ -1298,7 +1311,7 @@ a:
 void KillTop()
 {
 	ZeroMemory(&expid, sizeof(expid));
-	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); int Cur = 0;
+	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); DWORD Cur = 0;
 	PROCESSENTRY32 pe;
 	pe.dwSize = sizeof(PROCESSENTRY32);
 	Process32First(hSnapShot, &pe);
@@ -1334,12 +1347,12 @@ BOOL KillProcess(LPCWSTR ProcessName)
 	}
 	return TRUE;
 }
-wchar_t * CheckIP(void)    //定义checkIP函数，用于取本机的ip地址  
+wchar_t wip[101];
+VOID CheckIP()    //定义checkIP函数，用于取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
 	char *ip;
-	wchar_t wip[101] = { 0 };
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{
@@ -1353,7 +1366,6 @@ wchar_t * CheckIP(void)    //定义checkIP函数，用于取本机的ip地址
 		}
 		WSACleanup();
 	}
-	return wip;
 }
 
 
@@ -1364,9 +1376,10 @@ void UpdateInfo()
 	GetOSDisplayString(tmp);
 	if (Bit == 32)wcscat(Main.GetStr(L"Tbit"), L"32"); else wcscat(Main.GetStr(L"Tbit"), L"64");
 	wcscat(Main.GetStr(L"Twinver"), tmp);
-	if (Bit == 34)f = _waccess(L"C:\\windows\\sysnative\\cmd.exe", NULL); else f = _waccess(L"C:\\windows\\system32\\cmd.exe", NULL);
-	if (f == 0)wcscat(Main.GetStr(L"Tcmd"), Main.GetStr(L"TcmdOK")); else wcscat(Main.GetStr(L"Tcmd"), Main.GetStr(L"TcmdNO"));
-	wcscat(Main.GetStr(L"TIP"), CheckIP());
+	if (Bit == 34)f = GetFileAttributes(L"C:\\windows\\sysnative\\cmd.exe"); else f = GetFileAttributes(L"C:\\windows\\system32\\cmd.exe");
+	if (f != -1)wcscat(Main.GetStr(L"Tcmd"), Main.GetStr(L"TcmdOK")); else wcscat(Main.GetStr(L"Tcmd"), Main.GetStr(L"TcmdNO"));
+	CheckIP();
+	wcscat(Main.GetStr(L"TIP"), wip);
 }
 void SetFrame()
 {
@@ -1391,8 +1404,10 @@ VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo)//得到环境变量
 {
 	if (NULL == lpSystemInfo)return;
 	typedef VOID(WINAPI *LPFN_GetNativeSystemInfo)(LPSYSTEM_INFO lpSystemInfo);
-	LPFN_GetNativeSystemInfo fnGetNativeSystemInfo = (LPFN_GetNativeSystemInfo)GetProcAddress(GetModuleHandle(_T("kernel32")), "GetNativeSystemInfo");;
-	if (NULL != fnGetNativeSystemInfo)fnGetNativeSystemInfo(lpSystemInfo); else GetSystemInfo(lpSystemInfo);
+	HMODULE H = GetModuleHandle(L"Kernel32");
+	LPFN_GetNativeSystemInfo fnGetNativeSystemInfo = 0;
+	if (H != NULL)fnGetNativeSystemInfo = (LPFN_GetNativeSystemInfo)GetProcAddress(H, "GetNativeSystemInfo");
+	if (fnGetNativeSystemInfo != NULL)fnGetNativeSystemInfo(lpSystemInfo); else GetSystemInfo(lpSystemInfo);
 }
 VOID GetBit()//系统位数
 {
@@ -1406,7 +1421,7 @@ VOID GetBit()//系统位数
 }
 BOOL Backup()
 {
-	if (_waccess_s(L"C:\\SAtemp", NULL) == 0)return FALSE;
+	if (GetFileAttributes(L"C:\\SAtemp") != -1)return FALSE;
 	CreateDirectory(L"C:\\SAtemp", NULL);
 	if (Bit != 34)
 		CopyFile(L"C:\\Windows\\System32\\sethc.exe", L"C:\\SAtemp\\sethc.exe", TRUE);
@@ -1414,7 +1429,7 @@ BOOL Backup()
 		CopyFile(L"C:\\Windows\\SysNative\\sethc.exe", L"C:\\SAtemp\\sethc.exe", TRUE);//sysnative
 	return TRUE;
 }
-void SwitchLanguage(LPWSTR Name)
+void SwitchLanguage(LPWSTR name)
 {
 	__try
 	{
@@ -1423,7 +1438,7 @@ void SwitchLanguage(LPWSTR Name)
 		wchar_t ReadTmp[1001];
 		FILE *fp;
 
-		_wfopen_s(&fp, Name, L"r,ccs=UNICODE");
+		_wfopen_s(&fp, name, L"r,ccs=UNICODE");
 		if (fp == NULL)s(1);
 		while (!feof(fp))
 		{
@@ -1593,7 +1608,7 @@ int SetupSethc()
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"sethc.exe");
-	if (_waccess(tmp, 0) != 0)return 2;
+	if (GetFileAttributes(tmp) == -1)return 2;
 	if (Bit != 34)
 		return CopyFile(tmp, L"C:\\Windows\\System32\\sethc.exe", false);
 	else
@@ -1609,7 +1624,7 @@ void AutoSetupSethc()
 }
 bool DeleteSethc()
 {
-	if (_waccess(SethcPath, 0) != 0)return true;
+	if (GetFileAttributes(SethcPath) == -1)return true;
 	TakeOwner(SethcPath);
 	return DeleteFile(SethcPath);
 }
@@ -1685,7 +1700,7 @@ int SetupSethcS()
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"x32\\sethc.exe");
-	if (_waccess(tmp, 0) != 0)return 2;
+	if (GetFileAttributes(tmp) == -1)return 2;
 	if (Bit != 34)
 		return CopyFile(tmp, L"C:\\Windows\\System32\\sethc.exe", false);
 	else
@@ -1695,14 +1710,14 @@ int CopyNTSD()
 {
 	int f;
 	if (Bit != 34)
-		f = _waccess(L"C:\\Windows\\System32\\ntsd.exe", 0);
+		f = GetFileAttributes(L"C:\\Windows\\System32\\ntsd.exe");
 	else
-		f = _waccess(L"C:\\Windows\\SysNative\\ntsd.exe", 0);
-	if (f == 0)return true;
+		f = GetFileAttributes(L"C:\\Windows\\SysNative\\ntsd.exe");
+	if (f != -1)return true;
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"ntsd.exe");
-	if (_waccess(tmp, 0) != 0)return 2;
+	if (GetFileAttributes(tmp) == -1)return 2;
 
 	if (Bit != 34)
 		return CopyFile(tmp, L"C:\\Windows\\System32\\ntsd.exe", false);
@@ -1755,6 +1770,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 }
 DWORD WINAPI GameThread(LPVOID pM)
 {
+	UNREFERENCED_PARAMETER(pM);
 	if (Main.Width < 700)
 	{
 		lock = true;
@@ -1804,12 +1820,13 @@ DWORD WINAPI GameThread(LPVOID pM)
 }
 DWORD WINAPI ThreadFun(LPVOID pM)
 {
-	while (top == 1)
+	UNREFERENCED_PARAMETER(pM);
+	while (TOP == 1)
 	{
 		SetWindowPos(Main.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 	}
-	SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
+	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
 	SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
 	return 0;
 }
@@ -1852,10 +1869,10 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
 		break;
 	}
-	if (_waccess(tmp, 0) == 0)GameExist[cur - 1] = true;
+	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
 	return 0;
 }
-COLORREF DoSelectColour(HWND hwnd)
+COLORREF DoSelectColour()
 {
 	static CHOOSECOLOR cc;
 	static COLORREF crCustColors[16];
@@ -1872,6 +1889,7 @@ COLORREF DoSelectColour(HWND hwnd)
 }
 BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)
 {
+	UNREFERENCED_PARAMETER(lParam);
 	ULONG nProcessID;
 	if (GetParent(hwnd) == 0)
 	{
@@ -1926,6 +1944,9 @@ int Cathy()
 }
 void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 {
+	UNREFERENCED_PARAMETER(hWnd);
+	UNREFERENCED_PARAMETER(nMsg);
+	UNREFERENCED_PARAMETER(dwTime);
 	switch (nTimerid)
 	{
 	case 1:
@@ -1971,7 +1992,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 				if (Main.Button[i].Percent < 0)Main.Button[i].Percent = 0;
 				Main.RedrawType = 2;
 				Main.RedrawCur = i;
-				InvalidateRect(Main.hWnd, &Main.GetRECT(i), FALSE);
+				RECT rc = Main.GetRECT(i);
+				InvalidateRect(Main.hWnd, &rc, FALSE);
 				UpdateWindow(Main.hWnd);
 			}
 		}
@@ -1981,7 +2003,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 			if (Main.Button[Main.CurCover].Percent > 100)Main.Button[Main.CurCover].Percent = 100;
 			Main.RedrawType = 2;
 			Main.RedrawCur = Main.CurCover;
-			InvalidateRect(Main.hWnd, &Main.GetRECT(Main.CurCover), FALSE);
+			RECT rc = Main.GetRECT(Main.CurCover);
+			InvalidateRect(Main.hWnd, &rc, FALSE);
 			UpdateWindow(Main.hWnd);
 		}
 		break;
@@ -2022,7 +2045,8 @@ void openfile()
 	if (GetOpenFileNameW(&ofn) == TRUE)Main.SetEditStrOrFont(strFile, 0, Main.GetNumByIDe(L"E_View"));
 	Main.RedrawType = 5;
 	Main.RedrawCur = Main.GetNumByIDe(L"E_View");
-	InvalidateRect(Main.hWnd, &Main.GetRECTe(Main.GetNumByIDe(L"E_View")), FALSE);
+	RECT rc = Main.GetRECTe(Main.GetNumByIDe(L"E_View"));
+	InvalidateRect(Main.hWnd, &rc, FALSE);
 }
 void BrowseFolder()
 {
@@ -2037,7 +2061,8 @@ void BrowseFolder()
 		Main.SetEditStrOrFont(path, 0, Main.GetNumByIDe(L"E_View"));
 		Main.RedrawType = 5;
 		Main.RedrawCur = Main.GetNumByIDe(L"E_View");
-		InvalidateRect(Main.hWnd, &Main.GetRECTe(Main.GetNumByIDe(L"E_View")), FALSE);
+		RECT rc = Main.GetRECTe(Main.GetNumByIDe(L"E_View"));
+		InvalidateRect(Main.hWnd, &rc, FALSE);
 	}
 }
 VOID SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
@@ -2129,7 +2154,7 @@ bool RunHOOK()
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"hook.exe");
 
-	if (_waccess(tmp, 0) != 0)return false;
+	if (GetFileAttributes(tmp) == -1)return false;
 	STARTUPINFO si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
 	return CreateProcessW(tmp, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
@@ -2292,9 +2317,8 @@ bool RunCmdLine(LPWSTR str)
 	if (wcsstr(str, L"-top") != NULL)
 	{
 		Main.Check[4].Value = 1;
-		top = 1;
+		TOP = TRUE;
 		CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
-		//s(11);
 		return false;
 	}
 	DWORD pid = GetParentProcessID(GetCurrentProcessId());
@@ -2354,6 +2378,7 @@ void CreateString() { CreateStrs }
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,//入口点
 	_In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
+	UNREFERENCED_PARAMETER(hPrevInstance);
 	wchar_t szProcess[] = L"C:\\windows\\explorer";
 
 	GetPath();
@@ -2633,7 +2658,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	typedef BOOL(WINAPI* ZXF)(HWND hwnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
 	ZXF ChangeWindowMessageFilterEx = NULL;
 	HMODULE hModule = GetModuleHandle(L"user32.dll");
-	ChangeWindowMessageFilterEx = (ZXF)GetProcAddress(hModule, "ChangeWindowMessageFilterEx");
+	if (hModule != NULL)ChangeWindowMessageFilterEx = (ZXF)GetProcAddress(hModule, "ChangeWindowMessageFilterEx");
 	if (ChangeWindowMessageFilterEx == NULL)return TRUE;
 	ChangeWindowMessageFilterEx(Main.hWnd, WM_DROPFILES, 1, 0);
 	ChangeWindowMessageFilterEx(Main.hWnd, 0x0049, 1, NULL);
@@ -2670,15 +2695,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		POINT point;
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
-		if (Main.InsideEdit(4, point) == true)
+		if (Main.InsideEdit(4, point) == TRUE)
 		{
-			wchar_t tmp[255];
+			wchar_t tmp[501];
 			HDROP hDrop = (HDROP)wParam;
 			DragQueryFile(hDrop, 0, tmp, MAX_PATH);
 			Main.SetEditStrOrFont(tmp, NULL, Main.GetNumByIDe(L"E_View"));
 			Main.RedrawType = 5;
 			Main.RedrawCur = Main.GetNumByIDe(L"E_View");
-			InvalidateRect(Main.hWnd, &Main.GetRECTe(Main.GetNumByIDe(L"E_View")), FALSE);
+			RECT rc = Main.GetRECTe(Main.GetNumByIDe(L"E_View"));
+			InvalidateRect(Main.hWnd, &rc, FALSE);
 		}
 		break;
 	}
@@ -2721,25 +2747,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 		case 7:
+		{
 			if (Main.Check[11].Value == false)RegMouseKey(), Main.Check[11].Value = true; else UnMouseKey(), Main.Check[11].Value = false;
 			Main.RedrawType = 3;
 			Main.RedrawCur = 11;
-			InvalidateRect(Main.hWnd, &Main.GetRECTc(11), false);
+			RECT rc = Main.GetRECTc(11);
+			InvalidateRect(Main.hWnd, &rc, false);
 			break;
+		}
 		case 8:
+		{
 			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
 			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 			break;
+		}
 		case 9:
 			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
 			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
 			break;
+#pragma warning(disable:4245)
 		case 10:
 			mouse_event(MOUSEEVENTF_MOVE, -10, 0, 0, 0);
 			break;
 		case 11:
 			mouse_event(MOUSEEVENTF_MOVE, 0, -10, 0, 0);
 			break;
+#pragma warning(default:4245)
 		case 12:
 			mouse_event(MOUSEEVENTF_MOVE, 10, 0, 0, 0);
 			break;
@@ -2751,15 +2784,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Main.EditHotKey(wParam);
 		break;
 	}
-	case WM_SETFOCUS:
-		Main.EditRegHotKey();
-		break;
-	case WM_KILLFOCUS:
-		//Main.DestroyExp();
-		Main.EditUnHotKey();
-		break;
-	case WM_ERASEBKGND:
-		return 0;
+	case WM_SETFOCUS: {Main.EditRegHotKey(); break; }
+	case WM_KILLFOCUS: {Main.EditUnHotKey(); break; }
+	case WM_ERASEBKGND: {return 0; }
 	case WM_PAINT:
 	{
 		HBRUSH BitmapBrush; HICON hicon;
@@ -2802,7 +2829,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DeleteObject(hicon);
 		DeleteObject(BitmapBrush);
 	finish:
-		BitBlt(rdc, rc.left, rc.top, max(Main.Width*Main.DPI, rc.right - rc.left), max(Main.Height*Main.DPI, rc.bottom - rc.top), hdc, rc.left, rc.top, SRCCOPY);
+		BitBlt(rdc, rc.left, rc.top, max((long)Main.Width*Main.DPI, rc.right - rc.left), max((long)Main.Height*Main.DPI, rc.bottom - rc.top), hdc, rc.left, rc.top, SRCCOPY);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -2885,7 +2912,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (point.x >= 20 * Main.DPI&&point.x <= 52 * Main.DPI&&point.y >= 10 * Main.DPI&&point.y <= 42 * Main.DPI)
 		{
 			DWORD col;
-			col = DoSelectColour(Main.hWnd);
+			col = DoSelectColour();
 			if (col == 0)break;
 			green = CreateSolidBrush(col);
 			GREEN = CreatePen(PS_SOLID, 2, col);
@@ -3075,7 +3102,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					wcscpy_s(tmp, Path);
 					wcscat_s(tmp, GameName[i]);
-					if (_waccess(tmp, 0) == 0)GameExist[i] = TRUE;
+					if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
 				}
 
 				wcscpy_s(Main.Button[Main.CurCover].Name, L"停止");
@@ -3221,7 +3248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						}
 						case 4:
 						{
-							top = 1;
+							TOP = TRUE;
 							CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
 							break;
 						}
@@ -3283,7 +3310,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							Shell_NotifyIcon(NIM_DELETE, &tnd);
 							break;
 						case 4:
-							top = 0;
+							TOP = FALSE;
 							break;
 						case 5:
 							UnregisterHotKey(Main.hWnd, 4);
@@ -3311,10 +3338,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							break;
 						}
 					}
+					RECT rc = Main.GetRECTc(i);
 					Main.Check[i].Value = 1 - Main.Check[i].Value;
 					Main.RedrawType = 3;
 					Main.RedrawCur = i;
-					InvalidateRect(Main.hWnd, &Main.GetRECTc(i), FALSE);
+					InvalidateRect(Main.hWnd, &rc, FALSE);
 				}
 			}
 		}
@@ -3332,7 +3360,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (himc)
 		{
 			// 设置输入法显示位置。
-			POINT point;
+			//POINT point;
 			GetCaretPos(&point);
 			cf.dwStyle = CFS_POINT;
 			cf.ptCurrentPos.y = point.y + 10;
@@ -3405,7 +3433,6 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 {
 
 	PAINTSTRUCT ps;
-	int i;
 	switch (message)
 	{
 	case WM_CREATE:
@@ -3448,8 +3475,6 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			HDC hdctd = GetDC(tdh[displaycur]);
 			RECT rc, rc2;
 			int left, width, top, height;
-
-			//PrintWindow(tdh[displaycur], hdctd, 0);
 
 			GetClientRect(tdh[displaycur], &rc);
 
@@ -3506,7 +3531,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		}
 
 		CatchWnd.Edit[CatchWnd.CoverEdit].Press = false;
-		for (i = 1; i <= CatchWnd.CurButton; i++)
+		for (int i = 1; i <= CatchWnd.CurButton; i++)
 		{
 			if (CatchWnd.InsideButton(i, point))
 			{
@@ -3538,9 +3563,12 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		}
 		break;
 	case WM_CHAR:
+	{
 		CatchWnd.EditCHAR(wParam);
 		break;
+	}
 	case WM_SETFOCUS:
+	{
 		if (tdhcur != 0)
 		{
 			RegisterHotKey(hWnd, 513, MOD_ALT, VK_LEFT);
@@ -3550,12 +3578,16 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		}
 		CatchWnd.EditRegHotKey();
 		break;
+	}
 	case WM_KILLFOCUS:
+	{
 		for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i);
 
 		CatchWnd.EditUnHotKey();
 		break;
+	}
 	case WM_HOTKEY:
+	{
 		if (wParam == 513)displaycur--;
 		if (wParam == 514)displaycur++;
 		if (wParam == 515) { tdhcur = 0, KillTimer(hWnd, 6), InvalidateRect(hWnd, NULL, TRUE); for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i); }
@@ -3565,6 +3597,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		if (displaycur > tdhcur)displaycur = 1;
 		CatchWnd.EditHotKey(wParam);
 		break;
+	}
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
