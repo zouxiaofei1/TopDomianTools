@@ -728,6 +728,7 @@ public:
 		Edit[cur].Pos2 = wcslen(Edit[cur].str);
 		RefreshXOffset(CoverEdit);
 		RefreshCaretByPos(CoverEdit);
+		EditRedraw(cur);
 	}
 
 	VOID EditMove(int cur, int off)
