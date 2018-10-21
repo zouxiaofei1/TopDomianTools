@@ -412,7 +412,7 @@ public:
 		Rectangle(hdc, ExpPoint.x, ExpPoint.y, ExpWidth + ExpPoint.x, ExpHeight + ExpPoint.y);
 		SetTextColor(hdc, RGB(0, 0, 0));
 		for (int i = 1; i <= ExpLine; i++)
-			TextOutW(hdc, ExpPoint.x + 4, ExpPoint.y - 12 + 16 * i, Exp[i], (int)wcslen(Exp[i]));
+			TextOutW(hdc, ExpPoint.x + 4, ExpPoint.y - 12 * DPI + 16 * i*DPI, Exp[i], (int)wcslen(Exp[i]));
 	}
 
 	void DrawEdits(int cur)
@@ -540,16 +540,17 @@ public:
 		DeleteDC(mdc);
 		DeleteObject(bmp);
 	}
-	int GetNearestChar(int cur, POINT point)
+	int GetNearestChar(int cur, POINT Point)
 	{
+		POINT point;
 		if (Edit[cur].strWidth <= Edit[cur].Width*DPI)
 		{
-			if (point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2))return 0;
-			if (point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2))return wcslen(Edit[cur].str);
-			point.x -= (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
+			if (Point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2))return 0;
+			if (Point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2))return wcslen(Edit[cur].str);
+			point.x =Point.x- (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
 		}
 		else
-			point.x = point.x - Edit[cur].Left*DPI + Edit[cur].XOffset;
+			point.x = Point.x - Edit[cur].Left*DPI + Edit[cur].XOffset;
 		HDC mdc;
 		HBITMAP bmp;
 		mdc = CreateCompatibleDC(hdc);
@@ -802,6 +803,7 @@ public:
 		Edit[cur].Pos1 = Edit[cur].Pos2 = -1;
 		Edit[cur].Press = true;
 		Edit[cur].Pos1 = GetNearestChar(cur, point);
+		//s(point.x);
 		RefreshCaretByPos(cur);
 		EditRedraw(cur);
 	}
@@ -1144,13 +1146,13 @@ public:
 	{
 		int Left, Top, Width, Height, Page;
 		COLORREF rgb;
-		wchar_t Name[31];
+		wchar_t Name[51];
 	}Frame[20];
 	struct CheckEx
 	{
 		int Left, Top, Page, Width;//width跟绘制没什么关系，见Insidec函数
 		bool Value;
-		wchar_t Name[31];
+		wchar_t Name[51];
 	}Check[20];
 	struct LineEx
 	{
@@ -1885,6 +1887,8 @@ COLORREF DoSelectColour()
 	cc.rgbResult = RGB(1, 1, 1);
 
 	ChooseColor(&cc);
+	int sum = (byte)cc.rgbResult + (byte)(cc.rgbResult >> 8) + (byte)(cc.rgbResult >> 16);
+	if (sum <= 384)Main.Text[18].rgb = RGB(255, 255, 255); else Main.Text[18].rgb = 0;
 	return cc.rgbResult;
 }
 BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)
@@ -2633,7 +2637,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	if (Admin == 0)Main.CreateText(60, 17, 0, L"Tmain", RGB(255, 255, 255));
 	else Main.CreateText(60, 17, 0, L"Tmain2", RGB(255, 255, 255));
-
 	Main.CreateButtonEx(Main.CurButton, 530, 10, 60, 30, 0, L"×", \
 		CreateSolidBrush(RGB(255, 106, 106)), CreateSolidBrush(RGB(250, 102, 102)), CreateSolidBrush(RGB(238, 99, 99)), \
 		CreatePen(PS_SOLID, 1, RGB(255, 106, 106)), CreatePen(PS_SOLID, 1, RGB(250, 102, 102)), CreatePen(PS_SOLID, 1, RGB(238, 99, 99)), \
@@ -2786,6 +2789,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_SETFOCUS: {Main.EditRegHotKey(); break; }
 	case WM_KILLFOCUS: {Main.EditUnHotKey(); break; }
+	//case WM_NCHITTEST:
+	//{
+	//	POINT point;
+	//	GetCursorPos(&point);
+	//	ScreenToClient(Main.hWnd, &point);
+	//	RECT rect;
+	//	GetClientRect(hWnd, &rect);
+	//	if (point.x >= rect.right - 10 && point.y >= rect.bottom - 10)
+	//		return HTBOTTOMRIGHT;
+					   
+	//	else return HTCLIENT;
+
+	//	//s(point.x);
+	//}
+	//case WM_SIZE:
+	//{
+	//	double x = 621 / 550.0;
+	//	POINT point;
+	//	GetCursorPos(&point);
+	//	ScreenToClient(Main.hWnd, &point);
+	//	if (point.x <= 0 || point.y <= 0)return 0;
+	//	RECT rect;
+	//	GetClientRect(hWnd, &rect);
+	//	int wid = rect.right - rect.left, hei = rect.bottom - rect.top;
+	//	//s(wid);
+	//	//if (wid == 1 || hei == 1)return 0;
+	//	if ((double)(point.x / point.y) < x)
+	//	{
+	//		SetWindowPos(hWnd, NULL, 0, 0, wid, wid / x, SWP_NOMOVE | SWP_NOREDRAW);
+	//		double nd = (double)wid / 621.0;
+	//		if(abs(Main.DPI-nd)>0.01)Main.SetDPI(nd);
+	//	}
+	//	else
+	//		if ((double)(point.x / point.y) > x)
+	//		{
+	//			SetWindowPos(hWnd, NULL, 0, 0, hei*x, hei, SWP_NOMOVE | SWP_NOREDRAW);
+	//			double nd = (double)hei / 550.0;
+	//			if (abs(Main.DPI - nd) > 0.01)Main.SetDPI(nd);
+	//		}
+	//		else return 0;
+	//	InvalidateRect(hWnd, NULL, FALSE);
+	//}
 	case WM_ERASEBKGND: {return 0; }
 	case WM_PAINT:
 	{
@@ -3479,6 +3524,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			GetClientRect(tdh[displaycur], &rc);
 
 			GetClientRect(CatchWnd.hWnd, &rc2);
+			Rectangle(tdc, 0, 0, rc2.right-rc2.left, rc2.bottom-rc2.top);
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
 			double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
 				wh2 = (double)(rc2.right - rc2.left) / (double)(rc2.bottom - rc2.top);
