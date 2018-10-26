@@ -284,7 +284,7 @@ public:
 			{
 				HPEN tmp = 0; HBRUSH tmb = 0;
 				SetTextColor(hdc, Button[i].FontRGB);
-				if (Button[i].Percent != 0 && Button[i].Percent != 100 && Button[i].Download == 0)
+				if (Button[i].Percent != 0 && Button[i].Percent != 100 && Button[i].DownTot == 0)
 				{
 					tmp = CreatePen(PS_SOLID, 1, RGB((Button[i].p2[0] - Button[i].p1[0])*Button[i].Percent / 100 + Button[i].p1[0], \
 						(Button[i].p2[1] - Button[i].p1[1])*Button[i].Percent / 100 + Button[i].p1[1], (Button[i].p2[2] - Button[i].p1[2])*Button[i].Percent / 100 + Button[i].p1[2]));
@@ -295,7 +295,7 @@ public:
 					SelectObject(hdc, tmb);
 					goto ok;
 				}
-				if (CurCover == i && Button[i].Download == 0)
+				if (CurCover == i && Button[i].DownTot == 0)
 					if (Press == 1)
 					{
 						SelectObject(hdc, Button[i].Press);
@@ -315,7 +315,7 @@ public:
 				if (Button[i].Font == NULL)SelectObject(hdc, DefFont); else SelectObject(hdc, Button[i].Font);
 
 				Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI, Button[i].Top*DPI + Button[i].Height*DPI);
-				if (Button[i].Download != 0)
+				if (Button[i].DownTot != 0)
 				{
 					SelectObject(hdc, Button[i].Hover);
 					Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI*(Button[i].Download - 1) / 100, Button[i].Top*DPI + Button[i].Height*DPI);
@@ -324,17 +324,33 @@ public:
 				RECT rc = GetRECT(i);
 
 				SetBkMode(hdc, TRANSPARENT);//去掉文字背景
-				if (Button[i].Download == 0)
+				if (Button[i].DownTot == 0)
 					DrawTextW(hdc, Button[i].Name, (int)wcslen(Button[i].Name), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 				else
 				{
-					if (Button[i].Download == 101)
+					if (Button[i].Download == 101 && (Button[i].DownTot < 2 || Button[i].DownTot == Button[i].DownCur))
 					{
 						DrawTextW(hdc, GetStr(L"Loaded"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-						Button[i].Download = 0;
+						Button[i].Download = Button[i].DownTot= 0;
 					}
 					else
-						DrawTextW(hdc, GetStr(L"Loading"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+					{
+						if (Button[i].DownTot < 2)
+							DrawTextW(hdc, GetStr(L"Loading"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+						else
+						{
+							wchar_t tmp1[101], tmp2[11];
+							wcscpy_s(tmp1, GetStr(L"Loading"));
+							wcscat_s(tmp1, L" ");
+							_itow_s(Button[i].DownCur, tmp2, 10);
+							wcscat_s(tmp1, tmp2);
+							wcscat_s(tmp1, L"/");
+							_itow_s(Button[i].DownTot, tmp2, 10);
+							wcscat_s(tmp1, tmp2);
+							//s(tmp1);
+							DrawTextW(hdc, tmp1, wcslen(tmp1), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+						}
+					}
 				}
 				if (tmp != NULL)DeleteObject(tmp);
 				if (tmb != NULL)DeleteObject(tmb);
@@ -547,7 +563,7 @@ public:
 		{
 			if (Point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI - Edit[cur].strWidth / 2))return 0;
 			if (Point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI + Edit[cur].strWidth / 2))return wcslen(Edit[cur].str);
-			point.x =Point.x- (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
+			point.x = Point.x - (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
 		}
 		else
 			point.x = Point.x - Edit[cur].Left*DPI + Edit[cur].XOffset;
@@ -1070,7 +1086,7 @@ public:
 		ScreenToClient(hWnd, &point);
 		for (int i = 0; i <= CurButton; i++)
 			if (Button[i].Page == CurWnd || Button[i].Page == 0)
-				if (InsideButton(i, point) && Button[i].Download == 0)
+				if (InsideButton(i, point) && Button[i].DownTot == 0)
 					return Button[i].ID;
 		return Button[0].ID;
 	}
@@ -1133,7 +1149,7 @@ public:
 	POINT ExpPoint, ExpPoint2;
 	struct ButtonEx
 	{
-		long Left, Top, Width, Height, Page, Download, Percent;
+		long Left, Top, Width, Height, Page, Download, Percent, DownCur, DownTot;
 		bool Visible, Enabled;
 		HBRUSH Leave, Hover, Press;
 		HPEN Leave2, Hover2, Press2;
@@ -1225,7 +1241,8 @@ DWORD ShellCreateInVDesk(PTSTR szName)
 }
 class DownloadProgress : public IBindStatusCallback {
 public:
-	TCHAR curi[11];
+	wchar_t curi[11];
+	//int cur, sum;
 	HRESULT __stdcall QueryInterface(const IID &, void **) { return E_NOINTERFACE; }
 	ULONG STDMETHODCALLTYPE AddRef(void) { return 1; }//暂时没用的函数，从msdn上抄下来的
 	ULONG STDMETHODCALLTYPE Release(void) { return 1; }
@@ -1248,6 +1265,8 @@ public:
 			double percentage = double(ulProgress * 1.0 / ulProgressMax * 100);
 			if (Main.Button[Main.GetNumbyID(curi)].Download != (int)percentage + 1)
 			{
+				//Main.Button[Main.GetNumbyID(curi)].DownCur = cur;
+				//Main.Button[Main.GetNumbyID(curi)].DownTot = sum;
 				Main.Button[Main.GetNumbyID(curi)].Download = (int)percentage + 1;
 				RECT rc = Main.GetRECT(Main.GetNumbyID(curi));
 				Main.RedrawType = 2;
@@ -1846,28 +1865,37 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 	{
 	case 1://小飞
 		wcscpy_s(progress.curi, L"Game1");
+		Main.Button[Main.GetNumbyID(L"Game1")].DownTot = 2;
+		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 1;
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/xiaofei.exe", tmp, 0, &progress);
 		wcscpy_s(tmp, Path);
 		wcscat_s(tmp, L"Games\\14000词库.ini");
-		URLDownloadToFileW(NULL, L"https://github.com/zouxiaofei1/TopDomianTools/raw/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, NULL);
+		Main.Button[Main.GetNumbyID(L"Game1")].Download = 0;
+		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 2;
+		URLDownloadToFileW(NULL, L"https://github.com/zouxiaofei1/TopDomianTools/raw/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
 		break;
 	case 2://Flappy
+		Main.Button[Main.GetNumbyID(L"Game2")].DownTot = Main.Button[Main.GetNumbyID(L"Game2")].DownCur = 1;
 		wcscpy_s(progress.curi, L"Game2");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/fly.exe", tmp, 0, &progress);
 		break;
 	case 3://2048
+		Main.Button[Main.GetNumbyID(L"Game3")].DownTot = Main.Button[Main.GetNumbyID(L"Game3")].DownCur = 1;
 		wcscpy_s(progress.curi, L"Game3");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/2048.exe", tmp, 0, &progress);
 		break;
 	case 4://俄罗斯方块
+		Main.Button[Main.GetNumbyID(L"Game4")].DownTot = Main.Button[Main.GetNumbyID(L"Game4")].DownCur = 1;
 		wcscpy_s(progress.curi, L"Game4");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/block.exe", tmp, 0, &progress);
 		break;
 	case 5://见缝插针
+		Main.Button[Main.GetNumbyID(L"Game5")].DownTot = Main.Button[Main.GetNumbyID(L"Game5")].DownCur = 1;
 		wcscpy_s(progress.curi, L"Game5");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/1.exe", tmp, 0, &progress);
 		break;
 	case 6://Chess
+		Main.Button[Main.GetNumbyID(L"Game6")].DownTot = Main.Button[Main.GetNumbyID(L"Game6")].DownCur = 1;
 		wcscpy_s(progress.curi, L"Game6");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
 		break;
@@ -2790,48 +2818,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_SETFOCUS: {Main.EditRegHotKey(); break; }
 	case WM_KILLFOCUS: {Main.EditUnHotKey(); break; }
-	//case WM_NCHITTEST:
-	//{
-	//	POINT point;
-	//	GetCursorPos(&point);
-	//	ScreenToClient(Main.hWnd, &point);
-	//	RECT rect;
-	//	GetClientRect(hWnd, &rect);
-	//	if (point.x >= rect.right - 10 && point.y >= rect.bottom - 10)
-	//		return HTBOTTOMRIGHT;
-					   
-	//	else return HTCLIENT;
+					   //case WM_NCHITTEST:
+					   //{
+					   //	POINT point;
+					   //	GetCursorPos(&point);
+					   //	ScreenToClient(Main.hWnd, &point);
+					   //	RECT rect;
+					   //	GetClientRect(hWnd, &rect);
+					   //	if (point.x >= rect.right - 10 && point.y >= rect.bottom - 10)
+					   //		return HTBOTTOMRIGHT;
 
-	//	//s(point.x);
-	//}
-	//case WM_SIZE:
-	//{
-	//	double x = 621 / 550.0;
-	//	POINT point;
-	//	GetCursorPos(&point);
-	//	ScreenToClient(Main.hWnd, &point);
-	//	if (point.x <= 0 || point.y <= 0)return 0;
-	//	RECT rect;
-	//	GetClientRect(hWnd, &rect);
-	//	int wid = rect.right - rect.left, hei = rect.bottom - rect.top;
-	//	//s(wid);
-	//	//if (wid == 1 || hei == 1)return 0;
-	//	if ((double)(point.x / point.y) < x)
-	//	{
-	//		SetWindowPos(hWnd, NULL, 0, 0, wid, wid / x, SWP_NOMOVE | SWP_NOREDRAW);
-	//		double nd = (double)wid / 621.0;
-	//		if(abs(Main.DPI-nd)>0.01)Main.SetDPI(nd);
-	//	}
-	//	else
-	//		if ((double)(point.x / point.y) > x)
-	//		{
-	//			SetWindowPos(hWnd, NULL, 0, 0, hei*x, hei, SWP_NOMOVE | SWP_NOREDRAW);
-	//			double nd = (double)hei / 550.0;
-	//			if (abs(Main.DPI - nd) > 0.01)Main.SetDPI(nd);
-	//		}
-	//		else return 0;
-	//	InvalidateRect(hWnd, NULL, FALSE);
-	//}
+					   //	else return HTCLIENT;
+
+					   //	//s(point.x);
+					   //}
+					   //case WM_SIZE:
+					   //{
+					   //	double x = 621 / 550.0;
+					   //	POINT point;
+					   //	GetCursorPos(&point);
+					   //	ScreenToClient(Main.hWnd, &point);
+					   //	if (point.x <= 0 || point.y <= 0)return 0;
+					   //	RECT rect;
+					   //	GetClientRect(hWnd, &rect);
+					   //	int wid = rect.right - rect.left, hei = rect.bottom - rect.top;
+					   //	//s(wid);
+					   //	//if (wid == 1 || hei == 1)return 0;
+					   //	if ((double)(point.x / point.y) < x)
+					   //	{
+					   //		SetWindowPos(hWnd, NULL, 0, 0, wid, wid / x, SWP_NOMOVE | SWP_NOREDRAW);
+					   //		double nd = (double)wid / 621.0;
+					   //		if(abs(Main.DPI-nd)>0.01)Main.SetDPI(nd);
+					   //	}
+					   //	else
+					   //		if ((double)(point.x / point.y) > x)
+					   //		{
+					   //			SetWindowPos(hWnd, NULL, 0, 0, hei*x, hei, SWP_NOMOVE | SWP_NOREDRAW);
+					   //			double nd = (double)hei / 550.0;
+					   //			if (abs(Main.DPI - nd) > 0.01)Main.SetDPI(nd);
+					   //		}
+					   //		else return 0;
+					   //	InvalidateRect(hWnd, NULL, FALSE);
+					   //}
 	case WM_ERASEBKGND: {return 0; }
 	case WM_PAINT:
 	{
@@ -2921,7 +2949,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		for (int i = 0; i <= Main.CurButton; i++)
 			if (Main.Button[i].Page == Main.CurWnd || Main.Button[i].Page == 0 || (GameMode&& Main.Button[i].Page == 6))
-				if (Main.InsideButton(i, pt) && Main.Button[i].Download == 0) { f = TRUE; break; }
+				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0) { f = TRUE; break; }
 
 		for (int i = 1; i <= Main.CurEdit; i++)
 			if (Main.Edit[i].Page == Main.CurWnd || Main.Edit[i].Page == 0)
@@ -3217,34 +3245,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"minisize") { ShowWindow(Main.hWnd, SW_MINIMIZE); break; }
 
 		BUTTON_IN(x, L"Game1") {
-			if (GameExist[0])RunEXE(GameName[0]);
+			if (GameExist[0])RunEXEs(GameName[0]);
 			else { int typ = 1; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
 		BUTTON_IN(x, L"Game2") {
-			if (GameExist[1])RunEXE(GameName[1]);
+			if (GameExist[1])RunEXEs(GameName[1]);
 			else { int typ = 2; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
 		BUTTON_IN(x, L"Game3") {
-			if (GameExist[2])RunEXE(GameName[2]);
+			if (GameExist[2])RunEXEs(GameName[2]);
 			else { int typ = 3; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
 		BUTTON_IN(x, L"Game4") {
-			if (GameExist[3])RunEXE(GameName[3]);
+			if (GameExist[3])RunEXEs(GameName[3]);
 			else { int typ = 4; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
 		BUTTON_IN(x, L"Game5")
 		{
-			if (GameExist[4])RunEXE(GameName[4]);
+			if (GameExist[4])RunEXEs(GameName[4]);
 			else { int typ = 5; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
 		BUTTON_IN(x, L"Game6")
 		{
-			if (GameExist[5])RunEXE(GameName[5]);
+			if (GameExist[5])RunEXEs(GameName[5]);
 			else { int typ = 6; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
 		}
@@ -3525,7 +3553,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			GetClientRect(tdh[displaycur], &rc);
 
 			GetClientRect(CatchWnd.hWnd, &rc2);
-			Rectangle(tdc, 0, 0, rc2.right-rc2.left, rc2.bottom-rc2.top);
+			Rectangle(tdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
 			double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
 				wh2 = (double)(rc2.right - rc2.left) / (double)(rc2.bottom - rc2.top);

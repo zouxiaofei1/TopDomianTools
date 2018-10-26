@@ -188,6 +188,12 @@ bool RunEXE(wchar_t *CmdLine)
 	PROCESS_INFORMATION pi = { 0 };
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 }
+bool RunEXEs(wchar_t *CmdLine)
+{
+	STARTUPINFO si = { 0 };
+	PROCESS_INFORMATION pi = { 0 };
+	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+}
 
 
 #define ProcessBasicInformation 0  
