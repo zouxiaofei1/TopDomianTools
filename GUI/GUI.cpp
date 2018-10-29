@@ -1911,7 +1911,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		wcscat_s(tmp, L"Games\\14000词库.ini");
 		Main.Button[Main.GetNumbyID(L"Game1")].Download = 0;
 		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 2;
-		URLDownloadToFileW(NULL, L"https://github.com/zouxiaofei1/TopDomianTools/raw/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
+		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
 		break;
 	case 2://Flappy
 		Main.Button[Main.GetNumbyID(L"Game2")].DownTot = Main.Button[Main.GetNumbyID(L"Game2")].DownCur = 1;
