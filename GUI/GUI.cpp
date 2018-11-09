@@ -38,7 +38,7 @@ BOOL Effect = TRUE;//特效开关
 TCHAR Path[301], Name[301];//程序路径 and 路径+程序名 
 TCHAR SethcPath[255];//Sethc路径
 BOOL FC = TRUE, FS = TRUE;//是否第一次启动窗口并注册类
-HBITMAP hZXFBitmap;
+HBITMAP hZXFBitmap, hZXFsign;
 ULONG CurrentProcessId;//当前程序Pid，用于自动防控制
 INT ScreenState;//截图伪装状态 1 = 截图 2 = 显示
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
@@ -50,6 +50,7 @@ BOOL HideState;//窗口是否隐藏
 BOOL oneclick;//一键安装状态
 int GameMode;//游戏模式？
 int EasterEggState;//CopyLeft文字循环状态
+BOOL EasterEggFlag = false;
 wchar_t EasterEggStr[11][15] = { L"AnswerKey",L"Left" ,L"Left",L"Right",L"Down",L"Up",L"In"\
 ,L"On",L"Back",L"Front",L"Teacher" };
 BOOL slient = FALSE;//是否命令行
@@ -95,7 +96,6 @@ public:
 		hInstance = HInstance;
 		CurButton = CurFrame = CurCheck = CurLine = CurText = 0;
 		CurWnd = 1;
-		DPI = 1;
 
 		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 
@@ -103,11 +103,8 @@ public:
 		CoverCheck = 0;
 	}
 
-	wchar_t *GetStr(LPCWSTR ID)
-	{
-		return str[Hash(ID)];
-	}
-	VOID SetString(LPCWSTR Str, LPCWSTR ID)
+	wchar_t *GetStr(LPCWSTR ID) { return str[Hash(ID)]; }
+	VOID SetStr(LPCWSTR Str, LPCWSTR ID)
 	{
 		delete[]str[Hash(ID)];
 		str[Hash(ID)] = new wchar_t[wcslen(Str) + 1];
@@ -133,10 +130,21 @@ public:
 		Edit[CurEdit].Width = Wid;
 		Edit[CurEdit].Height = Hei;
 		Edit[CurEdit].Page = Page;
-		SetEditStrOrFont(name, Font, CurEdit);
+		wcscpy_s(Edit[CurEdit].OStr, name);
+		Edit[CurEdit].font = Font;
+		Edit[CurEdit].str = new wchar_t[21];
+
+		//SetEditStrOrFont(NULL, Font, CurEdit);
 		wcscpy_s(Edit[CurEdit].ID, ID);
 	}
 
+	VOID CreateArea(INT Left, INT Top, INT Wid, INT Hei, INT Page)
+	{
+		++CurArea;
+		Area[CurArea].Left = Left; Area[CurArea].Top = Top;
+		Area[CurArea].Width = Wid; Area[CurArea].Height = Hei;
+		Area[CurArea].Page = Page;
+	}
 	VOID CreateButtonEx(INT Number, INT Left, INT Top, INT Wid, INT Hei, INT Page, LPCWSTR name, HBRUSH Leave, \
 		HBRUSH Hover, HBRUSH press, HPEN Leave2, HPEN Hover2, HPEN Press2, HFONT Font, BOOL Enabled, BOOL Visible, COLORREF FontRGB, LPCWSTR ID)
 	{
@@ -458,12 +466,22 @@ public:
 		begin:
 			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
 			{
+
 				SelectObject(mdc, White);
 				SelectObject(mdc, WhiteBrush);
 				Rectangle(mdc, 0, 0, 4000, 400);
 				SelectObject(hdc, WhiteBrush);
 				if (i == CoverEdit)SelectObject(hdc, BLUE); else SelectObject(hdc, BLACK);
 				Rectangle(hdc, (Edit[i].Left - 5)*DPI, Edit[i].Top*DPI, (Edit[i].Left + Edit[i].Width + 5)*DPI, (Edit[i].Top + Edit[i].Height)*DPI);
+				if (*Edit[i].OStr != 0)
+				{
+					SetTextColor(hdc, RGB(150, 150, 150));
+					RECT rc;
+					rc.left = (Edit[i].Left - 5)*DPI; rc.top = Edit[i].Top*DPI;
+					rc.right = (Edit[i].Left + Edit[i].Width + 5)*DPI; rc.bottom = (Edit[i].Top + Edit[i].Height)*DPI;
+					DrawTextW(hdc, Edit[i].OStr, wcslen(Edit[i].OStr), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+					continue;
+				}
 				SIZE sel, ser;
 				int pos1, pos2;
 				if (Edit[i].Pos1 > Edit[i].Pos2&&Edit[i].Pos2 != -1)pos1 = Edit[i].Pos2, pos2 = Edit[i].Pos1; else pos1 = Edit[i].Pos1, pos2 = Edit[i].Pos2;
@@ -840,10 +858,16 @@ public:
 		ScreenToClient(hWnd, &point);
 		if (CoverEdit != cur)Edit[CoverEdit].Pos1 = Edit[CoverEdit].Pos2 = -1, EditRedraw(CoverEdit);
 		CoverEdit = cur;
+		if (*Edit[cur].OStr != 0)
+		{
+			*Edit[cur].OStr = 0;
+			//delete[]Edit[cur].str;
+			ZeroMemory(Edit[cur].str, sizeof(Edit[cur].str));
+		}
 		Edit[cur].Pos1 = Edit[cur].Pos2 = -1;
 		Edit[cur].Press = true;
 		Edit[cur].Pos1 = GetNearestChar(cur, point);
-		//s(point.x);
+		
 		RefreshCaretByPos(cur);
 		EditRedraw(cur);
 	}
@@ -865,7 +889,12 @@ public:
 		rc.bottom = Check[cur].Top *DPI + 15 * DPI;
 		return rc;
 	}
-	inline BOOL InsideEdit(int cur, POINT point)
+	BOOL InsideArea(int cur, POINT point)
+	{
+		return (Area[cur].Left*DPI <= point.x) && (Area[cur].Top*DPI <= point.y) && ((Area[cur].Left + Area[cur].Width)*DPI >= point.x) && ((Area[cur].Top + Area[cur].Height)*DPI >= point.y);
+	}
+
+	BOOL InsideEdit(int cur, POINT point)
 	{
 		return ((Edit[cur].Left - 5)*DPI <= point.x &&Edit[cur].Top*DPI <= point.y && (long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
 	}
@@ -1211,9 +1240,13 @@ public:
 		int Left, Top, Width, Height, Page;
 		int strWidth, strHeight, Pos1, Pos2, XOffset;
 		bool Press;
-		wchar_t *str, ID[11];
+		wchar_t *str, ID[11], OStr[21];
 		HFONT font;
 	}Edit[10];
+	struct AreaEx
+	{
+		int Left, Top, Width, Height, Page;
+	}Area[10];
 	struct GUIString
 	{
 		wchar_t *str, ID[11];
@@ -1221,15 +1254,9 @@ public:
 	std::unordered_map<unsigned int, wchar_t*> str;
 	std::unordered_map<unsigned int, int>but;
 	HFONT DefFont;
-	int Msv;
-	int CurString;
-	int CurButton;
-	int CurFrame;
-	int CurCheck;
-	int CurLine;
-	int CurText;
-	int CurEdit;
-	double DPI;
+	int Msv;//鼠标移出检测变量(吧)
+	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;
+	double DPI = 1;
 	int CurCover;
 	bool Obredraw = false;
 	bool ButtonEffect = false;
@@ -1421,16 +1448,16 @@ void UpdateInfo()
 	GetOSDisplayString(tmp);
 	wcscpy_s(tmp2, Main.GetStr(L"Tbit"));
 	if (Bit == 32)wcscat_s(tmp2, L"32"); else wcscat_s(tmp2, L"64");
-	Main.SetString(tmp2, L"Tbit");
+	Main.SetStr(tmp2, L"Tbit");
 	wcscpy_s(tmp2, Main.GetStr(L"Twinver")); wcscat(tmp2, tmp);
-	Main.SetString(tmp2, L"Twinver");
+	Main.SetStr(tmp2, L"Twinver");
 	if (Bit == 34)f = GetFileAttributes(L"C:\\windows\\sysnative\\cmd.exe"); else f = GetFileAttributes(L"C:\\windows\\system32\\cmd.exe");
-	Main.SetString(tmp2, L"Twinver"); wcscpy_s(tmp2, Main.GetStr(L"Tcmd"));
+	Main.SetStr(tmp2, L"Twinver"); wcscpy_s(tmp2, Main.GetStr(L"Tcmd"));
 	if (f != -1)wcscat(tmp2, Main.GetStr(L"TcmdOK")); else wcscat(tmp2, Main.GetStr(L"TcmdNO"));
-	Main.SetString(tmp2, L"Tcmd");
+	Main.SetStr(tmp2, L"Tcmd");
 	CheckIP();
 	wcscpy_s(tmp2, Main.GetStr(L"TIP")); wcscat(tmp2, wip);
-	Main.SetString(tmp2, L"TIP");
+	Main.SetStr(tmp2, L"TIP");
 }
 void SetFrame()
 {
@@ -1468,7 +1495,7 @@ VOID GetBit()//系统位数
 	//32 means 32bit GUI on 32bit System
 	//34 means 32bit GUI on 64bit System
 	//64 means 64bit GUI on 64bit System
-	if(sizeof(int*) * 8 == 32 && Bit == 64)Bit = 34;
+	if (sizeof(int*) * 8 == 32 && Bit == 64)Bit = 34;
 }
 BOOL Backup()
 {
@@ -1601,7 +1628,7 @@ void SwitchLanguage(LPWSTR name)
 
 					str2[0] = '\0';
 					wcscat_s(tmp, str3);
-					Main.SetString(tmp, ReadTmp);
+					Main.SetStr(tmp, ReadTmp);
 				}
 				if (Framef == true && Mainf == true)
 				{
@@ -1644,10 +1671,10 @@ void SwitchLanguage(LPWSTR name)
 					if (wcsstr(ReadTmp, L"CW") != 0)wcscpy_s(CatchWnd.Button[1].Name, str1 + 1);
 					if (wcsstr(ReadTmp, L"MW") != 0)wcscpy_s(CatchWnd.Button[2].Name, str1 + 1);
 					if (wcsstr(ReadTmp, L"RW") != 0)wcscpy_s(CatchWnd.Button[3].Name, str1 + 1);
-					if (wcsstr(ReadTmp, L"Eat1") != 0)CatchWnd.SetString(str1 + 1, L"Eat1");
-					if (wcsstr(ReadTmp, L"Eat2") != 0)CatchWnd.SetString(str1 + 1, L"Eat2");
-					if (wcsstr(ReadTmp, L"Timer1") != 0)CatchWnd.SetString(str1 + 1, L"Timer1");
-					if (wcsstr(ReadTmp, L"Timer2") != 0)CatchWnd.SetString(str1 + 1, L"Timer2");
+					if (wcsstr(ReadTmp, L"Eat1") != 0)CatchWnd.SetStr(str1 + 1, L"Eat1");
+					if (wcsstr(ReadTmp, L"Eat2") != 0)CatchWnd.SetStr(str1 + 1, L"Eat2");
+					if (wcsstr(ReadTmp, L"Timer1") != 0)CatchWnd.SetStr(str1 + 1, L"Timer1");
+					if (wcsstr(ReadTmp, L"Timer2") != 0)CatchWnd.SetStr(str1 + 1, L"Timer2");
 					continue;
 				}
 			}
@@ -1911,7 +1938,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		wcscat_s(tmp, L"Games\\14000词库.ini");
 		Main.Button[Main.GetNumbyID(L"Game1")].Download = 0;
 		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 2;
-		URLDownloadToFileW(NULL, L"https://github.com/zouxiaofei1/TopDomianTools/raw/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
+		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
 		break;
 	case 2://Flappy
 		Main.Button[Main.GetNumbyID(L"Game2")].DownTot = Main.Button[Main.GetNumbyID(L"Game2")].DownCur = 1;
@@ -2048,7 +2075,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		wcscpy_s(tmp, L"Copy");
 		wcscat_s(tmp, EasterEggStr[EasterEggState % 11]);
 		wcscat_s(tmp, Main.GetStr(L"Tleft"));
-		Main.SetString(tmp, L"_Tleft");
+		Main.SetStr(tmp, L"_Tleft");
 		InvalidateRect(Main.hWnd, 0, false);
 		break;
 	case 4:
@@ -2244,9 +2271,9 @@ VOID BSOD()
 void EasterEgg(bool flag)
 {
 	if (flag)
-		SetTimer(Main.hWnd, 3, 100, (TIMERPROC)TimerProc);
+		SetTimer(Main.hWnd, 3, 100, (TIMERPROC)TimerProc), EasterEggFlag = true;
 	else
-		KillTimer(Main.hWnd, 3);
+		KillTimer(Main.hWnd, 3), EasterEggFlag = false;
 }
 
 void AutoViewPass()
@@ -2340,46 +2367,69 @@ void AutoClearPassWd()
 }
 void ChangePasswordEx(int type)
 {
-	if (type == 1 || type == 2)
-	{
-		wchar_t tmp[1001] = { 0 };
-		if (wcscmp(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, Main.GetStr(L"E_CP")) == 0)
-		{
-			wchar_t tmp2[501];
-			wcscpy_s(tmp2, Main.GetStr(L"CPAsk1"));
-			wcscat_s(tmp2, L"\"");
-			wcscat_s(tmp2, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
-			wcscat_s(tmp2, L"\"");
-			wcscat_s(tmp2, Main.GetStr(L"CPAsk2"));
-			if (MessageBox(Main.hWnd, tmp2, Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_YESNO) != IDYES)return;
-		}
-		HKEY hKey;
-		LONG ret;
-		if (Bit != 64)
-			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-		else
-			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
 
-		if (ret != 0)
-		{
-			Main.InfoBox(Main.GetStr(L"ACFail"));
-			RegCloseKey(hKey);
-			return;
-		}
-		if (type == 2)wcscpy_s(tmp, L"Passwd"), wcscat_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
-		else wcscpy_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
-		ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t)*wcslen(tmp));
-		if (ret != 0)
-		{
-			Main.InfoBox(Main.GetStr(L"ACUKE"));
-			RegCloseKey(hKey);
-			return;
-		}
+	wchar_t tmp[1001] = { 0 };
+	if (wcscmp(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, Main.GetStr(L"E_CP")) == 0)
+	{
+		wchar_t tmp2[501];
+		wcscpy_s(tmp2, Main.GetStr(L"CPAsk1"));
+		wcscat_s(tmp2, L"\"");
+		wcscat_s(tmp2, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+		wcscat_s(tmp2, L"\"");
+		wcscat_s(tmp2, Main.GetStr(L"CPAsk2"));
+		if (MessageBox(Main.hWnd, tmp2, Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_YESNO) != IDYES)return;
+	}
+	HKEY hKey;
+	LONG ret;
+	if (Bit != 64)
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+	else
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+
+	if (ret != 0)
+	{
+		Main.InfoBox(Main.GetStr(L"ACFail"));
 		RegCloseKey(hKey);
-		Main.InfoBox(Main.GetStr(L"ACOK"));
 		return;
 	}
-	if (type == 3)sub_430CD0(NULL, NULL, NULL);
+	if (type == 2)wcscpy_s(tmp, L"Passwd"), wcscat_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+	else wcscpy_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t)*wcslen(tmp));
+	if (ret != 0)
+	{
+		Main.InfoBox(Main.GetStr(L"ACUKE"));
+		RegCloseKey(hKey);
+		return;
+	}
+	RegCloseKey(hKey);
+	if (type == 1)
+	{
+		wcscpy_s(tmp, L"Passwd");
+		BYTE data[2000];
+		wcscat(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+		int len = wcslen(tmp) * 2;
+		for (int i = 0; i < len; ++i)tmp[i] ^= 0x4350u;
+		for (int i = 0; i < len; ++i)
+		{
+			data[i * 2 + 1] = tmp[i] >> 8;
+			data[i * 2] = tmp[i] - (tmp[i] >> 8 << 8);
+		}
+		for (int i = 0; i < len; ++i)printf("%x ", data[i]);
+		//HKEY hKey;
+		if (Bit != 64)
+			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+		else
+			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+
+		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char)*len);
+
+		if (Bit != 64)change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, false);
+		else change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, true);
+	}
+	Main.InfoBox(Main.GetStr(L"ACOK"));
+	return;
+
+	//if (type == 3)sub_430CD0(NULL, NULL, NULL);
 	return;
 }
 
@@ -2473,6 +2523,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	MyRegisterClass(hInstance);
 
+	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
+	SEtProcessDPIAware SetProcessDPIAware;
+	HMODULE huser;
+	huser = LoadLibrary(L"user32.dll");
+	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
+	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
+
 	if (!InitInstance(hInstance, nCmdShow))return FALSE;
 
 cosl:
@@ -2547,7 +2604,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	Main.InitClass(hInst);
-	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.8.4", 0, true);
+	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.8.5", 0, true);
 
 	if (Effect)
 	{
@@ -2577,7 +2634,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.EditRegHotKey();
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
-
+	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0);
 	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh", 0);
 	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP", 0);
@@ -2626,9 +2683,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	Main.CreateButton(365, 102, 97, 45, 2, L"清空密码", L"ClearPass");//16
 	Main.CreateButton(477, 102, 97, 45, 2, L"查看密码", L"ViewPass");
-	Main.CreateButton(365, 235, 60, 45, 2, L"改密1", L"CP1");
-	Main.CreateButton(440, 235, 60, 45, 2, L"改密2", L"CP2");
-	Main.CreateButton(515, 235, 60, 45, 2, L"改密3", L"CP3");
+	Main.CreateButton(365, 235, 97, 45, 2, L"改密1", L"CP1");
+	Main.CreateButton(477, 235, 97, 45, 2, L"改密2", L"CP2");
 
 	Main.CreateButton(165, 370, 120, 55, 2, L"重新打开极域", L"re-TD");
 	Main.CreateButton(305, 370, 120, 55, 2, L"程序窗口化", L"windows.ex");
@@ -2699,6 +2755,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	Main.CreateFrame(139, 50, 481, 499, 0, L"");
 	Main.CreateFrame(139, 50, 1080, 499, 0, L"");
+
+	Main.CreateArea(20, 10, 32, 32, 0);
+	Main.CreateArea(170, 75, 135, 165, 4);
 
 	Main.CurButton++;
 
@@ -2931,15 +2990,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		if (f == true)  goto finish;
 
-		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI)); \
-			DrawIconEx(hdc, 20 * Main.DPI, 10 * Main.DPI, hicon, 32 * Main.DPI, 32 * Main.DPI, 0, NULL, DI_NORMAL | DI_COMPAT);
-
-		BitmapBrush = CreatePatternBrush(hZXFBitmap);
-		SelectObject(hdc, BitmapBrush);
-		if (Main.CurWnd == 4)Rectangle(hdc, 135 * 22, 170 * 18, 135 * 23, 170 * 19);
-		if (Main.CurWnd == 4)StretchBlt(hdc, 170 * Main.DPI, 75 * Main.DPI, 135 * Main.DPI, 170 * Main.DPI, hdc, 135 * 22, 170 * 18, 135, 170, SRCCOPY);
+		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI));
+		DrawIconEx(hdc, 20 * Main.DPI, 10 * Main.DPI, hicon, 32 * Main.DPI, 32 * Main.DPI, 0, NULL, DI_NORMAL | DI_COMPAT);
 		DeleteObject(hicon);
-		DeleteObject(BitmapBrush);
+		if (Main.CurWnd == 4)
+		{
+			BitmapBrush = CreatePatternBrush(hZXFBitmap);
+			SelectObject(hdc, BitmapBrush);
+			Rectangle(hdc, 135 * 22, 170 * 18, 135 * 23, 170 * 19);
+			StretchBlt(hdc, 170 * Main.DPI, 75 * Main.DPI, 135 * Main.DPI, 170 * Main.DPI, hdc, 135 * 22, 170 * 18, 135, 170, SRCCOPY);
+			//DeleteObject(BitmapBrush);
+			if (EasterEggFlag)
+			{
+				BitmapBrush = CreatePatternBrush(hZXFsign);
+				SelectObject(hdc, BitmapBrush);
+				SelectObject(hdc, White);
+				Rectangle(hdc, 105 * 34, 75 * 38, 105 * 35, 75 * 39);
+				StretchBlt(hdc, 165 * Main.DPI, 465 * Main.DPI, 105 * Main.DPI, 75 * Main.DPI, hdc, 105 * 34, 75 * 38, 105, 75, SRCCOPY);
+			}
+			DeleteObject(BitmapBrush);
+		}
+
 	finish:
 		BitBlt(rdc, rc.left, rc.top, max((long)Main.Width*Main.DPI, rc.right - rc.left), max((long)Main.Height*Main.DPI, rc.bottom - rc.top), hdc, rc.left, rc.top, SRCCOPY);
 		EndPaint(hWnd, &ps);
@@ -2987,24 +3058,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		for (int i = 0; i <= Main.CurButton; i++)
 			if (Main.Button[i].Page == Main.CurWnd || Main.Button[i].Page == 0 || (GameMode&& Main.Button[i].Page == 6))
-				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0) { f = TRUE; break; }
+				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0) {
+					f = TRUE; goto Finished;
+				}
 
 		for (int i = 1; i <= Main.CurEdit; i++)
 			if (Main.Edit[i].Page == Main.CurWnd || Main.Edit[i].Page == 0)
-				if (Main.InsideEdit(i, pt) != 0) { Main.EditDown(i); f = TRUE; break; }
+				if (Main.InsideEdit(i, pt) != 0) {
+					Main.EditDown(i); f = TRUE; goto Finished;
+				}
 
+		for (int i = 1; i <= Main.CurArea; i++)
+			if (Main.Area[i].Page == Main.CurWnd || Main.Area[i].Page == 0)
+				if (Main.InsideArea(i, pt) == TRUE) { f = TRUE; goto Finished; }
 
-		if (pt.x >= 20 * Main.DPI&&pt.x <= 52 * Main.DPI&&pt.y >= 10 * Main.DPI&&pt.y <= 42 * Main.DPI) { f = TRUE; break; }
-		if (pt.x >= 170 * Main.DPI&&pt.x <= 305 * Main.DPI&&pt.y >= 75 * Main.DPI&&pt.y <= 240 * Main.DPI&&Main.CurWnd == 4) { f = TRUE; break; }
 		if (f == FALSE)
 		{
 			for (int i = 1; i <= Main.CurCheck; i++)
 				if (Main.Check[i].Page == Main.CurWnd || Main.Check[i].Page == 0)
-					if (Main.InsideCheck(i, pt) != 0) { f = TRUE; break; }
+					if (Main.InsideCheck(i, pt) != 0) {
+						f = TRUE; goto Finished;
+					}
 
 			if (f == FALSE)
 				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
 		}
+	Finished:
 		Main.LeftButtonDown();
 		break;
 
@@ -3021,20 +3100,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetCursorPos(&point);
 		ScreenToClient(Main.hWnd, &point);
 
-		if (point.x >= 20 * Main.DPI&&point.x <= 52 * Main.DPI&&point.y >= 10 * Main.DPI&&point.y <= 42 * Main.DPI)
+		for (int i = 1; i <= Main.CurArea; ++i)
 		{
-			DWORD col;
-			col = DoSelectColour();
-			if (col == 0)break;
-			green = CreateSolidBrush(col);
-			GREEN = CreatePen(PS_SOLID, 2, col);
-			InvalidateRect(Main.hWnd, 0, 0);
-			break;
-		}
+			if (Main.InsideArea(i, point) == TRUE && (Main.Area[i].Page == 0 || Main.Area[i].Page == Main.CurWnd))
+			{
+				switch (i)
+				{
+				case 1:
+					DWORD col;
+					col = DoSelectColour();
+					if (col == 0)break;
+					green = CreateSolidBrush(col);
+					GREEN = CreatePen(PS_SOLID, 2, col);
+					InvalidateRect(Main.hWnd, 0, 0);
+					break;
+				case 2:
+					EasterEgg(true);
+					break;
 
-		if (point.x >= 170 * Main.DPI&&point.x <= 305 * Main.DPI&&point.y >= 75 * Main.DPI&&point.y <= 240 * Main.DPI&&Main.CurWnd == 4) {
-			EasterEgg(true);
-			break;
+				}
+			}
 		}
 		unsigned int x;
 		x = Hash(Main.GetCurInsideID());
@@ -3143,7 +3228,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"CP1") { ChangePasswordEx(1); break; }
 		BUTTON_IN(x, L"CP2") { ChangePasswordEx(2); break; }
-		BUTTON_IN(x, L"CP3") { ChangePasswordEx(3); break; }
 		BUTTON_IN(x, L"re-TD") { ReopenTD(); break; }
 		BUTTON_IN(x, L"windows.ex")
 		{
@@ -3317,7 +3401,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		BUTTON_IN(x, L"Close") { PostQuitMessage(0); break; }
 
-		for (int i = 1; i <= Main.CurCheck; i++)
+		for (int i = 1; i <= Main.CurCheck; ++i)
 		{
 			if (Main.Check[i].Page == 0 || Main.Check[i].Page == Main.CurWnd)
 			{
@@ -3390,12 +3474,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							RegMouseKey();
 							break;
 						case 12:
-							typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
-							SEtProcessDPIAware SetProcessDPIAware;
-							HMODULE huser;
-							huser = LoadLibrary(L"user32.dll");
-							SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
-							if (SetProcessDPIAware != NULL)SetProcessDPIAware();
+
 							break;
 						case 13:
 							Main.SetDPI(1.5);
@@ -3652,7 +3731,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 				{
 				case 1:
 					timerleft = _wtoi(CatchWnd.Edit[CatchWnd.GetNumByIDe(L"E_Delay")].str);
-					CatchWnd.SetString(CatchWnd.Button[1].Name, L"back");
+					CatchWnd.SetStr(CatchWnd.Button[1].Name, L"back");
 					SetTimer(CatchWnd.hWnd, 2, 1000, (TIMERPROC)TimerProc);
 					break;
 				case 2:

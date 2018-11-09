@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "stdafx.h"
 #ifndef _WIN64
-#define Bitstr L"32Bit Update 183"
+#define Bitstr L"32Bit Update 193"
 #else
-#define Bitstr L"64Bit Update 183"
+#define Bitstr L"64Bit Update 193"
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -37,24 +37,19 @@ void charTowchar(const char *chr, wchar_t *wchar, int size)
 //	WideCharToMultiByte(CP_ACP, 0, wchar, -1, chr, length, NULL, NULL);
 //}
 #pragma warning(disable:4244)
-int __cdecl sub_430CD0(void *Src, LPCWSTR lpSubKey, LPCWSTR lpValueName)
+void change(void *Src,bool wow)
 {
-	const WCHAR *v3;
-	unsigned int v4, v5, v10, v12;
-	BYTE *v6, *v7, v8, *v9, *v11, *i;
-	const WCHAR *v14;
-	LSTATUS v15;
-	int result;
+	unsigned int v5, v10;
+	BYTE *v6, *v7, v8, *v9, *i;
 	HKEY phkResult;
 	LPCWSTR lpSubKeya;
-	v3 = lpSubKey;
+
 	phkResult = 0;
-	if (!lpSubKey)
-		v3 = L"Software\\TopDomain\\e-Learning Class\\Student";
-	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, v3, 0, 0x20006u, &phkResult))
-		goto LABEL_25;
-	v4 = (unsigned int)_time64(0);
-	srand(v4);
+
+	if(wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult); 
+	else
+		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
+
 	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;
 	v6 = (BYTE *)operator new[](v5);
 	v7 = v6;
@@ -80,39 +75,18 @@ int __cdecl sub_430CD0(void *Src, LPCWSTR lpSubKey, LPCWSTR lpValueName)
 		v9[1] = 0;
 	}
 	v10 = v5 >> 2;
-	v11 = v6;
-	if (v5 >> 2)
-	{
-		v12 = v5 >> 2;
-		do
-		{
-			*(DWORD *)v11 ^= 0x454C4350u;
-			v11 += 4;
-			--v12;
-		} while (v12);
-	}
+
 	for (i = v6; v10; --v10)
 	{
-		*(DWORD *)i ^= 0x50434C45u;
+		*(DWORD *)i ^= 0x150f0f15u;
 		i += 4;
 	}
-	v14 = lpValueName;
-	if (!lpValueName)
-		v14 = L"Knock1";
-	v15 = RegSetValueExW(phkResult, v14, 0, 3u, v6, v5);
+
+	RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
+	RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
 	operator delete[](v6);
-	if (v15)
-	{
-	LABEL_25:
-		if (phkResult)RegCloseKey(phkResult);
-		result = 0;
-	}
-	else
-	{
-		RegCloseKey(phkResult);
-		result = 1;
-	}
-	return result;
+
+	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
 BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
@@ -278,13 +252,13 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
 	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
-	Main.CreateString(L"版本：C++ v1.8.4 测试版", L"Tver");\
+	Main.CreateString(L"版本：C++ v1.8.5 测试版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
 	Main.CreateString(L"CopyLeft© SA软件 2015 - 2018", L"_Tleft");\
 	Main.CreateString(L"© SA软件 2015 - 2018", L"Tleft");\
 	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\
-	Main.CreateString(L"极域破解v1.8.4 不是管理员", L"Tmain");\
-	Main.CreateString(L"极域破解v1.8.4", L"Tmain2");\
+	Main.CreateString(L"极域破解v1.8.5 不是管理员", L"Tmain");\
+	Main.CreateString(L"极域破解v1.8.5", L"Tmain2");\
 	Main.CreateString(L"这不是文件 / 文件夹！", L"TINotF");\
 	Main.CreateString(L"请启动360！360可能会报加载驱动，请放行！\n如果执行后蓝屏，请把dump送至作者邮箱", L"360Start");\
 	Main.CreateString(L"加载驱动失败!\n可能是因为权限不足/操作被360拦截/文件不存在", L"360Fail");\

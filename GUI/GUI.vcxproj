@@ -204,6 +204,7 @@
     <Image Include="small.ico" />
     <Image Include="studentmain.ico" />
     <Image Include="ZXF1.bmp" />
+    <Image Include="zxf2.bmp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="14000词库.ini" />
