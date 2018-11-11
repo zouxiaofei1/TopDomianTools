@@ -58,7 +58,7 @@ public:
 	CWndShadow(void);
 public:
 	virtual ~CWndShadow(void);
-
+	HWND m_hWnd;
 protected:
 
 	// Instance handle, used to register window class and create window 
@@ -81,7 +81,7 @@ protected:
 	typedef HRESULT (WINAPI *pfnDwmIsCompositionEnabled)(BOOL *pfEnabled);
 	static pfnDwmIsCompositionEnabled s_DwmIsCompositionEnabled;
 
-	HWND m_hWnd;
+	
 #ifdef _M_IX86
 #define Long long
 #else

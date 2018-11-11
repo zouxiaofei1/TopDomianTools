@@ -88,6 +88,7 @@ DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
 
+
 class CathyClass
 {
 public:
@@ -122,7 +123,7 @@ public:
 		str[Hash(ID)] = string[CurString].str;
 	}
 
-	VOID CreateEditEx(INT Left, INT Top, INT Wid, INT Hei, INT Page, LPCWSTR name, LPCWSTR ID, HFONT Font)
+	VOID CreateEditEx(INT Left, INT Top, INT Wid, INT Hei, INT Page, LPCWSTR name, LPCWSTR ID, HFONT Font, BOOL Ostr)
 	{
 		CurEdit++;
 		Edit[CurEdit].Left = Left;
@@ -130,11 +131,12 @@ public:
 		Edit[CurEdit].Width = Wid;
 		Edit[CurEdit].Height = Hei;
 		Edit[CurEdit].Page = Page;
-		wcscpy_s(Edit[CurEdit].OStr, name);
-		Edit[CurEdit].font = Font;
-		Edit[CurEdit].str = new wchar_t[21];
-
-		//SetEditStrOrFont(NULL, Font, CurEdit);
+		if (!Ostr)
+			wcscpy_s(Edit[CurEdit].OStr, name),
+			Edit[CurEdit].font = Font,
+			Edit[CurEdit].str = new wchar_t[21];
+		else
+			SetEditStrOrFont(name, Font, CurEdit);
 		wcscpy_s(Edit[CurEdit].ID, ID);
 	}
 
@@ -867,7 +869,7 @@ public:
 		Edit[cur].Pos1 = Edit[cur].Pos2 = -1;
 		Edit[cur].Press = true;
 		Edit[cur].Pos1 = GetNearestChar(cur, point);
-		
+
 		RefreshCaretByPos(cur);
 		EditRedraw(cur);
 	}
@@ -1254,7 +1256,7 @@ public:
 	std::unordered_map<unsigned int, wchar_t*> str;
 	std::unordered_map<unsigned int, int>but;
 	HFONT DefFont;
-	int Msv;//鼠标移出检测变量(吧)
+	int Msv;//鼠标移出检测变量
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;
 	double DPI = 1;
 	int CurCover;
@@ -1288,6 +1290,14 @@ DWORD ShellCreateInVDesk(PTSTR szName)
 	if (!CreateProcess(NULL, szName, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
 		Main.InfoBox(Main.GetStr(L"StartFail"));
 	return pi.dwProcessId;
+}
+
+DWORD WINAPI DebugThread(LPVOID pM)
+{
+	DWORD pid = *(DWORD*)pM;
+	//s(pid);
+	DebugActiveProcess(pid);
+	return 0;
 }
 class DownloadProgress : public IBindStatusCallback {
 public:
@@ -1361,6 +1371,18 @@ void FindTop(wchar_t *name)
 	EnumWindows(EnumFunc, NULL);
 }
 
+DWORD WINAPI ThreadFun(LPVOID pM)
+{
+	UNREFERENCED_PARAMETER(pM);
+	while (TOP == 1)
+	{
+		SetWindowPos(Main.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
+		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
+	}
+	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
+	SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
+	return 0;
+}
 
 BOOL CALLBACK lpEnumFunc(HWND hwnd, LPARAM lParam)
 {
@@ -1404,16 +1426,15 @@ BOOL KillProcess(LPCWSTR ProcessName)
 
 	while (Process32Next(hSnapShot, &pe))
 	{
-		int name = 0;
-		if (towupper(pe.szExeFile[0]) == towupper(ProcessName[0]))name++;
-		if (towupper(pe.szExeFile[1]) == towupper(ProcessName[1]))name++;
-		if (towupper(pe.szExeFile[2]) == towupper(ProcessName[2]))name++;
-
-		if (name == 3)
+		pe.szExeFile[3] = 0;
+		_wcslwr_s(pe.szExeFile);
+		if (wcscmp(ProcessName, pe.szExeFile) == 0 || ProcessName == NULL)
 		{
+			CreateThread(NULL, 0, DebugThread, &pe.th32ProcessID, 0, NULL);
 			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = ::OpenProcess(PROCESS_TERMINATE, TRUE, dwProcessID);
 			::TerminateProcess(hProcess, 0);
+			
 			CloseHandle(hProcess);
 		}
 	}
@@ -1905,18 +1926,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 	lock = false;
 	return 0;
 }
-DWORD WINAPI ThreadFun(LPVOID pM)
-{
-	UNREFERENCED_PARAMETER(pM);
-	while (TOP == 1)
-	{
-		SetWindowPos(Main.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
-		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
-	}
-	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
-	SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
-	return 0;
-}
+
 DWORD WINAPI DownloadThread(LPVOID pM)
 {
 	int *tp = (int *)pM;
@@ -2051,8 +2061,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 	case 1:
 		if (Main.Check[8].Value == 1)
 			KillProcess(Main.Edit[Main.GetNumByIDe(L"E_TDname")].str);
-		if (Main.Check[9].Value == 1)KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
-		if (Main.Check[10].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
 		break;
 	case 2:
 		timerleft--;
@@ -2109,6 +2117,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 	case 6:
 		InvalidateRect(CatchWnd.hWnd, NULL, FALSE);
 		UpdateWindow(CatchWnd.hWnd);
+	case 7:
+		if (Main.Check[9].Value == 1)KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
+		if (Main.Check[10].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
+		break;
 	}
 
 }
@@ -2513,6 +2525,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	CreateString();
 
+	EnterDebug();
+
 	BOOL Flag = Backup();
 	if (wcslen(lpCmdLine) != 0) { if (RunCmdLine(lpCmdLine) == true)goto cosl; }
 
@@ -2633,13 +2647,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	RegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');
 	Main.EditRegHotKey();
 
-	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
+	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0);
-	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh", 0);
-	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP", 0);
-	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", L"E_View", 0);
-	Main.CreateEditEx(277 + 5, 206, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0);
+	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0,true);
+	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh",0, false);
+	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP",0, false);
+	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", L"E_View",0, false);
+	Main.CreateEditEx(277 + 5, 206, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0,true);
 
 	Main.CreateButton(0, 50, 140, 65, 0, L"安装/卸载", L"P1");
 	Main.CreateButton(0, 114, 140, 65, 0, L"极域工具箱", L"P2");
@@ -2737,7 +2751,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateCheck(180, 240, 5, 160, L" 禁止键盘钩子");
 	Main.CreateCheck(180, 270, 5, 160, L" 禁止鼠标钩子");//新
 	Main.CreateCheck(180, 300, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
-	Main.CreateCheck(180, 330, 5, 160, L" 高画质");
+	Main.CreateCheck(180, 330, 5, 160, L" 低画质");
 	Main.CreateCheck(180, 360, 5, 160, L" 放大/缩小");
 
 	Main.CreateButton(470, 400, 100, 50, 5, L"永久隐藏", L"hidest");
@@ -2810,6 +2824,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			Cshadow.Initialize(hInst);
 			Cshadow.Create(hWnd);
+
 		}
 
 		rdc = GetDC(Main.hWnd);
@@ -2852,11 +2867,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SDesktop();
 			break;
 		}
-		case 3:
-		{
-			KillProcess(L"stu");
-			break;
-		}
+		case 3: {KillProcess(L"stu"); break; }
 		case 4:
 		{
 			BSOD();
@@ -3115,7 +3126,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					InvalidateRect(Main.hWnd, 0, 0);
 					break;
 				case 2:
-					EasterEgg(true);
+					if (Effect)EasterEgg(true);
 					break;
 
 				}
@@ -3466,15 +3477,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							break;
 						}
 						case 8:
+							SetTimer(hWnd, 1, 1000, (TIMERPROC)TimerProc);
+							break;
 						case 9:
 						case 10:
-							SetTimer(hWnd, 1, 100, (TIMERPROC)TimerProc);
+							SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc);
 							break;
 						case 11:
 							RegMouseKey();
 							break;
 						case 12:
-
+							Effect = false;
+							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | ~WS_EX_LAYERED);
+							SetLayeredWindowAttributes(Main.hWnd, NULL, 255, LWA_ALPHA);//半透明特效
+							DestroyWindow(Cshadow.m_hWnd);
+							Main.ButtonEffect = false;
+							KillTimer(Main.hWnd, 5);
 							break;
 						case 13:
 							Main.SetDPI(1.5);
@@ -3516,11 +3534,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							KillTimer(hWnd, 1);
 							break;
 						case 9:
-							KillTimer(hWnd, 1);
-							UnhookWindowsHookEx(KeyboardHook);
+						case 10:
+							KillTimer(hWnd, 7);
 							break;
 						case 11:
 							UnMouseKey();
+							break;
+						case 12:
+							Effect = true;
+							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+							SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);
+							//Cshadow.Initialize(hInst);
+							//Cshadow.Create(Main.hWnd);
+							Main.ButtonEffect = true;
+							SetTimer(Main.hWnd, 5, 33, TimerProc);
 							break;
 						case 13:
 							Main.SetDPI(0.75);
@@ -3810,8 +3837,8 @@ VOID InitCathy()
 	cat.lpszClassName = CatchWindow;
 	cat.hIconSm = LoadIcon(cat.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
 	RegisterClassExW(&cat);
-	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont);
-	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont);
+	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont,true);
+	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont,true);
 	CatchWnd.CreateButton(10, 85, 100, 50, 0, L"捕捉窗口", L"");
 	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"");
 	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"");

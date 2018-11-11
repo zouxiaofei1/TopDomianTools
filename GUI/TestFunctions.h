@@ -37,6 +37,47 @@ void charTowchar(const char *chr, wchar_t *wchar, int size)
 //	WideCharToMultiByte(CP_ACP, 0, wchar, -1, chr, length, NULL, NULL);
 //}
 #pragma warning(disable:4244)
+
+BOOL WINAPI EnterDebug()
+{
+
+	HANDLE retokenhandle = 0;
+	BOOL res = FALSE;
+	BOOL fOK = FALSE;
+	LUID tmpluid;
+	TOKEN_PRIVILEGES tkp;
+
+	__try
+	{
+
+		OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &retokenhandle);
+
+		if (retokenhandle == 0) { __leave; }
+
+		res = LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tmpluid);
+
+		if (res == 0) { __leave; }
+
+		tkp.PrivilegeCount = 1;
+		tkp.Privileges->Luid = tmpluid;
+		tkp.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
+
+		res = AdjustTokenPrivileges(retokenhandle, FALSE, &tkp, 0, 0, 0);
+
+		if (res == FALSE) { __leave; }
+
+		fOK = TRUE;
+
+	}
+	__finally
+	{
+		if (retokenhandle != 0) { CloseHandle(retokenhandle); }
+
+	}
+
+	return fOK;
+
+}
 void change(void *Src,bool wow)
 {
 	unsigned int v5, v10;

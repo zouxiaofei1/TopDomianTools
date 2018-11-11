@@ -104,10 +104,7 @@ bool CWndShadow::Initialize(HINSTANCE hInstance)
 void CWndShadow::Create(HWND hParentWnd)
 {
 	// Do nothing if the system does not support layered windows
-	if (NULL == s_UpdateLayeredWindow) {
-		//MessageBox(0, L"1", 0, 0);
-		return;
-	}
+	if (NULL == s_UpdateLayeredWindow)return;
 
 	// Already initialized
 	_ASSERT(s_hInstance != INVALID_HANDLE_VALUE);
