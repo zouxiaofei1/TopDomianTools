@@ -5,6 +5,7 @@
 #include "Actions.h"
 #include "TestFunctions.h"
 #include <winsock.h>
+#include <WinBase.h>
 
 #define BUTTON_IN(x,y) if(x == Hash(y))
 #define Delta 10
@@ -57,7 +58,7 @@ BOOL slient = FALSE;//是否命令行
 
 //笔刷 + 笔
 HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow;
-HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE;
+HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE,DBlue,LBlue;
 
 HWND FileList;//语言选择hwnd
 BOOL lock = FALSE;//Game按钮锁定
@@ -226,7 +227,7 @@ public:
 		wcscpy_s(Text[CurText].Name, name);
 	}
 
-	VOID CreateLine(INT StartX, INT StartY, INT EndX, INT EndY, INT Page)
+	VOID CreateLine(INT StartX, INT StartY, INT EndX, INT EndY, INT Page, COLORREF rgb)
 	{
 		CurLine++;
 		Line[CurLine].StartX = StartX;
@@ -234,6 +235,7 @@ public:
 		Line[CurLine].EndX = EndX;
 		Line[CurLine].EndY = EndY;
 		Line[CurLine].Page = Page;
+		Line[CurLine].Color = rgb;
 	}
 
 	BOOL InsideButton(int bzz, POINT &point)
@@ -413,7 +415,7 @@ public:
 		{
 			if (Line[i].Page == 0 || Line[i].Page == CurWnd)
 			{
-				SelectObject(hdc, BLACK);
+				SelectObject(hdc, CreatePen(0,1,Line[i].Color));
 				MoveToEx(hdc, Line[i].StartX*DPI, Line[i].StartY*DPI, NULL);
 				LineTo(hdc, Line[i].EndX*DPI, Line[i].EndY*DPI);
 			}
@@ -575,7 +577,7 @@ public:
 		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
 		if (Newstr != NULL)
 		{
-			if (Edit[cur].str != NULL)delete[] Edit[cur].str;
+			if (Edit[cur].str != NULL)if (wcslen(Edit[cur].str) != 0)delete[] Edit[cur].str;
 			Edit[cur].str = new wchar_t[wcslen(Newstr) + 1];
 			wcscpy(Edit[cur].str, Newstr);
 		}
@@ -1204,7 +1206,7 @@ public:
 	struct ButtonEx
 	{
 		long Left, Top, Width, Height, Page, Download, Percent, DownCur, DownTot;
-		bool Visible, Enabled;
+		bool Visible, Enabled, Border = true;
 		HBRUSH Leave, Hover, Press;
 		HPEN Leave2, Hover2, Press2;
 		HFONT Font;
@@ -1228,6 +1230,7 @@ public:
 	struct LineEx
 	{
 		int StartX, StartY, EndX, EndY, Page;
+		COLORREF Color;
 	}Line[10];
 
 	struct TextEx
@@ -1434,7 +1437,7 @@ BOOL KillProcess(LPCWSTR ProcessName)
 			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = ::OpenProcess(PROCESS_TERMINATE, TRUE, dwProcessID);
 			::TerminateProcess(hProcess, 0);
-			
+
 			CloseHandle(hProcess);
 		}
 	}
@@ -2608,7 +2611,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	green = CreateSolidBrush(RGB(0, 206, 209));
 	grey = CreateSolidBrush(RGB(245, 245, 245));
 	yellow = CreateSolidBrush(RGB(0xEE, 0xE6, 0x85));
-	YELLOW = CreatePen(PS_SOLID, 1, RGB(0xC1, 0xCD, 0xCD));//笔
+	DBlue= CreatePen(PS_SOLID, 1, RGB(210, 255, 255));//笔
+	LBlue = CreatePen(PS_SOLID, 1, RGB(230, 255, 255));
+	YELLOW = CreatePen(PS_SOLID, 1, RGB(0xC1, 0xCD, 0xCD));
 	RED = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
 	BLACK = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 	White = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
@@ -2631,8 +2636,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	if (Effect)
 	{
-		SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-		SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
+		//	SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+		//	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
 	}
 
 	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 400, 265, 120, Main.hWnd, (HMENU)1, hInstance, 0);
@@ -2649,19 +2654,26 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0,true);
-	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh",0, false);
-	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP",0, false);
-	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", L"E_View",0, false);
-	Main.CreateEditEx(277 + 5, 206, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0,true);
+	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0, true);
+	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh", 0, false);
+	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP", 0, false);
+	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", L"E_View", 0, false);
+	Main.CreateEditEx(277 + 5, 206, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0, true);
 
-	Main.CreateButton(0, 50, 140, 65, 0, L"安装/卸载", L"P1");
-	Main.CreateButton(0, 114, 140, 65, 0, L"极域工具箱", L"P2");
-	Main.CreateButton(0, 178, 140, 65, 0, L"其他工具", L"P3");
-	Main.CreateButton(0, 242, 140, 65, 0, L"关于", L"P4");
-	Main.CreateButton(0, 306, 140, 65, 0, L"设置", L"P5");//MENU
-	Main.CreateButton(0, 370, 140, 180, 0, L"一键安装", L"QuickSetup");//6
+	Main.CreateButtonEx(1, 0, 50, 140, 64, 0, L"安装/卸载", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue , LBlue, 0, true, true, 0, L"P1");
+	Main.CreateButtonEx(2, 0, 115, 140, 64, 0, L"极域工具箱", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P2");
+	Main.CreateButtonEx(3, 0, 180, 140, 64, 0, L"其他工具", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P3");
+	Main.CreateButtonEx(4, 0, 245, 140, 64, 0, L"关于", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P4");
+	Main.CreateButtonEx(5, 0, 310, 140, 64, 0, L"设置", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P5");
+	Main.CreateButtonEx(6, 0, 375, 140, 175, 0, L"一键安装", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"QuickSetup");
+	Main.CurButton = 6;
 
+	Main.CreateLine(140, 51, 140, 549, 0, RGB(150,150,150));
+	Main.CreateLine(1, 114, 139, 114, 0, RGB(150, 150, 150));
+	Main.CreateLine(1, 179, 139, 179, 0, RGB(150, 150, 150));
+	Main.CreateLine(1, 244, 139, 244, 0, RGB(150, 150, 150));
+	Main.CreateLine(1, 309, 139, 309, 0, RGB(150, 150, 150));
+	Main.CreateLine(1, 374, 139, 374, 0, RGB(150, 150, 150));
 	Main.CreateButton(195, 100, 110, 50, 1, L"应用层", L"DelR3");
 	Main.CreateButton(325, 100, 110, 50, 1, L"驱动层", L"DelR0");//SETHC
 
@@ -2679,7 +2691,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(195, 420, 110, 50, 1, L"运行程序", L"runinVD");//桌面
 	Main.CreateButton(450, 420, 110, 50, 1, L"切换桌面", L"SwitchD");
 
-	Main.CreateLine(185, 165, 565, 165, 1);
+	Main.CreateLine(185, 165, 565, 165, 1,0);
 
 	Main.CreateText(470, 117, 1, L"Tdelete", RGB(255, 100, 0));
 	Main.CreateText(470, 197, 1, L"Tcopy", RGB(255, 100, 0));
@@ -2709,7 +2721,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	Main.CreateText(365, 295, 2, L"Tcp1", RGB(50, 50, 50));
 	Main.CreateText(365, 317, 2, L"Tcp2", RGB(255, 100, 0));
-	Main.CreateLine(360, 160, 583, 160, 2);
+	Main.CreateLine(360, 160, 583, 160, 2,0);
 
 	Main.CreateFrame(170, 75, 410, 150, 3, L" 文件粉碎机 ");
 	Main.CreateButton(520, 102, 36, 36, 3, L"...", L"viewfile");
@@ -2737,7 +2749,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateText(455, 320, 4, L"Tcmd", NULL);
 	Main.CreateText(170, 345, 4, L"TTDv", NULL);
 	Main.CreateText(375, 345, 4, L"TIP", NULL);
-	Main.CreateLine(170, 400, 590, 400, 4);
+	Main.CreateLine(170, 400, 590, 400, 4, 0);
 	Main.CreateText(170, 415, 4, L"_Tleft", NULL);
 	Main.CreateText(170, 440, 4, L"Tleft2", NULL);
 	Main.CreateButton(490, 415, 100, 50, 4, L"更多", L"more.txt");
@@ -2767,8 +2779,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"Game5");//game结构体
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"Game6");
 
-	Main.CreateFrame(139, 50, 481, 499, 0, L"");
-	Main.CreateFrame(139, 50, 1080, 499, 0, L"");
+	//Main.CreateFrame(139, 50, 481, 499, 0, L"");
+	//Main.CreateFrame(139, 50, 1080, 499, 0, L"");
 
 	Main.CreateArea(20, 10, 32, 32, 0);
 	Main.CreateArea(170, 75, 135, 165, 4);
@@ -2986,7 +2998,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetBkMode(hdc, TRANSPARENT);
 
 		SelectObject(hdc, WhiteBrush);//白色背景
-		Rectangle(hdc, 0, 0, 1230 * Main.DPI, Main.Height*Main.DPI);
+		Rectangle(hdc, 0, 0, 1230 * Main.DPI, Main.Height*Main.DPI + 1);
 
 		SelectObject(hdc, GREEN);//绿色顶部
 		SelectObject(hdc, green);
@@ -3547,7 +3559,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							//Cshadow.Initialize(hInst);
 							//Cshadow.Create(Main.hWnd);
 							Main.ButtonEffect = true;
-							SetTimer(Main.hWnd, 5, 33, TimerProc);
+							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
 							break;
 						case 13:
 							Main.SetDPI(0.75);
@@ -3837,8 +3849,8 @@ VOID InitCathy()
 	cat.lpszClassName = CatchWindow;
 	cat.hIconSm = LoadIcon(cat.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
 	RegisterClassExW(&cat);
-	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont,true);
-	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont,true);
+	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
+	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
 	CatchWnd.CreateButton(10, 85, 100, 50, 0, L"捕捉窗口", L"");
 	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"");
 	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"");
