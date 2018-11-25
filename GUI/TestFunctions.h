@@ -7,20 +7,13 @@
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
-void wcharTochar(const wchar_t *wchar, char *chr, int length);
 void s(int cathy)
 {
 	wchar_t Cathytmp[34];
 	_itow_s(cathy, Cathytmp, 10);
 	MessageBox(NULL, Cathytmp, L"", NULL);
 }
-void out(int cathy)
-{
-	wchar_t Cathytmp[34];
-	_itow_s(cathy, Cathytmp, 10);
-	wcscat_s(Cathytmp, L"\n");
-	OutputDebugString(Cathytmp);
-}
+
 void s(LPCSTR cathy)
 {
 	MessageBoxA(NULL, cathy, "", NULL);
@@ -31,53 +24,8 @@ void charTowchar(const char *chr, wchar_t *wchar, int size)
 	MultiByteToWideChar(CP_ACP, 0, chr, strlen(chr) + 1, wchar, size / sizeof(wchar[0]));
 }
 
-//
-//void wcharTochar(const wchar_t *wchar, char *chr, int length)
-//{
-//	WideCharToMultiByte(CP_ACP, 0, wchar, -1, chr, length, NULL, NULL);
-//}
 #pragma warning(disable:4244)
 
-BOOL WINAPI EnterDebug()
-{
-
-	HANDLE retokenhandle = 0;
-	BOOL res = FALSE;
-	BOOL fOK = FALSE;
-	LUID tmpluid;
-	TOKEN_PRIVILEGES tkp;
-
-	__try
-	{
-
-		OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &retokenhandle);
-
-		if (retokenhandle == 0) { __leave; }
-
-		res = LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tmpluid);
-
-		if (res == 0) { __leave; }
-
-		tkp.PrivilegeCount = 1;
-		tkp.Privileges->Luid = tmpluid;
-		tkp.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
-
-		res = AdjustTokenPrivileges(retokenhandle, FALSE, &tkp, 0, 0, 0);
-
-		if (res == FALSE) { __leave; }
-
-		fOK = TRUE;
-
-	}
-	__finally
-	{
-		if (retokenhandle != 0) { CloseHandle(retokenhandle); }
-
-	}
-
-	return fOK;
-
-}
 void change(void *Src,bool wow)
 {
 	unsigned int v5, v10;
@@ -333,7 +281,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"打游戏", L"Games");\
 	Main.CreateString(L"停止", L"Gamee");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
-	CatchWnd.CreateString(L" 个窗口", L"Eat2");
+	CatchWnd.CreateString(L" 个窗口", L"Eat2")
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])
 {

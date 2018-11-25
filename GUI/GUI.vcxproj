@@ -139,7 +139,7 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <CompileAsWinRT>false</CompileAsWinRT>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
@@ -199,10 +199,7 @@
     <ResourceCompile Include="GUI.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="bitmap1.bmp" />
     <Image Include="GUI.ico" />
-    <Image Include="icon1.ico" />
-    <Image Include="small.ico" />
     <Image Include="studentmain.ico" />
     <Image Include="ZXF1.bmp" />
     <Image Include="zxf2.bmp" />
