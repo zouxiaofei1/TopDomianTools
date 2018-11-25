@@ -26,7 +26,7 @@ void charTowchar(const char *chr, wchar_t *wchar, int size)
 
 #pragma warning(disable:4244)
 
-void change(void *Src,bool wow)
+void change(void *Src, bool wow)
 {
 	unsigned int v5, v10;
 	BYTE *v6, *v7, v8, *v9, *i;
@@ -35,7 +35,7 @@ void change(void *Src,bool wow)
 
 	phkResult = 0;
 
-	if(wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult); 
+	if (wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
 	else
 		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
 
@@ -78,7 +78,7 @@ void change(void *Src,bool wow)
 	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
-BOOL LoadNTDriver(LPCWSTR lpszDriverName,LPCWSTR lpszDriverPath)
+BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
 
 {
 	wchar_t szDriverImagePath[256];
@@ -227,6 +227,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"Sethc删除失败！\n可能因为权限不足/驱动文件不存在", L"DSR0Fail");\
 	Main.CreateString(L"Sethc复制失败！\n权限不足", L"CSFail");\
 	Main.CreateString(L"Sethc复制失败！\n文件不存在", L"NoSethc");\
+	Main.CreateString(L"Sethc卸载失败！\n备份文件丢失", L"USFail");\
 	Main.CreateString(L"NTSD复制失败！\n权限不足", L"CNTSDFail");\
 	Main.CreateString(L"NTSD复制失败！\n文件不存在", L"NoNTSD");\
 	Main.CreateString(L"打开键值失败!\n可能因为没有足够权限或极域未安装", L"ACFail");\
@@ -280,6 +281,16 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"不存在", L"TcmdNO");\
 	Main.CreateString(L"打游戏", L"Games");\
 	Main.CreateString(L"停止", L"Gamee");\
+	Main.CreateString(L"已删除", L"Deleted");\
+	Main.CreateString(L"已安装", L"Installed");\
+	Main.CreateString(L"应用层", L"Ring3");\
+	Main.CreateString(L"驱动层", L"Ring0");\
+	Main.CreateString(L"安装", L"Setup");\
+	Main.CreateString(L"已卸载", L"Uned");\
+Main.CreateString(L"极域状态: ", L"TDState");\
+Main.CreateString(L"PID: ", L"TDPID");\
+Main.CreateString(L"极域状态: ", L"_TDState");\
+Main.CreateString(L"PID: ", L"_TDPID");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
 	CatchWnd.CreateString(L" 个窗口", L"Eat2")
 

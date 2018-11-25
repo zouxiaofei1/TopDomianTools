@@ -57,7 +57,7 @@ wchar_t EasterEggStr[11][15] = { L"AnswerKey",L"Left" ,L"Left",L"Right",L"Down",
 BOOL slient = FALSE;//是否命令行
 
 //笔刷 + 笔
-HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow;
+HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow, Dgrey;
 HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE, DBlue, LBlue;
 
 HWND FileList;//语言选择hwnd
@@ -65,7 +65,7 @@ BOOL lock = FALSE;//Game按钮锁定
 int timerleft = -2;//吃窗口倒计时
 wchar_t zxfback[101];//倒计时备份按钮名称
 
-std::unordered_map<int, bool>Eatpid;//吃窗口hWnd记录链表
+std::map<int, bool>Eatpid;//吃窗口hWnd记录链表
 struct _Eatlist
 {
 	HWND value;
@@ -90,6 +90,16 @@ HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
 bool haveInfo = false;//是否已经检查过系统信息
 wchar_t wip[101];//ip地址字符串
+bool SethcState = true;//System32目录下sethc是否存在
+bool SethcInstallState = false;//Sethc方案状态
+DWORD TDPID;//记录极域程序PID
+bool TDProcess;//极域是否在运行
+
+
+
+//空下几行为Class留位置
+
+
 
 class CathyClass//控件主类
 {
@@ -153,20 +163,13 @@ public:
 	void CreateButtonEx(int Number, int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, HBRUSH Leave, \
 		HBRUSH Hover, HBRUSH press, HPEN Leave2, HPEN Hover2, HPEN Press2, HFONT Font, BOOL Enabled, BOOL Visible, COLORREF FontRGB, LPCWSTR ID)
 	{
-		Button[Number].Left = Left;
-		Button[Number].Top = Top;
-		Button[Number].Width = Wid;
-		Button[Number].Height = Hei;
-		Button[Number].Page = Page;
-		Button[Number].Leave = Leave;
-		Button[Number].Hover = Hover;
-		Button[Number].Press = press;
-		Button[Number].Leave2 = Leave2;
-		Button[Number].Hover2 = Hover2;
-		Button[Number].Press2 = Press2;
-		Button[Number].Font = Font;
-		Button[Number].Enabled = Enabled;
-		Button[Number].Visible = Visible;
+		Button[Number].Left = Left; Button[Number].Top = Top;
+		Button[Number].Width = Wid; Button[Number].Height = Hei;
+		Button[Number].Page = Page; Button[Number].Leave = Leave;
+		Button[Number].Hover = Hover; Button[Number].Press = press;
+		Button[Number].Leave2 = Leave2; Button[Number].Hover2 = Hover2;
+		Button[Number].Press2 = Press2; Button[Number].Font = Font;
+		Button[Number].Enabled = Enabled; Button[Number].Visible = Visible;
 		Button[Number].FontRGB = FontRGB;
 		wcscpy_s(Button[Number].Name, name);
 		wcscpy_s(Button[Number].ID, ID);
@@ -201,10 +204,8 @@ public:
 	void CreateFrame(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name)
 	{
 		++CurFrame;
-		Frame[CurFrame].Left = Left;
-		Frame[CurFrame].Page = Page;
-		Frame[CurFrame].Height = Hei;
-		Frame[CurFrame].Top = Top;
+		Frame[CurFrame].Left = Left; Frame[CurFrame].Page = Page;
+		Frame[CurFrame].Height = Hei; Frame[CurFrame].Top = Top;
 		Frame[CurFrame].Width = Wid;
 		wcscpy_s(Frame[CurFrame].Name, name);
 	}
@@ -212,32 +213,25 @@ public:
 	void CreateCheck(int Left, int Top, int Page, int Wid, LPCWSTR name)
 	{
 		++CurCheck;
-		Check[CurCheck].Left = Left;
-		Check[CurCheck].Top = Top;
-		Check[CurCheck].Page = Page;
-		Check[CurCheck].Width = Wid;
+		Check[CurCheck].Left = Left; Check[CurCheck].Top = Top;
+		Check[CurCheck].Page = Page; Check[CurCheck].Width = Wid;
 		wcscpy_s(Check[CurCheck].Name, name);
 	}
 
 	void CreateText(int Left, int Top, int Page, LPCWSTR name, COLORREF rgb)
 	{
 		++CurText;
-		Text[CurText].Left = Left;
-		Text[CurText].Top = Top;
-		Text[CurText].Page = Page;
-		Text[CurText].rgb = rgb;
+		Text[CurText].Left = Left; Text[CurText].Top = Top;
+		Text[CurText].Page = Page; Text[CurText].rgb = rgb;
 		wcscpy_s(Text[CurText].Name, name);
 	}
 
 	void CreateLine(int StartX, int StartY, int EndX, int EndY, int Page, COLORREF rgb)
 	{
 		++CurLine;
-		Line[CurLine].StartX = StartX;
-		Line[CurLine].StartY = StartY;
-		Line[CurLine].EndX = EndX;
-		Line[CurLine].EndY = EndY;
-		Line[CurLine].Page = Page;
-		Line[CurLine].Color = rgb;
+		Line[CurLine].StartX = StartX; Line[CurLine].StartY = StartY;
+		Line[CurLine].EndX = EndX; Line[CurLine].EndY = EndY;
+		Line[CurLine].Page = Page; Line[CurLine].Color = rgb;
 	}
 
 	BOOL InsideButton(int cur, POINT &point)
@@ -291,6 +285,13 @@ public:
 			if (Button[i].Page == CurWnd || Button[i].Page == 0)
 			{
 				HPEN tmp = 0; HBRUSH tmb = 0;
+				if (Button[i].Enabled == false)
+				{
+					SelectObject(hdc, Dgrey);
+					SelectObject(hdc, Button[i].Leave2);
+					SetTextColor(hdc, RGB(100, 100, 100));
+					goto ok;
+				}
 				SetTextColor(hdc, Button[i].FontRGB);
 				if (Button[i].Percent != 0 && Button[i].Percent != 100 && Button[i].DownTot == 0)
 				{
@@ -698,7 +699,7 @@ public:
 			if (pos2 != -1)
 				EditDelete(CoverEdit, min(pos1, pos2), max(pos1, pos2));
 			else
-				EditDelete(CoverEdit, pos1, pos1+1);
+				EditDelete(CoverEdit, pos1, pos1 + 1);
 			break;
 		}
 		return;
@@ -955,7 +956,7 @@ public:
 	{
 		for (int i = 0; i <= CurButton; ++i)
 		{
-			if (Button[i].Page == CurWnd || Button[i].Page == 0)
+			if ((Button[i].Page == CurWnd || Button[i].Page == 0) && Button[i].Enabled)
 			{
 				if (InsideButton(i, point))
 				{
@@ -984,6 +985,7 @@ public:
 		if (CurCover == -1)ButtonGetNewInside(point);
 		if (CurCover >= 0)
 		{
+			if (!Button[CurCover].Enabled) { CurCover = -1; goto disabled; }
 			if (Button[CurCover].Page == CurWnd || Button[CurCover].Page == 0)
 			{
 				if (!InsideButton(CurCover, point))
@@ -1006,6 +1008,7 @@ public:
 			}
 			else CurCover = -1;
 		}
+	disabled:
 		if (CoverCheck == 0)CheckGetNewInside(point);//在外面
 
 		if (CoverCheck > 0)
@@ -1144,7 +1147,7 @@ public:
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
 		for (int i = 0; i <= CurButton; ++i)
-			if (Button[i].Page == CurWnd || Button[i].Page == 0)
+			if ((Button[i].Page == CurWnd || Button[i].Page == 0) && Button[i].Enabled)
 				if (InsideButton(i, point) && Button[i].DownTot == 0)
 					return Button[i].ID;
 		return Button[0].ID;
@@ -1238,7 +1241,7 @@ public:
 		int Left, Top, Page;
 		COLORREF rgb;
 		wchar_t Name[201];
-	}Text[20];
+	}Text[25];
 
 	struct EditEx
 	{
@@ -1481,7 +1484,7 @@ void UpdateInfo()
 }
 void SetFrame()
 {
-	const int t[] = { 1,4,5,6,8 };
+	const int t[] = { 1,4,5,7,9 };
 	for (int i = 0; i < 5; ++i)
 	{
 		Main.Frame[t[i]].rgb = RGB(255, 0, 0);
@@ -1519,12 +1522,10 @@ void GetBit()//系统位数
 }
 BOOL Backup()
 {
+	if (GetFileAttributes(SethcPath) == INVALID_FILE_ATTRIBUTES)SethcState = false;
 	if (GetFileAttributes(L"C:\\SAtemp") != -1)return FALSE;
 	CreateDirectory(L"C:\\SAtemp", NULL);
-	if (Bit != 34)
-		CopyFile(L"C:\\Windows\\System32\\sethc.exe", L"C:\\SAtemp\\sethc.exe", TRUE);
-	else
-		CopyFile(L"C:\\Windows\\SysNative\\sethc.exe", L"C:\\SAtemp\\sethc.exe", TRUE);//sysnative
+	CopyFile(SethcPath, L"C:\\SAtemp\\sethc.exe", TRUE);
 	return TRUE;
 }
 struct GETLAN
@@ -1722,12 +1723,12 @@ int SetupSethc()
 		return CopyFile(tmp, L"C:\\Windows\\SysNative\\sethc.exe", false);
 }
 
-void AutoSetupSethc()
+bool AutoSetupSethc()
 {
 	int flag = SetupSethc();
-	if (flag == 0)Main.InfoBox(Main.GetStr(L"CSFail"));
-	if (flag == 2)Main.InfoBox(Main.GetStr(L"NoSethc"));
-	return;
+	if (flag == 0) { Main.InfoBox(Main.GetStr(L"CSFail")); return false; }
+	if (flag == 2) { Main.InfoBox(Main.GetStr(L"NoSethc")); return false; }
+	return true;
 }
 bool DeleteSethc()
 {
@@ -1776,30 +1777,25 @@ bool DeleteDirectory(wchar_t *DirName) //新加删除某个不为空的文件夹
 	return TRUE;
 }
 
-void AutoDeleteSethc()
-{
-	if (!DeleteSethc())Main.InfoBox(Main.GetStr(L"DSR3Fail"));
-	return;
-}
 bool DeleteSethcS()
 {
-	bool flag1 = false, flag2 = false, dl;
-	dl = DeleteSethc();//)return true;
-	if (!dl)UnloadNTDriver(L"deletefile");
-	if (dl)flag1 = true;
+	bool flag1 = false, flag2 = false;
+	if (DeleteSethc())return true;
+	UnloadNTDriver(L"deletefile");
 	if (Bit == 32)
 	{
-		if (!dl)flag1 = LoadNTDriver(L"deletefile", L"x32\\deletefile.sys");
+		flag1 = LoadNTDriver(L"deletefile", L"x32\\deletefile.sys");
 		UnloadNTDriver(L"kill");
 		flag2 = LoadNTDriver(L"kill", L"x32\\kill.sys");
 	}
 	else
 	{
-		if (!dl)flag1 = LoadNTDriver(L"deletefile", L"x64\\deletefile.sys");
+		flag1 = LoadNTDriver(L"deletefile", L"x64\\deletefile.sys");
 		UnloadNTDriver(L"kill");
 		flag2 = LoadNTDriver(L"kill", L"x64\\kill.sys");
 	}
 	WinExec("net stop kill", SW_HIDE);
+	UnloadNTDriver(L"deletefile");
 	return flag1 & flag2;
 }
 int SetupSethcS()
@@ -1831,12 +1827,12 @@ int CopyNTSD()
 	else
 		return CopyFile(tmp, _T("C:\\Windows\\SysNative\\ntsd.exe"), false);
 }
-void AutoCopyNTSD()
+bool AutoCopyNTSD()
 {
 	int flag = CopyNTSD();
-	if (flag == 0)Main.InfoBox(Main.GetStr(L"CNTSDFail"));
-	if (flag == 2)Main.InfoBox(Main.GetStr(L"NoNTSD"));
-	return;
+	if (flag == 0) { Main.InfoBox(Main.GetStr(L"CNTSDFail")); return false; }
+	if (flag == 2) { Main.InfoBox(Main.GetStr(L"NoNTSD")); return false; }
+	return true;
 }
 
 void AutoDelete(wchar_t *tmp)
@@ -1852,6 +1848,17 @@ void AutoDelete(wchar_t *tmp)
 	}
 	else
 		DeleteFile(tmp);
+}
+
+bool UninstallSethc()
+{
+	DeleteFile(SethcPath);
+	if (CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE) == false)
+	{
+		Main.InfoBox(Main.GetStr(L"USFail"));
+		return false;
+	}
+	else return true;
 }
 void RegMouseKey()
 {
@@ -2029,6 +2036,49 @@ void ReturnWindows()
 	CurEat = 0;
 	InvalidateRect(CatchWnd.hWnd, NULL, FALSE);
 }
+
+void RefreshTDstate()
+{
+	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32 pe;
+	pe.dwSize = sizeof(PROCESSENTRY32);
+	if (!Process32First(hSnapShot, &pe))return;
+
+	while (Process32Next(hSnapShot, &pe))
+	{
+		pe.szExeFile[3] = 0;
+		_wcslwr_s(pe.szExeFile);
+		if (wcscmp(L"stu", pe.szExeFile) == 0)
+		{
+			TDPID = pe.th32ProcessID;
+			TDProcess = true;
+			wchar_t tmp[101], tmp2[11];
+			wcscpy_s(tmp, Main.GetStr(L"_TDPID"));
+			_itow_s(TDPID, tmp2, 10);
+			wcscat_s(tmp, tmp2);
+			Main.SetStr(tmp, L"TDPID");
+			wcscpy_s(Main.Text[6].Name, L"TcmdOK");
+			Main.Text[6].rgb = RGB(0, 255, 0);
+			Main.Button[Main.GetNumbyID(L"kill-TD")].Enabled = true;
+			Main.Button[Main.GetNumbyID(L"re-TD")].Enabled = false;
+			InvalidateRect(Main.hWnd, NULL, FALSE);
+			return;
+		}
+	}
+	TDPID = 0;
+	TDProcess = false;
+	wchar_t tmp[101], tmp2[11];
+	wcscpy_s(tmp, Main.GetStr(L"_TDPID"));
+	_itow_s(TDPID, tmp2, 10);
+	wcscat_s(tmp, L"\\");
+	Main.SetStr(tmp, L"TDPID");
+	wcscpy_s(Main.Text[6].Name, L"TcmdNO");
+	Main.Text[6].rgb = RGB(255, 0, 0);
+	Main.Button[Main.GetNumbyID(L"re-TD")].Enabled = true;
+	Main.Button[Main.GetNumbyID(L"kill-TD")].Enabled = false;
+	InvalidateRect(Main.hWnd, NULL, FALSE);
+	return;
+}
 int Cathy()
 {
 	wchar_t tmp[1001];
@@ -2119,6 +2169,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 	case 7:
 		if (Main.Check[9].Value == 1)KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
 		if (Main.Check[10].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
+		break;
+	case 8:
+		//s(0);
+		RefreshTDstate();
 		break;
 	}
 
@@ -2463,7 +2517,7 @@ bool RunCmdLine(LPWSTR str)
 
 	if (wcsstr(str, L"-sethc") != NULL)
 	{
-		AutoDeleteSethc();
+		if (!DeleteSethc())Main.InfoBox(Main.GetStr(L"DSR3Fail"));
 		AutoSetupSethc();
 		AutoCopyNTSD();
 		ExitProcess(0);
@@ -2519,9 +2573,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	GetBit();//获取位数
 	if (Bit != 34)
-		wcscpy(SethcPath, L"C:\\Windows\\System32\\sethc.exe");
+		wcscpy_s(SethcPath, L"C:\\Windows\\System32\\sethc.exe");
 	else
-		wcscpy(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe");
+		wcscpy_s(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe");
 
 	BOOL Flag = Backup();
 	if (wcslen(lpCmdLine) != 0) { if (RunCmdLine(lpCmdLine) == true)goto cosl; }
@@ -2602,7 +2656,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	WhiteBrush = CreateSolidBrush(RGB(255, 255, 255));
 	BlueBrush = CreateSolidBrush(RGB(40, 130, 240));
 	green = CreateSolidBrush(RGB(0, 206, 209));
-	grey = CreateSolidBrush(RGB(245, 245, 245));
+	grey = CreateSolidBrush(RGB(240, 240, 240));
+	Dgrey = CreateSolidBrush(RGB(230, 230, 230));
 	yellow = CreateSolidBrush(RGB(0xEE, 0xE6, 0x85));
 	DBlue = CreatePen(PS_SOLID, 1, RGB(210, 255, 255));//笔
 	LBlue = CreatePen(PS_SOLID, 1, RGB(230, 255, 255));
@@ -2611,7 +2666,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	BLACK = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 	White = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
 	GREEN = CreatePen(PS_SOLID, 2, RGB(5, 195, 195));
-	LGREY = CreatePen(PS_SOLID, 1, RGB(120, 120, 120));
+	LGREY = CreatePen(PS_SOLID, 1, RGB(115, 115, 115));
 	BLUE = CreatePen(PS_SOLID, 1, RGB(40, 130, 240));
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
@@ -2674,12 +2729,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateLine(2, 374, 139, 374, 0, RGB(150, 150, 150));
 	Main.CreateLine(622, 51, 622, 549, 0, 0);
 
+
 	Main.CreateButton(195, 100, 110, 50, 1, L"应用层", L"DelR3");
 	Main.CreateButton(325, 100, 110, 50, 1, L"驱动层", L"DelR0");//SETHC
+	if (SethcState == false)
+	{
+		Main.Button[Main.CurButton].Enabled = Main.Button[Main.CurButton - 1].Enabled = false;
+		wcscpy_s(Main.Button[Main.CurButton].Name, Main.GetStr(L"Deleted"));
+		wcscpy_s(Main.Button[Main.CurButton - 1].Name, Main.GetStr(L"Deleted"));
+
+	}
 
 	Main.CreateButton(195, 180, 110, 50, 1, L"应用层", L"SethcR3");
 	Main.CreateButton(325, 180, 110, 50, 1, L"驱动层", L"SethcR0");
-
 
 	Main.CreateFrame(170, 75, 410, 175, 1, L" Sethc ");
 	Main.CreateFrame(170, 275, 410, 95, 1, L" 更强的Hook ");
@@ -2712,12 +2774,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(365, 235, 97, 45, 2, L"改密1", L"CP1");
 	Main.CreateButton(477, 235, 97, 45, 2, L"改密2", L"CP2");
 
-	Main.CreateButton(165, 370, 120, 55, 2, L"重新打开极域", L"re-TD");
-	Main.CreateButton(305, 370, 120, 55, 2, L"程序窗口化", L"windows.ex");
-	Main.CreateButton(445, 370, 120, 55, 2, L"防止教师关机", L"ANTI-");
-	Main.CreateButton(165, 440, 120, 55, 2, L"显示于安全桌面", L"desktop");
-	Main.CreateButton(305, 440, 120, 55, 2, L"全自动防控制", L"auto-5");
-	Main.CreateButton(445, 440, 120, 55, 2, L"卸载sethc", L"Usethc");//26
+	Main.CreateFrame(160, 370, 160, 135, 2, L" 进程工具 ");
+	Main.CreateText(175, 390, 2, L"TDState", 0);
+	Main.CreateText(175, 415, 2, L"TDPID", 0);
+	Main.CreateText(250, 390, 2, L"TcmdOK", RGB(0, 255, 0));
+	Main.CreateButton(175, 445, 60, 45, 2, L"结束", L"kill-TD");
+	Main.CreateButton(245, 445, 60, 45, 2, L"启动", L"re-TD");
+
+	Main.CreateButton(345, 370, 115, 55, 2, L"程序窗口化", L"windows.ex");
+	Main.CreateButton(480, 370, 115, 55, 2, L"防止教师关机", L"ANTI-");
+	Main.CreateButton(345, 450, 115, 55, 2, L"显示于安全桌面", L"desktop");
+	Main.CreateButton(480, 450, 115, 55, 2, L"自动防控制", L"auto-5");
 
 	Main.CreateText(365, 295, 2, L"Tcp1", RGB(50, 50, 50));
 	Main.CreateText(365, 317, 2, L"Tcp2", RGB(255, 100, 0));
@@ -2798,7 +2865,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetWindowPos(Main.hWnd, 0, 0, 0, 621, 550, SWP_NOMOVE);
 	Main.Width = 621;
 	Main.Height = 550;
-	
+
 	ShowWindow(Main.hWnd, nCmdShow);
 	InvalidateRect(Main.hWnd, NULL, FALSE);
 	UpdateWindow(Main.hWnd);
@@ -2935,48 +3002,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_SETFOCUS: {Main.EditRegHotKey(); break; }
 	case WM_KILLFOCUS: {Main.EditUnHotKey(); break; }
-					   //case WM_NCHITTEST:
-					   //{
-					   //	POINT point;
-					   //	GetCursorPos(&point);
-					   //	ScreenToClient(Main.hWnd, &point);
-					   //	RECT rect;
-					   //	GetClientRect(hWnd, &rect);
-					   //	if (point.x >= rect.right - 10 && point.y >= rect.bottom - 10)
-					   //		return HTBOTTOMRIGHT;
-
-					   //	else return HTCLIENT;
-
-					   //	//s(point.x);
-					   //}
-					   //case WM_SIZE:
-					   //{
-					   //	double x = 621 / 550.0;
-					   //	POINT point;
-					   //	GetCursorPos(&point);
-					   //	ScreenToClient(Main.hWnd, &point);
-					   //	if (point.x <= 0 || point.y <= 0)return 0;
-					   //	RECT rect;
-					   //	GetClientRect(hWnd, &rect);
-					   //	int wid = rect.right - rect.left, hei = rect.bottom - rect.top;
-					   //	//s(wid);
-					   //	//if (wid == 1 || hei == 1)return 0;
-					   //	if ((double)(point.x / point.y) < x)
-					   //	{
-					   //		SetWindowPos(hWnd, NULL, 0, 0, wid, wid / x, SWP_NOMOVE | SWP_NOREDRAW);
-					   //		double nd = (double)wid / 621.0;
-					   //		if(abs(Main.DPI-nd)>0.01)Main.SetDPI(nd);
-					   //	}
-					   //	else
-					   //		if ((double)(point.x / point.y) > x)
-					   //		{
-					   //			SetWindowPos(hWnd, NULL, 0, 0, hei*x, hei, SWP_NOMOVE | SWP_NOREDRAW);
-					   //			double nd = (double)hei / 550.0;
-					   //			if (abs(Main.DPI - nd) > 0.01)Main.SetDPI(nd);
-					   //		}
-					   //		else return 0;
-					   //	InvalidateRect(hWnd, NULL, FALSE);
-					   //}
 	case WM_ERASEBKGND: {return 0; }
 	case WM_PAINT:
 	{
@@ -3078,7 +3103,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		for (int i = 0; i <= Main.CurButton; ++i)
 			if (Main.Button[i].Page == Main.CurWnd || Main.Button[i].Page == 0 || (GameMode&& Main.Button[i].Page == 6))
-				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0) {
+				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0 && Main.Button[i].Enabled) {
 					f = TRUE; goto Finished;
 				}
 
@@ -3143,11 +3168,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		unsigned int x;
 		x = Hash(Main.GetCurInsideID());
-		BUTTON_IN(x, L"P1") { Main.SetPage(1); EasterEgg(false); ShowWindow(FileList, SW_HIDE); break; }
-		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE);  break; }
-		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); break; }
-		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); break; }
-		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); break; }
+		BUTTON_IN(x, L"P1") { Main.SetPage(1); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); RefreshTDstate(); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc);  break; }
+		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"QuickSetup")
 		{
 			oneclick = 1 - oneclick;
@@ -3165,33 +3190,102 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
-		BUTTON_IN(x, L"DelR3") { AutoDeleteSethc(); break; }
+		BUTTON_IN(x, L"DelR3")
+		{
+			if (!DeleteSethc())Main.InfoBox(Main.GetStr(L"DSR3Fail")); else goto delok;
+			break;
+		}
 		BUTTON_IN(x, L"DelR0")
 		{
 			if (!DeleteSethcS())Main.InfoBox(Main.GetStr(L"DSR0Fail"));
+			else
+			{
+			delok:
+				Main.Button[Main.GetNumbyID(L"DelR0")].Enabled = Main.Button[Main.GetNumbyID(L"DelR3")].Enabled = false;
+				wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR0")].Name, Main.GetStr(L"Deleted"));
+				wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR3")].Name, Main.GetStr(L"Deleted"));
+				SethcState = false;
+				InvalidateRect(Main.hWnd, NULL, false);
+			}
 			break;
 		}
-		BUTTON_IN(x, L"SethcR3") { AutoSetupSethc(); AutoCopyNTSD(); break; }
 		BUTTON_IN(x, L"SethcR0")
 		{
-			int flag = SetupSethcS();
-			if (flag == 0)Main.InfoBox(Main.GetStr(L"CSFail"));
-			if (flag == 2)Main.InfoBox(Main.GetStr(L"NoSethc"));
+			if (SethcInstallState == false)
+			{
+				int flag = SetupSethcS();
+				if (flag == 0)Main.InfoBox(Main.GetStr(L"CSFail"));//安装失败
+				if (flag == 2)Main.InfoBox(Main.GetStr(L"NoSethc"));//没有文件
+				if (flag == 1)//成功
+				{
+					Main.Button[Main.GetNumbyID(L"SethcR3")].Enabled = false;
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR3")].Name, Main.GetStr(L"Installed"));
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR0")].Name, Main.GetStr(L"unQS"));
+					SethcInstallState = true;
+					InvalidateRect(Main.hWnd, NULL, false);
+				}
+			}
+			else goto unsethc;
+			break;
+		}
+
+		BUTTON_IN(x, L"SethcR3")
+		{
+			if (SethcInstallState == false)
+			{
+				if (AutoSetupSethc() && AutoCopyNTSD())
+				{
+					Main.Button[Main.GetNumbyID(L"SethcR0")].Enabled = false;
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR0")].Name, Main.GetStr(L"Installed"));
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR3")].Name, Main.GetStr(L"unQS"));
+					SethcInstallState = true;
+					InvalidateRect(Main.hWnd, NULL, false);
+				}
+			}
+			else
+			{
+			unsethc:
+				if (UninstallSethc())
+				{
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR0")].Name, Main.GetStr(L"Ring0"));
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR3")].Name, Main.GetStr(L"Ring3"));
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR0")].Name, Main.GetStr(L"Ring0"));
+					wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR3")].Name, Main.GetStr(L"Ring3"));
+					Main.Button[Main.GetNumbyID(L"SethcR3")].Enabled = Main.Button[Main.GetNumbyID(L"SethcR0")].Enabled = Main.Button[Main.GetNumbyID(L"DelR0")].Enabled = Main.Button[Main.GetNumbyID(L"DelR3")].Enabled = true;
+					SethcInstallState = false;
+					InvalidateRect(Main.hWnd, NULL, false);
+				}
+			}
 			break;
 		}
 		BUTTON_IN(x, L"hookS")
 		{
 			KillProcess(L"hoo");
 
-			AutoCopyNTSD();
-
-			wchar_t tmp[1001];
+			wchar_t tmp[501];
 			wcscpy_s(tmp, Path);
 			wcscat_s(tmp, L"hook.exe");
 			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"OneFail"));
+			else
+			{
+				wcscpy_s(Main.Button[Main.GetNumbyID(L"hookS")].Name, Main.GetStr(L"Installed"));
+				wcscpy_s(Main.Button[Main.GetNumbyID(L"hookU")].Name, Main.GetStr(L"unQS"));
+				Main.Button[Main.GetNumbyID(L"hookS")].Enabled = false;
+				Main.Button[Main.GetNumbyID(L"hookU")].Enabled = true;
+				InvalidateRect(Main.hWnd, NULL, false);
+			}
 			break;
 		}
-		BUTTON_IN(x, L"hookU") { KillProcess(L"hoo"); break; }
+		BUTTON_IN(x, L"hookU")
+		{
+			KillProcess(L"hoo");
+			wcscpy_s(Main.Button[Main.GetNumbyID(L"hookS")].Name, Main.GetStr(L"Setup"));
+			wcscpy_s(Main.Button[Main.GetNumbyID(L"hookU")].Name, Main.GetStr(L"Uned"));
+			Main.Button[Main.GetNumbyID(L"hookS")].Enabled = true;
+			Main.Button[Main.GetNumbyID(L"hookU")].Enabled = false;
+			InvalidateRect(Main.hWnd, NULL, false);
+			break;
+		}
 		BUTTON_IN(x, L"runinVD")
 		{
 			STARTUPINFO si = { 0 };
@@ -3248,6 +3342,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"CP1") { ChangePasswordEx(1); break; }
 		BUTTON_IN(x, L"CP2") { ChangePasswordEx(2); break; }
+		BUTTON_IN(x, L"kill-TD") { KillProcess(L"stu"); break; }
 		BUTTON_IN(x, L"re-TD") { ReopenTD(); break; }
 		BUTTON_IN(x, L"windows.ex")
 		{
@@ -3283,12 +3378,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			CurrentProcessId = GetCurrentProcessId();
 			KillTop();
-			break;
-		}
-		BUTTON_IN(x, L"Usethc")
-		{
-			DeleteFile(SethcPath);
-			CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE);
 			break;
 		}
 		BUTTON_IN(x, L"viewfile") { openfile(); break; }
