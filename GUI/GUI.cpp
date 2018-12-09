@@ -351,7 +351,6 @@ public:
 							wcscat_s(tmp1, L"/");
 							_itow_s(Button[i].DownTot, tmp2, 10);
 							wcscat_s(tmp1, tmp2);
-							//s(tmp1);
 							DrawTextW(hdc, tmp1, wcslen(tmp1), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 						}
 					}
@@ -658,7 +657,6 @@ public:
 			wcscat(zxf, &Edit[cur].str[pos2]);
 			Edit[cur].Pos1 += wcslen(Buffer);
 			Edit[cur].Pos2 = -1;
-			//s(zxf);
 			SetEditStrOrFont(zxf, 0, cur);
 			RefreshXOffset(cur);
 			RefreshCaretByPos(cur);
@@ -818,7 +816,7 @@ public:
 		wcscpy(source, Edit[cur].str + pos1);
 		Edit[cur].str[pos2] = t;
 		WideCharToMultiByte(CP_ACP, 0, source, -1, Source, 0xffff, NULL, NULL);
-		//s(Source);
+		
 		if (OpenClipboard(hWnd))
 		{
 			HGLOBAL clipbuffer;
@@ -1422,12 +1420,67 @@ void KillTop()
 	expid[0] = Cur;
 	EnumWindows(lpEnumFunc, NULL);
 }
+typedef struct _CLIENT_ID
+{
+	HANDLE UniqueProcess;
+	HANDLE UniqueThread;
+}CLIENT_ID, *PCLIENT_ID;
+typedef struct _OBJECT_ATTRIBUTES
+{
+	ULONG Length;
+	HANDLE RootDirectory;
+	PVOID ObjectName;
+	ULONG Attritubes;
+	PVOID SecurityDescriptor;
+	PVOID SecurityQualityOfService;
+}OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
+typedef  DWORD(__stdcall *NTOPENPROCESS)(
+	OUT PHANDLE ProcessHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObejectAttributes,
+	IN PCLIENT_ID PClient_Id
+	);
+bool MyOpenProcess(OUT PHANDLE ProcessHandle,DWORD PID)
+{
+	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
+	if (hModule == NULL)
+		return FALSE;
+	NTOPENPROCESS NtOpenProcess = (NTOPENPROCESS)GetProcAddress(hModule, "NtOpenProcess");
+	if (NtOpenProcess == NULL)
+		return FALSE;
+	CLIENT_ID ClientID;
+	ClientID.UniqueProcess = (HANDLE)PID; //UniqueProcess可以接受PID
+	ClientID.UniqueThread = 0;
+	OBJECT_ATTRIBUTES oa;
+	oa.Length = sizeof(oa);
+	oa.RootDirectory = 0;
+	oa.ObjectName = 0;
+	oa.Attritubes = 0;
+	oa.SecurityDescriptor = 0;
+	oa.SecurityQualityOfService = 0;
+	NtOpenProcess(ProcessHandle, PROCESS_ALL_ACCESS, &oa, &ClientID);
+	return 0;
+}
+
 BOOL KillProcess(LPCWSTR ProcessName)
 {
+	if (Main.Check[14].Value)
+	{
+		wchar_t tmp[1001];
+		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
+		wcscat(tmp, ProcessName);
+		RunEXE(tmp);
+	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;
 	pe.dwSize = sizeof(PROCESSENTRY32);
 	if (!Process32First(hSnapShot, &pe))return FALSE;
+
+	typedef DWORD(CALLBACK* NTTERMINATEPROCESS)(HANDLE, UINT);
+	NTTERMINATEPROCESS NtTerminateProcess;
+	HMODULE hNtdll = NULL;
+	hNtdll = LoadLibrary(L"ntdll.dll");
+	NtTerminateProcess = (NTTERMINATEPROCESS)GetProcAddress(hNtdll, "NtTerminateProcess");
 
 	while (Process32Next(hSnapShot, &pe))
 	{
@@ -1436,8 +1489,9 @@ BOOL KillProcess(LPCWSTR ProcessName)
 		if (wcscmp(ProcessName, pe.szExeFile) == 0 || ProcessName == NULL)
 		{
 			DWORD dwProcessID = pe.th32ProcessID;
-			HANDLE hProcess = ::OpenProcess(PROCESS_TERMINATE, TRUE, dwProcessID);
-			::TerminateProcess(hProcess, 0);
+			HANDLE hProcess=0;
+			MyOpenProcess(&hProcess, dwProcessID);
+			NtTerminateProcess(hProcess, 1);
 			CloseHandle(hProcess);
 		}
 	}
@@ -1733,6 +1787,9 @@ bool DeleteSethc()
 {
 	if (GetFileAttributes(SethcPath) == -1)return true;
 	TakeOwner(SethcPath);
+	wchar_t tmp[]=  L"C:\\Windows\\system32\\dllcache\\sethc.exe";
+	TakeOwner(tmp);
+	DeleteFile(tmp);
 	return DeleteFile(SethcPath);
 }
 
@@ -1754,25 +1811,18 @@ bool DeleteDirectory(wchar_t *DirName) //新加删除某个不为空的文件夹
 			wcscpy_s(strFileName, DirName);
 			wcscat_s(strFileName, L"\\");
 			wcscat_s(strFileName, FindFileData.cFileName);
-			//s(strFileName);
 			wcscpy_s(temp, strFileName);
 			if (GetFileAttributes(temp) & 16) //如果是目录，则递归地调用  
-			{
 				DeleteDirectory(temp);
-			}
 			else
-			{
 				DeleteFile(strFileName);
-			}
 		}
 	}
 	FindClose(hFile);
 
 	BOOL bRet = RemoveDirectory(DirName);
 	if (bRet == 0) //删除目录  
-	{
 		return FALSE;
-	}
 	return TRUE;
 }
 
@@ -1842,9 +1892,7 @@ void AutoDelete(wchar_t *tmp)
 	TakeOwner(tmp);
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
-	{
 		DeleteDirectory(tmp);
-	}
 	else
 		DeleteFile(tmp);
 }
@@ -2215,15 +2263,12 @@ void BrowseFolder()
 }
 void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
 {
-	//s(lpPath);
 	wchar_t szFind[255], szFile[255];
 	WIN32_FIND_DATA FindFileData;
 	wcscpy_s(szFind, lpPath);
 	wcscat_s(szFind, L"\\*.*");
 	HANDLE hFind = ::FindFirstFile(szFind, &FindFileData);
-	if (INVALID_HANDLE_VALUE == hFind) {
-		/*s(L"failed");*/ return;
-	}
+	if (INVALID_HANDLE_VALUE == hFind) return;
 	while (TRUE)
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -2257,7 +2302,6 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
 					wcscpy_s(szFile, lpPath);
 					wcscat_s(szFile, L"\\");
 					wcscat_s(szFile, FindFileData.cFileName);
-					//s(szFile);
 					TakeOwner(szFile);
 					DeleteFile(szFile);
 				}
@@ -2269,32 +2313,19 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
 }
 void ReopenTD()
 {
-	if (Bit == 32)
-	{
-		SearchTool(L"C:\\Program Files\\Mythware", 1),
-			SearchTool(L"C:\\Program Files\\TopDomain", 1);
-	}
-	else
-	{
-		SearchTool(L"C:\\Program Files (x86)\\Mythware", 1),
-			SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
-	}
+	SearchTool(L"C:\\Program Files\\Mythware", 1),
+	SearchTool(L"C:\\Program Files\\TopDomain", 1);
+	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1),
+	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
 }
 void DeleteShutdown()
 {
-	if (Bit == 32)
-	{
-		SearchTool(L"C:\\Program Files\\Mythware", 2);
-		SearchTool(L"C:\\Program Files\\TopDomain", 2);
-		SearchTool(L"C:\\Windows\\System32", 2);
-	}
-	else
-	{
-		SearchTool(L"C:\\Program Files (x86)\\Mythware", 2);
-		SearchTool(L"C:\\Program Files (x86)\\TopDomain", 2);
-		SearchTool(L"C:\\Windows\\System32", 2);
-		SearchTool(L"C:\\Windows\\SysNative", 2);
-	}
+	SearchTool(L"C:\\Program Files\\Mythware", 2);
+	SearchTool(L"C:\\Program Files\\TopDomain", 2);
+	SearchTool(L"C:\\Windows\\System32", 2);
+	SearchTool(L"C:\\Program Files (x86)\\Mythware", 2);
+	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 2);
+	SearchTool(L"C:\\Windows\\SysNative", 2);
 }
 bool RunHOOK()
 {
@@ -2417,7 +2448,6 @@ void AutoClearPassWd()
 }
 void ChangePasswordEx(int type)
 {
-
 	wchar_t tmp[1001] = { 0 };
 	if (wcscmp(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, Main.GetStr(L"E_CP")) == 0)
 	{
@@ -2673,7 +2703,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
 	}
 
-	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 400, 265, 140, Main.hWnd, (HMENU)1, hInstance, 0);
+	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 420, 265, 120, Main.hWnd, (HMENU)1, hInstance, 0);
 	//创建语言文件选择ListBox
 
 	SearchLanguageFiles();//寻找语言文件
@@ -2817,9 +2847,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateCheck(180, 300, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
 	Main.CreateCheck(180, 330, 5, 160, L" 低画质");
 	Main.CreateCheck(180, 360, 5, 160, L" 放大/缩小");
+	Main.CreateCheck(180, 390, 5, 160, L" 使用ntsd结束进程");
 
-	Main.CreateButton(470, 400, 100, 50, 5, L"永久隐藏", L"hidest");
-	Main.CreateButton(470, 464, 100, 50, 5, L"最小化", L"minisize");
+	Main.CreateButton(470, 420, 100, 45, 5, L"永久隐藏", L"hidest");
+	Main.CreateButton(470, 475, 100, 45, 5, L"最小化", L"minisize");
 
 
 	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 ");
@@ -3588,7 +3619,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							break;
 						case 13:
 							Main.SetDPI(1.5);
-							SetWindowPos(FileList, 0, 180 * Main.DPI, 400 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
+							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
 						}
@@ -3643,7 +3674,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							break;
 						case 13:
 							Main.SetDPI(0.75);
-							SetWindowPos(FileList, 0, 180 * Main.DPI, 400 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
+							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
 						}
