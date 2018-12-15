@@ -76,10 +76,10 @@ HDC tdc, Hdc;//吃窗口缓冲hdc + 贴图hdc
 HBITMAP HBMP;//吃窗口hbmp
 
 BOOL TOP;//是否置顶
-const int numGames = 6;//游戏数
+const int numGames = 7;//游戏数
 BOOL GameExist[numGames + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
-L"Games\\1.exe" , L"Games\\chess.exe" };//游戏名
+L"Games\\1.exe" , L"Games\\chess.exe" ,L"arp\\arp.exe"};//游戏名
 DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
@@ -2028,7 +2028,24 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		wcscpy_s(progress.curi, L"Game6");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
 		break;
-	}
+	
+	case 7:
+		wcscpy_s(progress.curi, L"ARP");
+		Main.Button[Main.GetNumbyID(L"ARP")].DownTot = 6;
+		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 1;
+		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/arp.exe", tmp, 0, &progress);
+		wcscpy_s(tmp, Path);
+		wcscat_s(tmp, L"arp\\wpcap.dll");
+		Main.Button[Main.GetNumbyID(L"ARP")].Download = 0;
+		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 2;
+		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/wpcap.dll", tmp, 0, &progress);
+
+		wcscpy_s(tmp, Path);
+		wcscat_s(tmp, L"arp\\wpcap.dll");
+		Main.Button[Main.GetNumbyID(L"ARP")].Download = 0;
+		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 3;
+		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/wpcap.dll", tmp, 0, &progress);
+		break;}
 	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
 	return 0;
 }
@@ -2610,6 +2627,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 
 	if (!InitInstance(hInstance, nCmdShow))return FALSE;
+
+	wchar_t tmp[255];
+	for (int i = 0; i < numGames; ++i)
+	{
+		wcscpy_s(tmp, Path);
+		wcscat_s(tmp, GameName[i]);
+		if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
+	}
 
 cosl:
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GUI));
@@ -3428,13 +3453,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				wcscat_s(tmp, L"games");
 				CreateDirectory(tmp, NULL);
 
-				for (int i = 0; i < numGames; ++i)
-				{
-					wcscpy_s(tmp, Path);
-					wcscat_s(tmp, GameName[i]);
-					if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
-				}
-
 				wcscpy_s(Main.Button[Main.CurCover].Name, Main.GetStr(L"Gamee"));
 				GameMode = 1;
 				if (!lock)lock = true, CreateThread(NULL, 0, GameThread, 0, 0, NULL); else GameMode = 0, wcscpy_s(Main.Button[Main.CurCover].Name, L"打游戏");
@@ -3449,13 +3467,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"ARP")//cathy
 		{
-			wchar_t tmp[] = L"arp\\arp.exe";
-			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
-			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
-			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
+			if (GameExist[6])
+			{
+				wchar_t tmp[] = L"arp\\arp.exe";
+				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
+				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
+				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
 
-			RunEXE(tmp);
+				RunEXE(tmp);
+				break;
+			}
+			else { int typ = 7; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
 			break;
+
 		}
 		BUTTON_IN(x, L"SuperCMD")
 		{
