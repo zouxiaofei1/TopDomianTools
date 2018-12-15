@@ -35,11 +35,12 @@ ps:名字改成了 极域破解 ，更短
    谁有360免杀签名可以联系我
 
 作者     :  minecraft
-	    cxy
+               cxy
 
 技术支持 :  
 	吾爱破解论坛
 	www.baidu.com
+	github.com
 	Microsoft
 	Msdn
 	Visual Studio 团队
@@ -54,11 +55,12 @@ ps:名字改成了 极域破解 ，更短
 	      @ 火晶石Motor
 	      百度贴吧 vb吧 全体吧友
 	      闪闪的星 htps://shansing.com/
-
+	      wj32 (Process Hacker) https://github.com/processhacker/processhacker
 	开发工具:
 	      @ The FreeBASIC Development Team 
 	      Visual Basic 6.0
 	      Visual C++
+	      Visual Studio 2017
 	驱动：
 	      @ 《寒江独钓》作者团队
 	      @ angla.tesla
@@ -210,19 +212,21 @@ v1.8.4
 
 v1.8.5
 增加 2016版极域密码修改
+删除 (本地)ARP攻击
+增加 ntsd & Process Hacker 结束进程功能
+减小 ntsd体积
+增加 精简版Process Hacker
 改进 UI
 加强 控件稳定性
 
-最后修改：2018-11-25
+最后修改：2018-12-16
 
 本版为正式版
 
 有好的建议或意见可以发zouxiaofei1@gmail.com
-		  tel:无
-		   QQ:无
 		Github:zouxiaofei1
 
 你的使用，就是对我们的最大鼓励！
 
 ps: 解禁USB： HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\USBSTOR\START 改为3
-    2016版极域万能密码：mythware_super_password
+     //2016版极域万能密码：mythware_super_password

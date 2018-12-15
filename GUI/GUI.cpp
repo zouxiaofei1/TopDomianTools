@@ -67,7 +67,7 @@ BOOL lock = FALSE;//Game按钮锁定
 int timerleft = -2;//吃窗口倒计时
 wchar_t zxfback[101];//倒计时备份按钮名称
 
-std::map<int, bool>Eatpid;//吃窗口hWnd记录链表
+std::map<int, bool>Eatpid;//吃窗口hWnd记录map
 std::stack<HWND>EatList;
 HDC hdc, rdc;//主窗口缓冲hdc + 贴图hdc
 HBITMAP hBmp;//主窗口hbmp
@@ -100,28 +100,29 @@ bool TDProcess;//极域是否在运行
 class CathyClass//控件主类
 {
 public:
-	void InitClass(HINSTANCE HInstance)
-	{
+	void InitClass(HINSTANCE HInstance)//新Class使用之前最好Init一下
+	{								//  （不Init也行）
 		hInstance = HInstance;
 		CurButton = CurFrame = CurCheck = CurLine = CurText = 0;
 		CurWnd = 1;
-
-		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
-
 		CurCover = -1;
 		CoverCheck = 0;
+
+		//默认宋体
+		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 	}
 
-	inline wchar_t *GetStr(LPCWSTR ID) { return str[Hash(ID)]; }
+	inline wchar_t *GetStr(LPCWSTR ID) { return str[Hash(ID)]; }//通过Hash + map 来快速索引字符串的数据结构
+	//															ID(索引字符串) -> Hash -(map)> 字符串地址
 
-	void SetStr(LPCWSTR Str, LPCWSTR ID)
+	void SetStr(LPCWSTR Str, LPCWSTR ID)//通过ID设置字符串
 	{
 		delete[]str[Hash(ID)];
 		str[Hash(ID)] = new wchar_t[wcslen(Str) + 1];
 		wcscpy(str[Hash(ID)], Str);
 	}
 
-	void CreateString(LPCWSTR Str, LPCWSTR ID)
+	void CreateString(LPCWSTR Str, LPCWSTR ID)//创建新字符串
 	{
 		CurString++;
 		if (Str != NULL)
@@ -133,7 +134,7 @@ public:
 		str[Hash(ID)] = string[CurString].str;
 	}
 
-	void CreateEditEx(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID, HFONT Font, BOOL Ostr)
+	void CreateEditEx(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID, HFONT Font, BOOL Ostr)//创建自绘输入框
 	{
 		++CurEdit;
 		Edit[CurEdit].Left = Left; Edit[CurEdit].Top = Top;
@@ -149,15 +150,16 @@ public:
 		wcscpy_s(Edit[CurEdit].ID, ID);
 	}
 
-	void CreateArea(int Left, int Top, int Wid, int Hei, int Page)
+	void CreateArea(int Left, int Top, int Wid, int Hei, int Page)//创建点击区域
 	{
 		++CurArea;
 		Area[CurArea].Left = Left; Area[CurArea].Top = Top;
 		Area[CurArea].Width = Wid; Area[CurArea].Height = Hei;
 		Area[CurArea].Page = Page;
 	}
+
 	void CreateButtonEx(int Number, int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, HBRUSH Leave, \
-		HBRUSH Hover, HBRUSH press, HPEN Leave2, HPEN Hover2, HPEN Press2, HFONT Font, BOOL Enabled, BOOL Visible, COLORREF FontRGB, LPCWSTR ID)
+		HBRUSH Hover, HBRUSH press, HPEN Leave2, HPEN Hover2, HPEN Press2, HFONT Font, BOOL Enabled, BOOL Visible, COLORREF FontRGB, LPCWSTR ID)//创建按钮
 	{
 		Button[Number].Left = Left; Button[Number].Top = Top;
 		Button[Number].Width = Wid; Button[Number].Height = Hei;
@@ -191,13 +193,15 @@ public:
 		Button[Number].p2[1] = (byte)(LogPen.lopnColor >> 8);
 		Button[Number].p2[2] = (byte)(LogPen.lopnColor >> 16);
 	}
-	void CreateButton(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID)
+	void CreateButton(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID)//创建按钮（简化版）
 	{
 		++CurButton;
 		CreateButtonEx(CurButton, Left, Top, Wid, Hei, Page, name, WhiteBrush, DBlueBrush, LBlueBrush, BLACK, BLACK, BLACK, 0, TRUE, TRUE, RGB(0, 0, 0), ID);
 	}
+
 	//这里的name Wid Hei 不用全名是因为警告"隐藏了全局声明"
-	void CreateFrame(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name)
+
+	void CreateFrame(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name)//创建内容框
 	{
 		++CurFrame;
 		Frame[CurFrame].Left = Left; Frame[CurFrame].Page = Page;
@@ -206,7 +210,7 @@ public:
 		wcscpy_s(Frame[CurFrame].Name, name);
 	}
 
-	void CreateCheck(int Left, int Top, int Page, int Wid, LPCWSTR name)
+	void CreateCheck(int Left, int Top, int Page, int Wid, LPCWSTR name)//创建check
 	{
 		++CurCheck;
 		Check[CurCheck].Left = Left; Check[CurCheck].Top = Top;
@@ -214,7 +218,7 @@ public:
 		wcscpy_s(Check[CurCheck].Name, name);
 	}
 
-	void CreateText(int Left, int Top, int Page, LPCWSTR name, COLORREF rgb)
+	void CreateText(int Left, int Top, int Page, LPCWSTR name, COLORREF rgb)//创建注释文字
 	{
 		++CurText;
 		Text[CurText].Left = Left; Text[CurText].Top = Top;
@@ -222,7 +226,7 @@ public:
 		wcscpy_s(Text[CurText].Name, name);
 	}
 
-	void CreateLine(int StartX, int StartY, int EndX, int EndY, int Page, COLORREF rgb)
+	void CreateLine(int StartX, int StartY, int EndX, int EndY, int Page, COLORREF rgb)//创建线段
 	{
 		++CurLine;
 		Line[CurLine].StartX = StartX; Line[CurLine].StartY = StartY;
@@ -230,22 +234,22 @@ public:
 		Line[CurLine].Page = Page; Line[CurLine].Color = rgb;
 	}
 
-	BOOL InsideButton(int cur, POINT &point)
+	inline BOOL InsideButton(int cur, POINT &point)//判断鼠标指针是否在按钮内
 	{
 		return (Button[cur].Left*DPI <= point.x && Button[cur].Top*DPI <= point.y && (long)((Button[cur].Left + Button[cur].Width)*DPI) >= point.x && (long)((Button[cur].Top + Button[cur].Height) *DPI) >= point.y);
 	}
 
-	int InsideCheck(int cur, POINT &point)
+	int InsideCheck(int cur, POINT &point)//同理 判断鼠标指针是否在check内
 	{
-		if (Check[cur].Left*DPI <= point.x&&Check[cur].Top*DPI <= point.y&&Check[cur].Left*DPI + 15 * DPI + 1 >= point.x
+		if (Check[cur].Left*DPI <= point.x&&Check[cur].Top*DPI <= point.y&&Check[cur].Left*DPI + 15 * DPI + 1 >= point.x//在check的方框内
 			&&Check[cur].Top*DPI + 15 * DPI + 1 >= point.y)return 1;
 
-		if (Check[cur].Left*DPI <= point.x&&Check[cur].Top*DPI <= point.y&&Check[cur].Left*DPI + Check[cur].Width*DPI >= point.x
+		if (Check[cur].Left*DPI <= point.x&&Check[cur].Top*DPI <= point.y&&Check[cur].Left*DPI + Check[cur].Width*DPI >= point.x//在check方框右侧一定距离
 			&&Check[cur].Top*DPI + 15 * DPI + 1 >= point.y)return 2;
-		return 0;
+		return 0;//不在check内
 	}
 
-	void DrawFrames(int cur)
+	void DrawFrames(int cur)//绘制Frames
 	{
 		int i;
 		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Frame
@@ -254,14 +258,14 @@ public:
 		begin:
 			if (Frame[i].Page == CurWnd || Frame[i].Page == 0)
 			{
-				SelectObject(hdc, BLACK);
+				SelectObject(hdc, BLACK);//绘制方框
 				SelectObject(hdc, DefFont);
 				MoveToEx(hdc, Frame[i].Left*DPI, Frame[i].Top*DPI, NULL);
 				LineTo(hdc, Frame[i].Left*DPI, Frame[i].Top*DPI + Frame[i].Height*DPI);
 				LineTo(hdc, Frame[i].Left*DPI + Frame[i].Width*DPI, Frame[i].Top*DPI + Frame[i].Height*DPI);
 				LineTo(hdc, Frame[i].Left*DPI + Frame[i].Width*DPI, Frame[i].Top*DPI);
 				LineTo(hdc, Frame[i].Left*DPI, Frame[i].Top *DPI);
-				SetTextColor(hdc, Frame[i].rgb);
+				SetTextColor(hdc, Frame[i].rgb);//打印文字
 				RECT rc = GetRECTf(i);
 				SetBkMode(hdc, OPAQUE);
 				DrawTextW(hdc, Frame[i].Name, (int)wcslen(Frame[i].Name), &rc, NULL);
@@ -271,7 +275,7 @@ public:
 		}
 	}
 
-	void DrawButtons(int cur)
+	void DrawButtons(int cur)//绘制按钮
 	{
 		int i;
 		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Button
@@ -281,7 +285,7 @@ public:
 			if (Button[i].Page == CurWnd || Button[i].Page == 0)
 			{
 				HPEN tmp = 0; HBRUSH tmb = 0;
-				if (Button[i].Enabled == false)
+				if (Button[i].Enabled == false)//禁用则显示灰色
 				{
 					SelectObject(hdc, Dgrey);
 					SelectObject(hdc, Button[i].Leave2);
@@ -289,7 +293,7 @@ public:
 					goto ok;
 				}
 				SetTextColor(hdc, Button[i].FontRGB);
-				if (Button[i].Percent != 0 && Button[i].Percent != 100 && Button[i].DownTot == 0)
+				if (Button[i].Percent != 0 && Button[i].Percent != 100 && Button[i].DownTot == 0)//渐变色绘制
 				{
 					tmp = CreatePen(PS_SOLID, 1, RGB((Button[i].p2[0] - Button[i].p1[0])*Button[i].Percent / 100 + Button[i].p1[0], \
 						(Button[i].p2[1] - Button[i].p1[1])*Button[i].Percent / 100 + Button[i].p1[1], (Button[i].p2[2] - Button[i].p1[2])*Button[i].Percent / 100 + Button[i].p1[2]));
@@ -300,7 +304,7 @@ public:
 					SelectObject(hdc, tmb);
 					goto ok;
 				}
-				if (CurCover == i && Button[i].DownTot == 0)
+				if (CurCover == i && Button[i].DownTot == 0)//没有禁用&渐变色 -> 默认颜色
 					if (Press == 1)
 					{
 						SelectObject(hdc, Button[i].Press);
@@ -317,10 +321,11 @@ public:
 					SelectObject(hdc, Button[i].Leave2);
 				}
 			ok:
-				if (Button[i].Font == NULL)SelectObject(hdc, DefFont); else SelectObject(hdc, Button[i].Font);
+				if (Button[i].Font == NULL)SelectObject(hdc, DefFont); else SelectObject(hdc, Button[i].Font);//字体
 
 				Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI, Button[i].Top*DPI + Button[i].Height*DPI);
-				if (Button[i].DownTot != 0)
+				
+				if (Button[i].DownTot != 0)//下载进度条
 				{
 					SelectObject(hdc, Button[i].Hover);
 					Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI*(Button[i].Download - 1) / 100, Button[i].Top*DPI + Button[i].Height*DPI);
@@ -333,7 +338,7 @@ public:
 					DrawTextW(hdc, Button[i].Name, (int)wcslen(Button[i].Name), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 				else
 				{
-					if (Button[i].Download == 101 && (Button[i].DownTot < 2 || Button[i].DownTot == Button[i].DownCur))
+					if (Button[i].Download == 101 && (Button[i].DownTot < 2 || Button[i].DownTot == Button[i].DownCur))//下载文字
 					{
 						DrawTextW(hdc, GetStr(L"Loaded"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 						Button[i].Download = Button[i].DownTot = 0;
@@ -344,7 +349,7 @@ public:
 							DrawTextW(hdc, GetStr(L"Loading"), 4, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 						else
 						{
-							wchar_t tmp1[101], tmp2[11];
+							wchar_t tmp1[101], tmp2[11];//正在下载 （已下载个数）/（总数）
 							wcscpy_s(tmp1, GetStr(L"Loading"));
 							wcscat_s(tmp1, L" ");
 							_itow_s(Button[i].DownCur, tmp2, 10);
@@ -356,7 +361,7 @@ public:
 						}
 					}
 				}
-				if (tmp != NULL)DeleteObject(tmp);
+				if (tmp != NULL)DeleteObject(tmp);//回收句柄
 				if (tmb != NULL)DeleteObject(tmb);
 			}
 
@@ -365,7 +370,7 @@ public:
 		SetTextColor(hdc, RGB(0, 0, 0));
 
 	}
-	void DrawChecks(int cur)
+	void DrawChecks(int cur)//绘制Checks
 	{
 		int i;
 		if (cur != 0)
@@ -395,7 +400,7 @@ public:
 			if (cur != 0)return;
 		}
 	}
-	void DrawLines()
+	void DrawLines()//绘制线段
 	{
 		for (int i = 1; i <= CurLine; ++i)
 		{
@@ -407,7 +412,7 @@ public:
 			}
 		}
 	}
-	void DrawTexts(int cur)
+	void DrawTexts(int cur)//绘制文字
 	{
 		int i;
 		if (cur != 0)
@@ -429,7 +434,7 @@ public:
 			if (cur != 0)return;
 		}
 	}
-	void DrawExp()
+	void DrawExp()//绘制注释
 	{
 		if (ExpExist == false)return;
 		SelectObject(hdc, DefFont);
@@ -3342,14 +3347,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"runinVD")
 		{
-			STARTUPINFO si = { 0 };
-			PROCESS_INFORMATION pi = { 0 };
-			wchar_t tmp[1001];
-			si.cb = sizeof(si);
-			si.lpDesktop = szVDesk;
-			wcscpy_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_runinVD")].str);
-			if (!CreateProcess(NULL, tmp, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-				Main.InfoBox(Main.GetStr(L"StartFail"));
+			ShellCreateInVDesk(Main.Edit[Main.GetNumByIDe(L"E_runinVD")].str);
 			break;
 		}
 		BUTTON_IN(x, L"SwitchD") { SDesktop(); break; }

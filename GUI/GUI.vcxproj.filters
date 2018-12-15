@@ -57,18 +57,14 @@
     <Image Include="GUI.ico">
       <Filter>资源文件</Filter>
     </Image>
-    <Image Include="ZXF1.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
     <Image Include="studentmain.ico">
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="zxf2.bmp">
       <Filter>资源文件</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="xiaofei.exe" />
-    <None Include="14000词库.ini" />
+    <Image Include="zxf.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
