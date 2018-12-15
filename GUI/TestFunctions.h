@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "stdafx.h"
 #ifndef _WIN64
-#define Bitstr L"32Bit Update 193"
+constexpr auto Bitstr = L"32Bit Update 199";
 #else
-#define Bitstr L"64Bit Update 193"
+constexpr auto Bitstr = L"64Bit Update 199";
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -242,10 +242,10 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
 	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
-	Main.CreateString(L"版本：C++ v1.8.5 测试版", L"Tver");\
+	Main.CreateString(L"版本：C++ v1.8.5 正式版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
-	Main.CreateString(L"CopyLeft© SA软件 2015 - 2018", L"_Tleft");\
-	Main.CreateString(L"© SA软件 2015 - 2018", L"Tleft");\
+	Main.CreateString(L"CopyLeft© SA软件 2015 - 2019", L"_Tleft");\
+	Main.CreateString(L"© SA软件 2015 - 2019", L"Tleft");\
 	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\
 	Main.CreateString(L"极域破解v1.8.5 不是管理员", L"Tmain");\
 	Main.CreateString(L"极域破解v1.8.5", L"Tmain2");\
@@ -275,7 +275,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"系统位数:", L"Tbit");\
 	Main.CreateString(L"系统版本:", L"Twinver");\
 	Main.CreateString(L"cmd状态:", L"Tcmd");\
-	Main.CreateString(L"极域版本:", L"TTDv");\
+	Main.CreateString(L"极域版本: unknown", L"TTDv");\
 	Main.CreateString(L"IP地址:", L"TIP");\
 	Main.CreateString(L"存在", L"TcmdOK");\
 	Main.CreateString(L"不存在", L"TcmdNO");\

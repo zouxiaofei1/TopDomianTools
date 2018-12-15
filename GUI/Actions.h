@@ -11,7 +11,7 @@ VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
 DWORD WINAPI BlackThread(LPVOID pM);
 VOID Restart()
 {
-	CreateThread(NULL, 0, BlackThread, 0, 0, NULL);
+	CreateThread(NULL, 0, BlackThread, nullptr, 0, nullptr);
 	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
 	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(INT, BOOL, BOOL, INT*);
 	typedef int(__stdcall *PFN_ZwShutdownSystem)(INT);
@@ -60,7 +60,7 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 	//typedef int(__stdcall *PFN_ZwShutdownSystem)(INT);
 
 	typedef int(__stdcall *tRtlGetVersion)(PRTL_OSVERSIONINFOW);
-	tRtlGetVersion pRtlGetVersion = NULL;
+	tRtlGetVersion pRtlGetVersion = nullptr;
 	if (hNtDll)pRtlGetVersion = (tRtlGetVersion)GetProcAddress(hNtDll, "RtlGetVersion");
 	if (pRtlGetVersion)return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0;
 	return FALSE;

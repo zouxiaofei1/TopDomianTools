@@ -10,7 +10,8 @@
 
 #define BUTTON_IN(x,y) if(x == Hash(y))
 #define Delta 10 //按钮渐变色速度
-
+#pragma comment(lib,"kernel32.lib")
+#pragma comment(lib,"shell32.lib")
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib   
 #pragma comment(lib,"Shlwapi.lib")
 #pragma comment(lib,"Advapi32.lib")
@@ -76,10 +77,10 @@ HDC tdc, Hdc;//吃窗口缓冲hdc + 贴图hdc
 HBITMAP HBMP;//吃窗口hbmp
 
 BOOL TOP;//是否置顶
-const int numGames = 7;//游戏数
+const int numGames = 7;//(游戏)数
 BOOL GameExist[numGames + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
-L"Games\\1.exe" , L"Games\\chess.exe" ,L"arp\\arp.exe"};//游戏名
+L"Games\\1.exe" , L"Games\\chess.exe" ,L"arp\\arp.exe"};//(游戏)名
 DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
@@ -1470,6 +1471,9 @@ BOOL KillProcess(LPCWSTR ProcessName)
 		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
 		wcscat(tmp, ProcessName);
 		RunEXE(tmp);
+		wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
+		wcscat(tmp, ProcessName);
+		RunEXE(tmp);
 	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;
@@ -2030,21 +2034,20 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		break;
 	
 	case 7:
+		wchar_t tmpstr[10][20] = { L"wpcap.dll" ,L"npf.sys",L"npptools.dll",L"Packet.dll",L"WanPacket.dll" , L"arp.exe" },tmp2[151];
 		wcscpy_s(progress.curi, L"ARP");
 		Main.Button[Main.GetNumbyID(L"ARP")].DownTot = 6;
-		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 1;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/arp.exe", tmp, 0, &progress);
-		wcscpy_s(tmp, Path);
-		wcscat_s(tmp, L"arp\\wpcap.dll");
-		Main.Button[Main.GetNumbyID(L"ARP")].Download = 0;
-		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 2;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/wpcap.dll", tmp, 0, &progress);
-
-		wcscpy_s(tmp, Path);
-		wcscat_s(tmp, L"arp\\wpcap.dll");
-		Main.Button[Main.GetNumbyID(L"ARP")].Download = 0;
-		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = 3;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/wpcap.dll", tmp, 0, &progress);
+		for (int i = 0; i < 6; ++i)
+		{
+			Main.Button[Main.GetNumbyID(L"ARP")].DownCur = i + 1;
+			Main.Button[Main.GetNumbyID(L"ARP")].Download = -1;
+			wcscpy_s(tmp, Path);
+			wcscat_s(tmp, L"arp\\");
+			wcscat_s(tmp, tmpstr[i]);
+			wcscpy_s(tmp2, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/");
+			wcscat_s(tmp2, tmpstr[i]);
+			URLDownloadToFileW(NULL, tmp2, tmp, 0, &progress);
+		}
 		break;}
 	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
 	return 0;
@@ -2872,7 +2875,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateCheck(180, 300, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
 	Main.CreateCheck(180, 330, 5, 160, L" 低画质");
 	Main.CreateCheck(180, 360, 5, 160, L" 放大/缩小");
-	Main.CreateCheck(180, 390, 5, 160, L" 使用ntsd结束进程");
+	Main.CreateCheck(180, 390, 5, 310, L" 使用ProcessHacker和ntsd结束进程");
 
 	Main.CreateButton(470, 420, 100, 45, 5, L"永久隐藏", L"hidest");
 	Main.CreateButton(470, 475, 100, 45, 5, L"最小化", L"minisize");
@@ -3465,11 +3468,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
-		BUTTON_IN(x, L"ARP")//cathy
+		BUTTON_IN(x, L"ARP")
 		{
 			if (GameExist[6])
 			{
-				wchar_t tmp[] = L"arp\\arp.exe";
+				static wchar_t tmp[] = L"arp\\arp.exe";
 				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
 				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
 				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
@@ -3477,7 +3480,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				RunEXE(tmp);
 				break;
 			}
-			else { int typ = 7; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
+			else 
+			{ 
+				wchar_t tmp[301];
+				wcscpy_s(tmp, Path);
+				wcscat_s(tmp, L"arp");
+				CreateDirectory(tmp, NULL);
+				int typ = 7;
+				CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL);
+			}
 			break;
 
 		}
@@ -3841,7 +3852,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			GetClientRect(CatchWnd.hWnd, &rc2);
 			Rectangle(tdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
-			double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
+			const double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
 				wh2 = (double)(rc2.right - rc2.left) / (double)(rc2.bottom - rc2.top);
 			if (wh1 > wh2)
 			{
@@ -3887,7 +3898,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		if (CatchWnd.CurCover != -1)
 		{
 			CatchWnd.Press = 0;
-			RECT rc = CatchWnd.GetRECT(CatchWnd.CurCover);
+			const RECT rc = CatchWnd.GetRECT(CatchWnd.CurCover);
 			InvalidateRect(CatchWnd.hWnd, &rc, FALSE);
 		}
 
