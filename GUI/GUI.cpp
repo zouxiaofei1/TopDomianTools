@@ -1596,39 +1596,148 @@ struct GETLAN
 
 void GetLanguage(GETLAN&a)
 {
-	wchar_t *str1 = wcsstr(a.begin, L"\"");
-	wchar_t *str2 = wcsstr(str1 + 1, L"\"");
-	*str2 = '\0';
-	a.str1 = str1 + 1;
-	str1 = wcsstr(str2 + 1, L",");
-	if (str1 == NULL)return;
-	str2 = wcsstr(str1 + 1, L",");
-	if (str2 != NULL)*str2 = '\0';
-	a.Left = _wtoi(str1 + 1);
-	if (str2 == NULL)return;
-	str1 = wcsstr(str2 + 1, L",");
-	if (str1 != NULL)*str1 = '\0';
-	a.Top = _wtoi(str2 + 1);
-	if (str1 == NULL)return;
-	str2 = wcsstr(str1 + 1, L",");
-	if (str2 != NULL)*str2 = '\0';
-	a.Width = _wtoi(str1 + 1);
-	if (str2 == NULL)return;
-	str1 = wcsstr(str2 + 1, L",");
-	if (str1 != NULL)*str1 = '\0';
-	a.Height = _wtoi(str2 + 1);
-	if (str1 == 0)return;
-	str1 = wcsstr(str1 + 1, L"\"");
-	str2 = wcsstr(str1 + 1, L"\"");
-	*str2 = '\0';
-	a.str2 = str1 + 1;
+	__try
+	{
+		wchar_t *str1 = wcsstr(a.begin, L"\"");
+		wchar_t *str2 = wcsstr(str1 + 1, L"\"");
+		*str2 = '\0';
+		a.str1 = str1 + 1;
+		str1 = wcsstr(str2 + 1, L",");
+		if (str1 == NULL)return;
+		str2 = wcsstr(str1 + 1, L",");
+		if (str2 != NULL)*str2 = '\0';
+		a.Left = _wtoi(str1 + 1);
+		if (str2 == NULL)return;
+		str1 = wcsstr(str2 + 1, L",");
+		if (str1 != NULL)*str1 = '\0';
+		a.Top = _wtoi(str2 + 1);
+		if (str1 == NULL)return;
+		str2 = wcsstr(str1 + 1, L",");
+		if (str2 != NULL)*str2 = '\0';
+		a.Width = _wtoi(str1 + 1);
+		if (str2 == NULL)return;
+		str1 = wcsstr(str2 + 1, L",");
+		if (str1 != NULL)*str1 = '\0';
+		a.Height = _wtoi(str2 + 1);
+		if (str1 == 0)return;
+		str1 = wcsstr(str1 + 1, L"\"");
+		str2 = wcsstr(str1 + 1, L"\"");
+		*str2 = '\0';
+		a.str2 = str1 + 1;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		s(L"error");
+	}
+}
+
+void DispatchLanguage(LPWSTR ReadTmp, int type, CathyClass*a)
+{
+	__try
+	{
+		GETLAN gl = { 0 };
+		wchar_t *pos = wcsstr(ReadTmp, L"=");
+		*pos = '\0'; gl.begin = pos + 1;
+		wchar_t *space = wcsstr(ReadTmp, L" ");
+		if (space != 0)space[0] = '\0';
+
+		if (type == 1)//button
+		{
+			if (&CatchWnd == a)s(ReadTmp);
+			int cur = a->GetNumbyID(ReadTmp);
+			GetLanguage(gl);
+
+			if (gl.Left != -1)a->Button[cur].Left = gl.Left;
+			if (gl.Top != -1)a->Button[cur].Top = gl.Top;
+			if (gl.Width != -1)a->Button[cur].Width = gl.Width;
+			if (gl.Height != -1)a->Button[cur].Height = gl.Height;
+			if (gl.str1 != NULL)wcscpy_s(a->Button[cur].Name, gl.str1);
+			if (gl.str2 != NULL)wcscpy_s(a->Button[cur].Exp, gl.str2); else ZeroMemory(a->Button[cur].Exp, sizeof(a->Button[cur].Exp));
+			return;
+		}
+		if (type == 2)//check
+		{
+			int cur = _wtoi(ReadTmp + 1);
+			GetLanguage(gl);
+			if (gl.Left != -1)a->Check[cur].Left = gl.Left;
+			if (gl.Top != -1)a->Check[cur].Top = gl.Top;
+			if (gl.Width != -1)a->Check[cur].Width = gl.Width;
+			if (gl.str1 != NULL)wcscpy_s(a->Check[cur].Name, gl.str1);
+			return;
+		}
+		if (type == 3)//string
+		{
+			wchar_t tmp[301]; bool f = false;
+			ZeroMemory(tmp, sizeof(tmp));
+			wchar_t *str1 = wcsstr(pos + 1, L"\""), *str2, *str3;
+			str2 = str1;
+			str3 = str2 + 1;
+			while (1)
+			{
+				str2 = wcsstr(str2, L"\\n");
+				if (str2 == NULL)break;
+				f = true;
+				*str2 = '\0';
+				wcscat_s(tmp, str3);
+				wcscat_s(tmp, L"\n");
+				str3 = str2 + 2;
+				str2 = str2 + 1;
+			}
+			if (f == false)
+				str2 = wcsstr(str1 + 1, L"\"");
+			else
+				str2 = wcsstr(str3, L"\"");
+
+			str2[0] = '\0';
+			wcscat_s(tmp, str3);
+			a->SetStr(tmp, ReadTmp);
+			return;
+		}
+		if (type == 4)//frame
+		{
+			int cur = _wtoi(ReadTmp + 1);
+			GetLanguage(gl);
+			if (gl.Left != -1)a->Frame[cur].Left = gl.Left;
+			if (gl.Top != -1)a->Frame[cur].Top = gl.Top;
+			if (gl.Width != -1)a->Frame[cur].Width = gl.Width;
+			if (gl.Height != -1)a->Frame[cur].Height = gl.Height;
+			if (gl.str1 != NULL)wcscpy_s(a->Frame[cur].Name, gl.str1);
+			return;
+		}
+		if (type == 5)//text
+		{
+			int cur = _wtoi(ReadTmp + 1);
+			wchar_t *str = wcsstr(pos + 1, L",");
+			*str = '\0';
+			int NewLeft = _wtoi(pos + 1);
+			int NewTop = _wtoi(str + 1);
+			if (NewLeft != -1)a->Text[cur].Left = NewLeft;
+			if (NewTop != -1)a->Text[cur].Top = NewTop;
+			return;
+		}
+		if (type == 6)//edit
+		{
+			int cur = a->GetNumByIDe(ReadTmp);
+			GetLanguage(gl);
+			if (gl.Left != -1)a->Edit[cur].Left = gl.Left;
+			if (gl.Top != -1)a->Edit[cur].Top = gl.Top;
+			if (gl.Width != -1)a->Edit[cur].Width = gl.Width;
+			if (gl.Height != -1)a->Edit[cur].Height = gl.Height;
+			if (gl.str1 != NULL)wcscpy_s(a->Edit[cur].OStr, gl.str1);
+			return;
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		s(L"error");
+	}
 }
 void SwitchLanguage(LPWSTR name)
 {
 	__try
 	{
-		bool Mainf = false, Catchf = false, Buttonf = false, Checkf = false, Stringf = false, \
-			Framef = false, Textf = false, Editf = false;
+		bool Mainf = false, Catchf = false;
+		int type = 0;
 		wchar_t ReadTmp[1001];
 		FILE *fp;
 
@@ -1642,122 +1751,29 @@ void SwitchLanguage(LPWSTR name)
 			if (wcsstr(ReadTmp, L"</Main>") != 0)Mainf = false;
 			if (wcsstr(ReadTmp, L"<Catch>") != 0)Catchf = true;
 			if (wcsstr(ReadTmp, L"</Catch>") != 0)Catchf = false;
-			if (wcsstr(ReadTmp, L"<Buttons>") != 0)Buttonf = true;
-			if (wcsstr(ReadTmp, L"</Buttons>") != 0)Buttonf = false;
-			if (wcsstr(ReadTmp, L"<Checks>") != 0)Checkf = true;
-			if (wcsstr(ReadTmp, L"</Checks>") != 0)Checkf = false;
-			if (wcsstr(ReadTmp, L"<Strings>") != 0)Stringf = true;
-			if (wcsstr(ReadTmp, L"</Strings>") != 0)Stringf = false;
-			if (wcsstr(ReadTmp, L"<Frames>") != 0)Framef = true;
-			if (wcsstr(ReadTmp, L"</Frames>") != 0)Framef = false;
-			if (wcsstr(ReadTmp, L"<Texts>") != 0)Textf = true;
-			if (wcsstr(ReadTmp, L"</Texts>") != 0)Textf = false;
-			if (wcsstr(ReadTmp, L"<Edits>") != 0)Editf = true;
-			if (wcsstr(ReadTmp, L"</Edits>") != 0)Editf = false;
+			if (wcsstr(ReadTmp, L"<Buttons>") != 0)type = 1;
+			if (wcsstr(ReadTmp, L"<Checks>") != 0)type = 2;
+			if (wcsstr(ReadTmp, L"<Strings>") != 0)type = 3;
+			if (wcsstr(ReadTmp, L"<Frames>") != 0)type = 4;
+			if (wcsstr(ReadTmp, L"<Texts>") != 0)type = 5;
+			if (wcsstr(ReadTmp, L"<Edits>") != 0)type = 6;
 			if (ReadTmp[0] != '<')
 			{
-				GETLAN gl = { 0 };
-				wchar_t *pos = wcsstr(ReadTmp, L"=");
-				*pos = '\0'; gl.begin = pos + 1;
-				wchar_t *space = wcsstr(ReadTmp, L" ");
-				if (space != 0)space[0] = '\0';
-
-				if (Buttonf == true && Mainf == true)
-				{
-					int cur = Main.GetNumbyID(ReadTmp);
-					GetLanguage(gl);
-					if (gl.Left != -1)Main.Button[cur].Left = gl.Left;
-					if (gl.Top != -1)Main.Button[cur].Top = gl.Top;
-					if (gl.Width != -1)Main.Button[cur].Width = gl.Width;
-					if (gl.Height != -1)Main.Button[cur].Height = gl.Height;
-					if (gl.str1 != NULL)wcscpy_s(Main.Button[cur].Name, gl.str1);
-					if (gl.str2 != NULL)wcscpy_s(Main.Button[cur].Exp, gl.str2); else ZeroMemory(Main.Button[cur].Exp, sizeof(Main.Button[cur].Exp));
-					continue;
-				}
-				if (Checkf == true && Mainf == true)
-				{
-					int cur = _wtoi(ReadTmp + 1);
-					GetLanguage(gl);
-					if (gl.Left != -1)Main.Check[cur].Left = gl.Left;
-					if (gl.Top != -1)Main.Check[cur].Top = gl.Top;
-					if (gl.Width != -1)Main.Check[cur].Width = gl.Width;
-					if (gl.str1 != NULL)wcscpy_s(Main.Check[cur].Name, gl.str1);
-					continue;
-				}
-				if (Stringf == true && Mainf == true)
-				{
-					wchar_t tmp[301]; bool f = false;
-					ZeroMemory(tmp, sizeof(tmp));
-					wchar_t *str1 = wcsstr(pos + 1, L"\""), *str2, *str3;
-					str2 = str1;
-					str3 = str2 + 1;
-					while (1)
-					{
-						str2 = wcsstr(str2, L"\\n");
-						if (str2 == NULL)break;
-						f = true;
-						*str2 = '\0';
-						wcscat_s(tmp, str3);
-						wcscat_s(tmp, L"\n");
-						str3 = str2 + 2;
-						str2 = str2 + 1;
-					}
-					if (f == false)
-						str2 = wcsstr(str1 + 1, L"\"");
-					else
-						str2 = wcsstr(str3, L"\"");
-
-					str2[0] = '\0';
-					wcscat_s(tmp, str3);
-					Main.SetStr(tmp, ReadTmp);
-				}
-				if (Framef == true && Mainf == true)
-				{
-					int cur = _wtoi(ReadTmp + 1);
-					GetLanguage(gl);
-					if (gl.Left != -1)Main.Frame[cur].Left = gl.Left;
-					if (gl.Top != -1)Main.Frame[cur].Top = gl.Top;
-					if (gl.Width != -1)Main.Frame[cur].Width = gl.Width;
-					if (gl.Height != -1)Main.Frame[cur].Height = gl.Height;
-					if (gl.str1 != NULL)wcscpy_s(Main.Frame[cur].Name, gl.str1);
-					continue;
-				}
-				if (Textf == true && Mainf == true)
-				{
-					int cur = _wtoi(ReadTmp + 1);
-					wchar_t *str = wcsstr(pos + 1, L",");
-					*str = '\0';
-					int NewLeft = _wtoi(pos + 1);
-					int NewTop = _wtoi(str + 1);
-					if (NewLeft != -1)Main.Text[cur].Left = NewLeft;
-					if (NewTop != -1)Main.Text[cur].Top = NewTop;
-					continue;
-				}
-				if (Editf == true && Mainf == true)
-				{
-					int cur = Main.GetNumByIDe(ReadTmp);
-					GetLanguage(gl);
-					if (gl.Left != -1)Main.Edit[cur].Left = gl.Left;
-					if (gl.Top != -1)Main.Edit[cur].Top = gl.Top;
-					if (gl.Width != -1)Main.Edit[cur].Width = gl.Width;
-					if (gl.Height != -1)Main.Edit[cur].Height = gl.Height;
-					if (gl.str1 != NULL)wcscpy_s(Main.Edit[cur].OStr, gl.str1);
-					continue;
-				}
-				if (Catchf == true)
-				{
-					wchar_t *str1 = wcsstr(pos + 1, L"\"");
-					wchar_t *str2 = wcsstr(str1 + 1, L"\"");
-					*str1 = '\0'; *str2 = '\0';
-					if (wcsstr(ReadTmp, L"CW") != 0)wcscpy_s(CatchWnd.Button[1].Name, str1 + 1);
-					if (wcsstr(ReadTmp, L"MW") != 0)wcscpy_s(CatchWnd.Button[2].Name, str1 + 1);
-					if (wcsstr(ReadTmp, L"RW") != 0)wcscpy_s(CatchWnd.Button[3].Name, str1 + 1);
-					if (wcsstr(ReadTmp, L"Eat1") != 0)CatchWnd.SetStr(str1 + 1, L"Eat1");
-					if (wcsstr(ReadTmp, L"Eat2") != 0)CatchWnd.SetStr(str1 + 1, L"Eat2");
-					if (wcsstr(ReadTmp, L"Timer1") != 0)CatchWnd.SetStr(str1 + 1, L"Timer1");
-					if (wcsstr(ReadTmp, L"Timer2") != 0)CatchWnd.SetStr(str1 + 1, L"Timer2");
-					continue;
-				}
+				if (Mainf)DispatchLanguage(ReadTmp, type, &Main); else DispatchLanguage(ReadTmp, type, &CatchWnd);
+				//if (Catchf == true)
+				//{
+				//	wchar_t *str1 = wcsstr(pos + 1, L"\"");
+				//	wchar_t *str2 = wcsstr(str1 + 1, L"\"");
+				//	*str1 = '\0'; *str2 = '\0';
+				//	if (wcsstr(ReadTmp, L"CW") != 0)wcscpy_s(CatchWnd.Button[1].Name, str1 + 1);
+				//	if (wcsstr(ReadTmp, L"MW") != 0)wcscpy_s(CatchWnd.Button[2].Name, str1 + 1);
+				//	if (wcsstr(ReadTmp, L"RW") != 0)wcscpy_s(CatchWnd.Button[3].Name, str1 + 1);
+				//	if (wcsstr(ReadTmp, L"Eat1") != 0)CatchWnd.SetStr(str1 + 1, L"Eat1");
+				//	if (wcsstr(ReadTmp, L"Eat2") != 0)CatchWnd.SetStr(str1 + 1, L"Eat2");
+				//	if (wcsstr(ReadTmp, L"Timer1") != 0)CatchWnd.SetStr(str1 + 1, L"Timer1");
+				//	if (wcsstr(ReadTmp, L"Timer2") != 0)CatchWnd.SetStr(str1 + 1, L"Timer2");
+				//	continue;
+				//}
 			}
 		}
 		fclose(fp);
@@ -2932,6 +2948,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		CreatePen(PS_SOLID, 1, RGB(255, 106, 106)), CreatePen(PS_SOLID, 1, RGB(250, 102, 102)), CreatePen(PS_SOLID, 1, RGB(238, 99, 99)), \
 		Main.DefFont, 1, 1, RGB(255, 255, 255), L"Close");
 
+	CatchWnd.InitClass(hInst);
+
+	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
+	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
+	CatchWnd.CreateButton(10, 85, 100, 50, 0, L"捕捉窗口", L"CatchW");
+	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"CopyW");
+	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"ReturnW");
+
 	if (!Main.hWnd)return FALSE;
 
 	if (Admin == FALSE)SetFrame();
@@ -3425,11 +3449,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"windows.ex")
 		{
 			if (FC == TRUE)
-			{
-				CatchWnd.InitClass(hInst);
-				InitCathy();
+				InitCathy(),
 				FC = FALSE;//First start CatchWnd
-			}
 
 			if (CatchWnd.hWnd != 0)ShowWindow(CatchWnd.hWnd, SW_HIDE);
 			CatchWnd.hWnd = CreateWindowW(CatchWindow, L"捕捉窗口", WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
@@ -3863,7 +3884,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 			CatchWnd.DrawButtons(0);
 			CatchWnd.DrawEdits(0);
-			wchar_t tmp1[20], tmp2[20];
+			wchar_t tmp1[50], tmp2[50];
 			wcscpy_s(tmp1, CatchWnd.GetStr(L"Eat1"));
 			_itow_s(EatList.size(), tmp2, 10);
 			wcscat_s(tmp1, tmp2);
@@ -4021,11 +4042,7 @@ void InitCathy()
 	cat.lpszClassName = CatchWindow;
 	cat.hIconSm = LoadIcon(cat.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
 	RegisterClassExW(&cat);
-	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
-	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
-	CatchWnd.CreateButton(10, 85, 100, 50, 0, L"捕捉窗口", L"");
-	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"");
-	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"");
+
 }
 void InitScreen()
 {
