@@ -22,25 +22,27 @@
 #pragma warning(disable:4244)//禁用警告
 #pragma warning(disable:4996)
 
-void				InitCathy();//部分(重要)函数的前向声明
-void				InitScreen();
-ATOM				MyRegisterClass(HINSTANCE hInstance);
-BOOL				InitInstance(HINSTANCE, int);
+BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
 LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
-LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//第二窗口
+LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+void InitScreen();
+//第二窗口
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 
 HINSTANCE hInst;// 当前实例备份变量，CreateWindow时需要
-wchar_t szWindowClass[] = L"GUI";//主窗口类名
+static wchar_t szWindowClass[] = L"GUI";//主窗口类名
 wchar_t CatchWindow[] = L"CatchWindow";//第二窗口类名
 wchar_t ScreenWindow[] = L"ScreenWindow";//截图伪装窗口类名
+wchar_t UpWindow[] = L"UpdateWindow";//窗口类名
 
 //自己定义的 有点乱
 
 BOOL Effect = TRUE;//特效开关
 wchar_t Path[301], Name[301];//程序路径 and 路径+程序名 
 wchar_t SethcPath[255];//Sethc路径
-BOOL FC = TRUE, FS = TRUE;//是否第一次启动窗口并注册类
+BOOL FC = TRUE, FS = TRUE,FU=TRUE;//是否第一次启动窗口并注册类
 HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
 ULONG CurrentProcessId;//当前程序Pid，用于自动防控制
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
@@ -75,6 +77,8 @@ HDC pdc;//截图伪装窗口hdc
 CWndShadow Cshadow;//主窗口阴影特效
 HDC tdc, Hdc;//吃窗口缓冲hdc + 贴图hdc
 HBITMAP HBMP;//吃窗口hbmp
+HDC Tdc, Udc;
+HBITMAP uBMP;
 
 BOOL TOP;//是否置顶
 const int numGames = 9;//(游戏)数
@@ -112,6 +116,23 @@ public:
 		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 	}
 
+	ATOM RegisterClass(HINSTANCE h,WNDPROC proc,LPCWSTR ClassName)
+	{
+		WNDCLASSEXW wcex = { 0 };
+
+		wcex.cbSize = sizeof(WNDCLASSEX);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = proc;
+		wcex.hInstance = h;
+		wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//大图标
+		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
+		wcex.lpszClassName = ClassName;
+		wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
+
+		return RegisterClassExW(&wcex);
+	}
 	inline wchar_t *GetStr(LPCWSTR ID) { return str[Hash(ID)]; }//通过Hash + map 来快速索引字符串的数据结构
 	//															ID(索引字符串) -> Hash -(map)> 字符串地址
 
@@ -1289,7 +1310,7 @@ public:
 	bool ExpExist = false;
 private:
 
-}Main, CatchWnd;
+}Main, CatchWnd,UpWnd;
 
 DWORD ShellCreateInVDesk(PTSTR szName)
 {
@@ -2657,7 +2678,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	if (Flag == TRUE)ShellCreateInVDesk(szProcess);
 	hCurrentDesk = defaultDesk;
 
-	MyRegisterClass(hInstance);
+	//MyRegisterClass(hInstance);
 
 	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
 	SEtProcessDPIAware SetProcessDPIAware;
@@ -2692,23 +2713,7 @@ cosl:
 	return (int)msg.wParam;
 }
 //注册窗口类。
-ATOM MyRegisterClass(HINSTANCE hInstance)
-{
-	WNDCLASSEXW wcex = { 0 };
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndProc;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GUI));//大图标
-	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
-	wcex.lpszClassName = szWindowClass;
-	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
-
-	return RegisterClassExW(&wcex);
-}
 void SearchLanguageFiles()
 {
 	wchar_t lpPath[301] = { 0 }, szFind[301] = { 0 };
@@ -2751,6 +2756,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	Main.InitClass(hInst);
+	if (!Main.RegisterClassW(hInst, WndProc, szWindowClass))return FALSE;
 	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.8.5", 0, true);
 
 	if (Effect)
@@ -2956,6 +2962,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"CopyW");
 	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"ReturnW");
 
+	UpWnd.InitClass(hInst);
 	if (!Main.hWnd)return FALSE;
 
 	if (Admin == FALSE)SetFrame();
@@ -3449,7 +3456,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"windows.ex")
 		{
 			if (FC == TRUE)
-				InitCathy(),
+				CatchWnd.RegisterClassW(hInst,CatchProc,CatchWindow),
 				FC = FALSE;//First start CatchWnd
 
 			if (CatchWnd.hWnd != 0)ShowWindow(CatchWnd.hWnd, SW_HIDE);
@@ -3594,7 +3601,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
-		BUTTON_IN(x, L"minisize") { ShowWindow(Main.hWnd, SW_MINIMIZE); break; }
+		BUTTON_IN(x, L"minisize") 
+		{
+			if (FU == TRUE)
+				UpWnd.RegisterClassW(hInst, UpGProc, UpWindow),
+				FU = FALSE;
+
+			if (UpWnd.hWnd != 0)ShowWindow(UpWnd.hWnd, SW_HIDE);
+			UpWnd.hWnd = CreateWindowW(UpWindow, L"捕捉窗口", WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
+			//CreateCaret(CatchWnd.hWnd, NULL, 1, 20);
+			ShowWindow(UpWnd.hWnd, SW_SHOW);
+			UpdateWindow(UpWnd.hWnd);
+			//ShowWindow(Main.hWnd, SW_MINIMIZE);
+			break;
+		}
 
 		BUTTON_IN(x, L"Game1") {
 			if (GameExist[0])RunEXEs(GameName[0]);
@@ -4028,22 +4048,38 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	return 0;
 }
 
-void InitCathy()
+LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	WNDCLASSEXW cat = { 0 };
-	cat.cbSize = sizeof(WNDCLASSEX);
-	cat.style = CS_HREDRAW | CS_VREDRAW;
-	cat.lpfnWndProc = CatchProc;
-	cat.hInstance = hInst;
-	cat.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GUI));//大图标
-	cat.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	cat.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	cat.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
-	cat.lpszClassName = CatchWindow;
-	cat.hIconSm = LoadIcon(cat.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
-	RegisterClassExW(&cat);
 
+	PAINTSTRUCT ps;
+	switch (message)
+	{
+	case WM_CREATE:
+		Udc = GetDC(UpWnd.hWnd);
+		Tdc = CreateCompatibleDC(Udc);
+		uBMP = CreateCompatibleBitmap(Udc, 2000, 2000);
+		SelectObject(Tdc, uBMP);
+		ReleaseDC(UpWnd.hWnd, Udc);
+		UpWnd.SetHDC(Tdc);
+
+	case WM_PAINT:
+		Udc = BeginPaint(UpWnd.hWnd, &ps);
+
+		EndPaint(UpWnd.hWnd, &ps);
+		break;
+	case WM_LBUTTONDOWN:
+		UpWnd.LeftButtonDown();
+		break;
+	case WM_MOUSEMOVE:
+		UpWnd.MouseMove();
+		break;
+
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
 }
+
 void InitScreen()
 {
 	WNDCLASSEXW scr = { 0 };
