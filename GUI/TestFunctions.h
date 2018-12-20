@@ -242,13 +242,13 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
 	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
-	Main.CreateString(L"版本：C++ v1.8.5 正式版", L"Tver");\
+	Main.CreateString(L"版本：C++ v1.9 正式版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
 	Main.CreateString(L"CopyLeft© SA软件 2015 - 2019", L"_Tleft");\
 	Main.CreateString(L"© SA软件 2015 - 2019", L"Tleft");\
 	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\
-	Main.CreateString(L"极域破解v1.8.5 不是管理员", L"Tmain");\
-	Main.CreateString(L"极域破解v1.8.5", L"Tmain2");\
+	Main.CreateString(L"极域破解v1.9 不是管理员", L"Tmain");\
+	Main.CreateString(L"极域破解v1.9", L"Tmain2");\
 	Main.CreateString(L"这不是文件 / 文件夹！", L"TINotF");\
 	Main.CreateString(L"请启动360！360可能会报加载驱动，请放行！\n如果执行后蓝屏，请把dump送至作者邮箱", L"360Start");\
 	Main.CreateString(L"加载驱动失败!\n可能是因为权限不足/操作被360拦截/文件不存在", L"360Fail");\

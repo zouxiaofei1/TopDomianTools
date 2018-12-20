@@ -24,11 +24,9 @@
 
 BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
 LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
-LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-void InitScreen();
-//第二窗口
+LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//第二窗口
+LRESULT CALLBACK	UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+void				InitScreen();
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 
 HINSTANCE hInst;// 当前实例备份变量，CreateWindow时需要
@@ -42,7 +40,7 @@ wchar_t UpWindow[] = L"UpdateWindow";//窗口类名
 BOOL Effect = TRUE;//特效开关
 wchar_t Path[301], Name[301];//程序路径 and 路径+程序名 
 wchar_t SethcPath[255];//Sethc路径
-BOOL FC = TRUE, FS = TRUE,FU=TRUE;//是否第一次启动窗口并注册类
+BOOL FC = TRUE, FS = TRUE, FU = TRUE;//是否第一次启动窗口并注册类
 HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
 ULONG CurrentProcessId;//当前程序Pid，用于自动防控制
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
@@ -116,7 +114,7 @@ public:
 		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 	}
 
-	ATOM RegisterClass(HINSTANCE h,WNDPROC proc,LPCWSTR ClassName)
+	ATOM RegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
 	{
 		WNDCLASSEXW wcex = { 0 };
 
@@ -1310,7 +1308,7 @@ public:
 	bool ExpExist = false;
 private:
 
-}Main, CatchWnd,UpWnd;
+}Main, CatchWnd, UpWnd;
 
 DWORD ShellCreateInVDesk(PTSTR szName)
 {
@@ -2757,7 +2755,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	Main.InitClass(hInst);
 	if (!Main.RegisterClassW(hInst, WndProc, szWindowClass))return FALSE;
-	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.8.5", 0, true);
+	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.9", 0, true);
 
 	if (Effect)
 	{
@@ -2963,6 +2961,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"ReturnW");
 
 	UpWnd.InitClass(hInst);
+	UpWnd.CreateCheck(10, 10, 0, 5, L"StudentMain");
+
 	if (!Main.hWnd)return FALSE;
 
 	if (Admin == FALSE)SetFrame();
@@ -3456,7 +3456,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"windows.ex")
 		{
 			if (FC == TRUE)
-				CatchWnd.RegisterClassW(hInst,CatchProc,CatchWindow),
+				CatchWnd.RegisterClassW(hInst, CatchProc, CatchWindow),
 				FC = FALSE;//First start CatchWnd
 
 			if (CatchWnd.hWnd != 0)ShowWindow(CatchWnd.hWnd, SW_HIDE);
@@ -3601,7 +3601,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
-		BUTTON_IN(x, L"minisize") 
+		BUTTON_IN(x, L"minisize")
 		{
 			if (FU == TRUE)
 				UpWnd.RegisterClassW(hInst, UpGProc, UpWindow),
@@ -3725,7 +3725,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							KillTimer(Main.hWnd, 5);
 							break;
 						case 13:
-							Main.SetDPI(1.5);
+							Main.SetDPI(0.75);
 							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
@@ -3780,7 +3780,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
 							break;
 						case 13:
-							Main.SetDPI(0.75);
+							Main.SetDPI(1.5);
 							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
@@ -3923,6 +3923,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 			GetClientRect(CatchWnd.hWnd, &rc2);
 			Rectangle(tdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
+
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
 			const double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
 				wh2 = (double)(rc2.right - rc2.left) / (double)(rc2.bottom - rc2.top);
@@ -3942,15 +3943,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			}
 
 			SetStretchBltMode(CatchWnd.hdc, HALFTONE);
-			StretchBlt(Hdc,
-				left, top,
-				width, height,
-				hdctd,
-				0, 0,
-				rc.right - rc.left,
-				rc.bottom - rc.top,
-				SRCCOPY);
-			//BitBlt(Hdc, left, top,width, height, tdc, left, top, SRCCOPY);
+			StretchBlt(Hdc, left, top, width, height, hdctd, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SRCCOPY);
 			ReleaseDC(tdh[displaycur], hdctd);
 		}
 		EndPaint(CatchWnd.hWnd, &ps);
@@ -4055,7 +4048,8 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_CREATE:
-		Udc = GetDC(UpWnd.hWnd);
+		Udc = GetDC(hWnd);
+
 		Tdc = CreateCompatibleDC(Udc);
 		uBMP = CreateCompatibleBitmap(Udc, 2000, 2000);
 		SelectObject(Tdc, uBMP);
@@ -4063,12 +4057,62 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		UpWnd.SetHDC(Tdc);
 
 	case WM_PAINT:
-		Udc = BeginPaint(UpWnd.hWnd, &ps);
-
-		EndPaint(UpWnd.hWnd, &ps);
+		Udc = BeginPaint(hWnd, &ps);
+		//TextOut(Udc, 0, 0, L"111", 10);
+		SelectObject(Tdc, WhiteBrush);//白色背景
+		SelectObject(Tdc, White);
+		//SelectObject(Tdc, UpWnd.DefFont);
+		Rectangle(Tdc, 0, 0, 2000, 2000);
+		//	s(UpWnd.CurCheck);
+		UpWnd.DrawEVERYTHING();
+		BitBlt(Udc, 0, 0, 2000, 2000, Tdc, 0, 0, SRCCOPY);
+		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
 		UpWnd.LeftButtonDown();
+		break;
+	case WM_LBUTTONUP:
+		POINT point;
+		GetCursorPos(&point);
+		ScreenToClient(hWnd, &point);
+
+		if (UpWnd.CoverCheck != -1)
+		{
+			UpWnd.Press = 0;
+			const RECT rc = UpWnd.GetRECTc(UpWnd.CoverCheck);
+			InvalidateRect(UpWnd.hWnd, &rc, FALSE);
+		}
+
+		for (int i = 1; i <= UpWnd.CurCheck; ++i)
+		{
+			if (UpWnd.Check[i].Page == 0 || UpWnd.Check[i].Page == UpWnd.CurWnd)
+			{
+				int result;
+				result = UpWnd.InsideCheck(i, point);
+				if (result != 0)
+				{
+					if (!UpWnd.Check[i].Value)
+					{
+						switch (result)
+						{
+						case 1:
+							s(1);
+							break;
+						}
+					}
+					else
+					{
+						switch (result)
+						{
+						case 1:
+							s(2);
+							break;
+						}
+					}
+					UpWnd.Check[i].Value = 1 - UpWnd.Check[i].Value;
+				}
+			}
+		}
 		break;
 	case WM_MOUSEMOVE:
 		UpWnd.MouseMove();
