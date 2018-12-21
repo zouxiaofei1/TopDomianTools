@@ -79,10 +79,12 @@ HDC Tdc, Udc;
 HBITMAP uBMP;
 
 BOOL TOP;//是否置顶
-const int numGames = 9;//(游戏)数
-BOOL GameExist[numGames + 1];
+const int numGames = 6, numFiles = 10;//(游戏)数
+BOOL GameExist[numGames + 1], FileExist[numFiles + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
-L"Games\\1.exe" , L"Games\\chess.exe" ,L"arp\\arp.exe",L"PsExec.exe", L"PsExec.exe" };//(游戏)名
+L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
+wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"ntsd.exe" ,L"PsExec.exe",L"cheat\\old.exe", L"cheat\\new.exe" ,L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
+L"ProcessHacker\\ProcessHacker.exe",L"x32\\sethc.exe",L"x64\\Kill.sys" };
 DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
@@ -2070,42 +2072,75 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 		wcscpy_s(progress.curi, L"Game6");
 		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
 		break;
-
-	case 7://ARP
-	{
-		wchar_t tmpstr[10][20] = { L"wpcap.dll" ,L"npf.sys",L"npptools.dll",L"Packet.dll",L"WanPacket.dll" , L"arp.exe" }, tmp2[151];
-		wcscpy_s(progress.curi, L"ARP");
-		Main.Button[Main.GetNumbyID(L"ARP")].DownTot = 6;
-		for (int i = 0; i < 6; ++i)
-		{
-			Main.Button[Main.GetNumbyID(L"ARP")].DownCur = i + 1;
-			Main.Button[Main.GetNumbyID(L"ARP")].Download = -1;
-			wcscpy_s(tmp, Path);
-			wcscat_s(tmp, L"arp\\");
-			wcscat_s(tmp, tmpstr[i]);
-			wcscpy_s(tmp2, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/");
-			wcscat_s(tmp2, tmpstr[i]);
-			URLDownloadToFileW(NULL, tmp2, tmp, 0, &progress);
-		}
-		break;
 	}
-	case 8://psexec
-		Main.Button[Main.GetNumbyID(L"desktop")].DownTot = Main.Button[Main.GetNumbyID(L"desktop")].DownCur = 1;
-		wcscpy_s(progress.curi, L"desktop");
-		Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = false;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
-		Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = true;
-		break;
-	case 9://psexec
-		Main.Button[Main.GetNumbyID(L"SuperCMD")].DownTot = Main.Button[Main.GetNumbyID(L"SuperCMD")].DownCur = 1;
-		wcscpy_s(progress.curi, L"SuperCMD");
-		Main.Button[Main.GetNumbyID(L"desktop")].Enabled = false;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
-		Main.Button[Main.GetNumbyID(L"desktop")].Enabled = true;
-		break;
-	}
-
 	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
+	return 0;
+}
+
+
+DWORD WINAPI DownloadThreadUp(LPVOID pM)
+{
+	int *tp = (int *)pM;
+	int cur = *tp;
+	//DownloadProgress progress;
+	wchar_t Git[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/";
+	wchar_t tURL[501], tPath[501];
+	switch (cur)
+	{
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		wcscpy_s(tURL, Git);
+		wcscat_s(tURL, FileName[cur - 1]);
+		wcscpy_s(tPath, Path);
+		wcscat_s(tPath, FileName[cur - 1]);
+		if (wcsstr(tURL, L"\\") != 0)*_tcsrchr(tURL, _T('\\')) ='/' ;
+		s(tPath);
+		URLDownloadToFileW(NULL, tURL, tPath, 0, NULL);
+		break;
+	//case 6://Chess
+	//	Main.Button[Main.GetNumbyID(L"Game6")].DownTot = Main.Button[Main.GetNumbyID(L"Game6")].DownCur = 1;
+	//	wcscpy_s(progress.curi, L"Game6");
+	//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
+	//	break;
+
+		//case 7://ARP
+		//{
+		//	wchar_t tmpstr[10][20] = { L"wpcap.dll" ,L"npf.sys",L"npptools.dll",L"Packet.dll",L"WanPacket.dll" , L"arp.exe" }, tmp2[151];
+		//	wcscpy_s(progress.curi, L"ARP");
+		//	Main.Button[Main.GetNumbyID(L"ARP")].DownTot = 6;
+		//	for (int i = 0; i < 6; ++i)
+		//	{
+		//		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = i + 1;
+		//		Main.Button[Main.GetNumbyID(L"ARP")].Download = -1;
+		//		wcscpy_s(tmp, Path);
+		//		wcscat_s(tmp, L"arp\\");
+		//		wcscat_s(tmp, tmpstr[i]);
+		//		wcscpy_s(tmp2, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/");
+		//		wcscat_s(tmp2, tmpstr[i]);
+		//		URLDownloadToFileW(NULL, tmp2, tmp, 0, &progress);
+		//	}
+		//	break;
+		//}
+		//case 8://psexec
+		//	Main.Button[Main.GetNumbyID(L"desktop")].DownTot = Main.Button[Main.GetNumbyID(L"desktop")].DownCur = 1;
+		//	wcscpy_s(progress.curi, L"desktop");
+		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = false;
+		//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
+		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = true;
+		//	break;
+		//case 9://psexec
+		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].DownTot = Main.Button[Main.GetNumbyID(L"SuperCMD")].DownCur = 1;
+		//	wcscpy_s(progress.curi, L"SuperCMD");
+		//	Main.Button[Main.GetNumbyID(L"desktop")].Enabled = false;
+		//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
+		//	Main.Button[Main.GetNumbyID(L"desktop")].Enabled = true;
+		//	break;
+	}
+
+	if (GetFileAttributes(tPath) != -1)FileExist[cur - 1] = true;
 	return 0;
 }
 COLORREF DoSelectColour()
@@ -2961,7 +2996,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"ReturnW");
 
 	UpWnd.InitClass(hInst);
-	UpWnd.CreateCheck(10, 10, 0, 5, L"StudentMain");
+
+	UpWnd.CreateCheck(10, 10, 0, 100, L"hook.exe");
+	UpWnd.CreateCheck(10, 40, 0, 100, L"ntsd.exe");
+	UpWnd.CreateCheck(10, 70, 0, 100, L"PsExec.exe");
+	UpWnd.CreateCheck(10, 100, 0, 100, L"伪装工具条旧");
+	UpWnd.CreateCheck(10, 130, 0, 100, L"伪装工具条新");
+	UpWnd.CreateCheck(10, 160, 0, 100, L"驱动删除文件");
+	UpWnd.CreateCheck(10, 190, 0, 100, L"ARP攻击");
+	UpWnd.CreateCheck(10, 220, 0, 100, L"ProcessHacker");
+	UpWnd.CreateCheck(10, 250, 0, 100, L"32位驱动");
+	UpWnd.CreateCheck(10, 280, 0, 100, L"64位驱动");
 
 	if (!Main.hWnd)return FALSE;
 
@@ -3470,22 +3515,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"ANTI-") { DeleteShutdown(); break; }
 		BUTTON_IN(x, L"desktop")
 		{
-			if (!GameExist[7] && !GameExist[8])
-			{
-				int typ = 8;
-				CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL);
-			}
-			else
-			{
-				wchar_t tmp[351];
-				wcscpy_s(tmp, L"psexec.exe -x -i -s -d \"");
-				wcscat_s(tmp, Name);
-				wcscat_s(tmp, L"\" -top");
-				DWORD word = 1; HKEY hKey; LONG ret;
-				ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
-				ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-				RunEXE(tmp);
-			}
+			wchar_t tmp[351];
+			wcscpy_s(tmp, L"psexec.exe -x -i -s -d \"");
+			wcscat_s(tmp, Name);
+			wcscat_s(tmp, L"\" -top");
+			DWORD word = 1; HKEY hKey; LONG ret;
+			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
+			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
+			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"auto-5")
@@ -3530,45 +3567,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"ARP")
 		{
-			if (GameExist[6])
-			{
-				static wchar_t tmp[] = L"arp\\arp.exe";
-				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
-				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
-				CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
-
-				RunEXE(tmp);
-				break;
-			}
-			else
-			{
-				wchar_t tmp[301];
-				wcscpy_s(tmp, Path);
-				wcscat_s(tmp, L"arp");
-				CreateDirectory(tmp, NULL);
-				int typ = 7;
-				CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL);
-			}
+			static wchar_t tmp[] = L"arp\\arp.exe";
+			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
+			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
+			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
+			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 
 		}
 		BUTTON_IN(x, L"SuperCMD")
 		{
-			if (!GameExist[8] && !GameExist[7])
-			{
-				int typ = 9;
-				CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL);
-			}
-			else
-			{
-				wchar_t tmp[] = L"psexec.exe -i -s -d cmd.exe";
-				DWORD word = 1;
-				HKEY hKey;
-				LONG ret;
-				ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
-				ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-				RunEXE(tmp);
-			}
+			wchar_t tmp[] = L"psexec.exe -i -s -d cmd.exe";
+			DWORD word = 1;
+			HKEY hKey;
+			LONG ret;
+			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
+			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
+			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"Killer")
@@ -3590,14 +3605,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			wcscpy_s(tmp, L"Notepad ");
 			wcscat_s(tmp, Path);
 			wcscat_s(tmp, L"关于&帮助.txt");
-			RunEXE(tmp);
+			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"sysinfo")
 		{
 			wchar_t tmp[34];
 			wcscpy_s(tmp, L"C:\\Windows\\System32\\Msinfo32.exe");
-			RunEXE(tmp);
+			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
@@ -3608,6 +3623,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FU = FALSE;
 
 			if (UpWnd.hWnd != 0)ShowWindow(UpWnd.hWnd, SW_HIDE);
+			wchar_t tmp[255];
+			for (int i = 0; i < numFiles; ++i)
+			{
+				wcscpy_s(tmp, Path);
+				wcscat_s(tmp, FileName[i]);
+				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
+				UpWnd.Check[i + 1].Value = FileExist[i];
+			}
 			UpWnd.hWnd = CreateWindowW(UpWindow, L"捕捉窗口", WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
 			//CreateCaret(CatchWnd.hWnd, NULL, 1, 20);
 			ShowWindow(UpWnd.hWnd, SW_SHOW);
@@ -4058,12 +4081,9 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		Udc = BeginPaint(hWnd, &ps);
-		//TextOut(Udc, 0, 0, L"111", 10);
 		SelectObject(Tdc, WhiteBrush);//白色背景
 		SelectObject(Tdc, White);
-		//SelectObject(Tdc, UpWnd.DefFont);
 		Rectangle(Tdc, 0, 0, 2000, 2000);
-		//	s(UpWnd.CurCheck);
 		UpWnd.DrawEVERYTHING();
 		BitBlt(Udc, 0, 0, 2000, 2000, Tdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
@@ -4093,21 +4113,19 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					if (!UpWnd.Check[i].Value)
 					{
-						switch (result)
-						{
-						case 1:
-							s(1);
-							break;
-						}
+						int typ = i;
+						CreateThread(NULL, 0, DownloadThreadUp, &typ, 0, NULL);
+
 					}
 					else
 					{
-						switch (result)
-						{
-						case 1:
-							s(2);
-							break;
-						}
+						wchar_t tmp[34], tmp2[501];
+						wcscpy_s(tmp, FileName[i - 1]);
+						if (wcsstr(tmp, L"\\") != 0)(_tcsrchr(tmp, _T('\\')))[1] = 0;
+						wcscpy_s(tmp2, Path);
+						wcscat_s(tmp2, tmp);
+						//s(tmp2);
+						AutoDelete(tmp2);
 					}
 					UpWnd.Check[i].Value = 1 - UpWnd.Check[i].Value;
 				}
