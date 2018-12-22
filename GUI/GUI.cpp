@@ -79,12 +79,13 @@ HDC Tdc, Udc;
 HBITMAP uBMP;
 
 BOOL TOP;//是否置顶
-const int numGames = 6, numFiles = 10;//(游戏)数
+const int numGames = 6, numFiles = 11;//(游戏)数
 BOOL GameExist[numGames + 1], FileExist[numFiles + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
 L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
 wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"ntsd.exe" ,L"PsExec.exe",L"cheat\\old.exe", L"cheat\\new.exe" ,L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
-L"ProcessHacker\\ProcessHacker.exe",L"x32\\sethc.exe",L"x64\\Kill.sys" };
+L"ProcessHacker\\ProcessHacker.exe",L"x32\\sethc.exe",L"x64\\Kill.sys",L"language\\English.ini" };
+int FDcur, FDtot;
 DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hwnd
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
@@ -622,7 +623,7 @@ public:
 		HBITMAP bmp;
 		mdc = CreateCompatibleDC(hdc);
 		bmp = CreateCompatibleBitmap(hdc, 1, 1);
-		if (hdc == NULL)s(0);
+		if (hdc == NULL)s(L"error");
 		SelectObject(mdc, bmp);
 		ReleaseDC(hWnd, hdc);
 		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
@@ -1664,7 +1665,6 @@ void DispatchLanguage(LPWSTR ReadTmp, int type, CathyClass*a)
 
 		if (type == 1)//button
 		{
-			if (&CatchWnd == a)s(ReadTmp);
 			int cur = a->GetNumbyID(ReadTmp);
 			GetLanguage(gl);
 
@@ -1757,21 +1757,22 @@ void SwitchLanguage(LPWSTR name)
 {
 	__try
 	{
-		bool Mainf = false, Catchf = false;
+		bool Mainf = false, Catchf = false, Upf = false;
 		int type = 0;
 		wchar_t ReadTmp[1001];
 		FILE *fp;
 
 		_wfopen_s(&fp, name, L"r,ccs=UNICODE");
-		if (fp == NULL)s(1);
+		if (fp == NULL)Main.InfoBox(Main.GetStr(L"StartFail"));
 		while (!feof(fp))
 		{
 			fgetws(ReadTmp, 1000, fp);
-			//s(ReadTmp);
 			if (wcsstr(ReadTmp, L"<Main>") != 0)Mainf = true;
 			if (wcsstr(ReadTmp, L"</Main>") != 0)Mainf = false;
 			if (wcsstr(ReadTmp, L"<Catch>") != 0)Catchf = true;
 			if (wcsstr(ReadTmp, L"</Catch>") != 0)Catchf = false;
+			if (wcsstr(ReadTmp, L"<Up>") != 0)Upf = true;
+			if (wcsstr(ReadTmp, L"</Up>") != 0)Upf = false;
 			if (wcsstr(ReadTmp, L"<Buttons>") != 0)type = 1;
 			if (wcsstr(ReadTmp, L"<Checks>") != 0)type = 2;
 			if (wcsstr(ReadTmp, L"<Strings>") != 0)type = 3;
@@ -1780,21 +1781,9 @@ void SwitchLanguage(LPWSTR name)
 			if (wcsstr(ReadTmp, L"<Edits>") != 0)type = 6;
 			if (ReadTmp[0] != '<')
 			{
-				if (Mainf)DispatchLanguage(ReadTmp, type, &Main); else DispatchLanguage(ReadTmp, type, &CatchWnd);
-				//if (Catchf == true)
-				//{
-				//	wchar_t *str1 = wcsstr(pos + 1, L"\"");
-				//	wchar_t *str2 = wcsstr(str1 + 1, L"\"");
-				//	*str1 = '\0'; *str2 = '\0';
-				//	if (wcsstr(ReadTmp, L"CW") != 0)wcscpy_s(CatchWnd.Button[1].Name, str1 + 1);
-				//	if (wcsstr(ReadTmp, L"MW") != 0)wcscpy_s(CatchWnd.Button[2].Name, str1 + 1);
-				//	if (wcsstr(ReadTmp, L"RW") != 0)wcscpy_s(CatchWnd.Button[3].Name, str1 + 1);
-				//	if (wcsstr(ReadTmp, L"Eat1") != 0)CatchWnd.SetStr(str1 + 1, L"Eat1");
-				//	if (wcsstr(ReadTmp, L"Eat2") != 0)CatchWnd.SetStr(str1 + 1, L"Eat2");
-				//	if (wcsstr(ReadTmp, L"Timer1") != 0)CatchWnd.SetStr(str1 + 1, L"Timer1");
-				//	if (wcsstr(ReadTmp, L"Timer2") != 0)CatchWnd.SetStr(str1 + 1, L"Timer2");
-				//	continue;
-				//}
+				if (Mainf)DispatchLanguage(ReadTmp, type, &Main); 
+				if (Catchf)DispatchLanguage(ReadTmp, type, &CatchWnd);
+				if (Upf)DispatchLanguage(ReadTmp, type, &UpWnd);
 			}
 		}
 		fclose(fp);
@@ -1802,9 +1791,9 @@ void SwitchLanguage(LPWSTR name)
 		haveInfo = true;
 		SetFrame();
 		InvalidateRect(CatchWnd.hWnd, 0, 0);
+		InvalidateRect(UpWnd.hWnd, 0, 0);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
+	__except (EXCEPTION_EXECUTE_HANDLER) {
 		s(L"error");
 	}
 }
@@ -2077,14 +2066,32 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 	return 0;
 }
 
-
+wchar_t Git[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/";
+void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
+{
+	wcscpy(a, Git);//b tpath
+	wcscat(a, c); //a tUrl
+	wcscpy(b, Path); 
+	wcscat(b, c);
+	if (wcsstr(a, L"\\") != 0)*_tcsrchr(a, _T('\\')) = '/'; 
+	URLDownloadToFileW(NULL, a, b, 0, NULL); 
+	FDcur++,
+		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
+}
+#define Create_tPath(x) wcscpy_s(tPath, Path);wcscat_s(tPath, x);CreateDirectory(tPath, NULL);
 DWORD WINAPI DownloadThreadUp(LPVOID pM)
 {
 	int *tp = (int *)pM;
 	int cur = *tp;
 	//DownloadProgress progress;
-	wchar_t Git[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/";
+	
 	wchar_t tURL[501], tPath[501];
+	const wchar_t name[][34] = { L"deleter\\DrvDelFile.exe",L"deleter\\DeleteFile.sys",L"deleter\\DeleteFile_x64.sys" };
+	const wchar_t name2[][34] = { L"arp\\wpcap.dll" ,L"arp\\npf.sys",L"arp\\npptools.dll",L"arp\\Packet.dll",L"arp\\WanPacket.dll" , L"arp\\arp.exe" };
+	const wchar_t name3[][340] = { L"ProcessHacker\\ProcessHacker.exe" ,L"ProcessHacker\\kprocesshacker.sys",L"ProcessHacker\\kprocesshacker64.sys" };
+	const wchar_t name4[][34] = { L"x32\\360.sys" ,L"x32\\BSOD.sys",L"x32\\Kill.sys",L"x32\\DeleteFile.sys" ,L"x32\\sethc.exe" };
+	const wchar_t name5[][34] = { L"x64\\360.sys" ,L"x64\\BSOD.sys",L"x64\\Kill.sys",L"x64\\DeleteFile.sys" };
+	const wchar_t name6[][34] = { L"language\\English.ini" ,L"language\\Chinese.ini" };
 	switch (cur)
 	{
 	case 1:
@@ -2092,52 +2099,41 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	case 3:
 	case 4:
 	case 5:
+		if (cur == 4 || cur == 5) { Create_tPath(L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
 		wcscat_s(tPath, FileName[cur - 1]);
-		if (wcsstr(tURL, L"\\") != 0)*_tcsrchr(tURL, _T('\\')) ='/' ;
-		s(tPath);
+		if (wcsstr(tURL, L"\\") != 0)*_tcsrchr(tURL, _T('\\')) = '/';
+		FDtot++;
 		URLDownloadToFileW(NULL, tURL, tPath, 0, NULL);
+		FDcur++;
+		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 		break;
-	//case 6://Chess
-	//	Main.Button[Main.GetNumbyID(L"Game6")].DownTot = Main.Button[Main.GetNumbyID(L"Game6")].DownCur = 1;
-	//	wcscpy_s(progress.curi, L"Game6");
-	//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
-	//	break;
-
-		//case 7://ARP
-		//{
-		//	wchar_t tmpstr[10][20] = { L"wpcap.dll" ,L"npf.sys",L"npptools.dll",L"Packet.dll",L"WanPacket.dll" , L"arp.exe" }, tmp2[151];
-		//	wcscpy_s(progress.curi, L"ARP");
-		//	Main.Button[Main.GetNumbyID(L"ARP")].DownTot = 6;
-		//	for (int i = 0; i < 6; ++i)
-		//	{
-		//		Main.Button[Main.GetNumbyID(L"ARP")].DownCur = i + 1;
-		//		Main.Button[Main.GetNumbyID(L"ARP")].Download = -1;
-		//		wcscpy_s(tmp, Path);
-		//		wcscat_s(tmp, L"arp\\");
-		//		wcscat_s(tmp, tmpstr[i]);
-		//		wcscpy_s(tmp2, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/");
-		//		wcscat_s(tmp2, tmpstr[i]);
-		//		URLDownloadToFileW(NULL, tmp2, tmp, 0, &progress);
-		//	}
-		//	break;
-		//}
-		//case 8://psexec
-		//	Main.Button[Main.GetNumbyID(L"desktop")].DownTot = Main.Button[Main.GetNumbyID(L"desktop")].DownCur = 1;
-		//	wcscpy_s(progress.curi, L"desktop");
-		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = false;
-		//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
-		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].Enabled = true;
-		//	break;
-		//case 9://psexec
-		//	Main.Button[Main.GetNumbyID(L"SuperCMD")].DownTot = Main.Button[Main.GetNumbyID(L"SuperCMD")].DownCur = 1;
-		//	wcscpy_s(progress.curi, L"SuperCMD");
-		//	Main.Button[Main.GetNumbyID(L"desktop")].Enabled = false;
-		//	URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/PsExec.exe", tmp, 0, &progress);
-		//	Main.Button[Main.GetNumbyID(L"desktop")].Enabled = true;
-		//	break;
+	case 6:
+		Create_tPath(L"deleter"); FDtot += 3;
+		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name[i]); }
+		break;
+	case 7:
+		Create_tPath(L"arp"); FDtot += 6;
+		for (int i = 0; i < 6; ++i) { Updownload(tPath, tURL, name2[i]); }
+		break;
+	case 8:
+		Create_tPath(L"ProcessHacker"); FDtot += 3;
+		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name3[i]); }
+		break;
+	case 9:
+		Create_tPath(L"x32"); FDtot += 5;
+		for (int i = 0; i < 5; ++i) { Updownload(tPath, tURL, name4[i]); }
+		break;
+	case 10:
+		Create_tPath(L"x64"); FDtot += 4;
+		for (int i = 0; i < 4; ++i) { Updownload(tPath, tURL, name5[i]); }
+		break;
+	case 11:
+		Create_tPath(L"language"); FDtot += 2;
+		for (int i = 0; i < 2; ++i) { Updownload(tPath, tURL, name6[i]); }
+		break;
 	}
 
 	if (GetFileAttributes(tPath) != -1)FileExist[cur - 1] = true;
@@ -2817,7 +2813,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');
 	RegisterHotKey(Main.hWnd, 2, MOD_CONTROL, 'B');
 	RegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');
-	Main.EditRegHotKey();
+	//	Main.EditRegHotKey();
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
@@ -2939,23 +2935,22 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateText(170, 415, 4, L"_Tleft", NULL);
 	Main.CreateText(170, 440, 4, L"Tleft2", NULL);
 	Main.CreateButton(490, 415, 100, 50, 4, L"更多", L"more.txt");
-	Main.CreateButton(490, 477, 100, 50, 4, L"系统信息", L"sysinfo");//38
+	Main.CreateButton(490, 477, 100, 50, 4, L"系统信息", L"sysinfo");
 
 	Main.CreateCheck(180, 90, 5, 100, L" 窗口置顶");
 	Main.CreateCheck(180, 120, 5, 160, L" Ctrl+R 紧急蓝屏");
 	Main.CreateCheck(180, 150, 5, 160, L" Ctrl+T 瞬间重启");
-	Main.CreateCheck(180, 180, 5, 200, L" Ctrl+Alt+P 截图/显示");//新
+	Main.CreateCheck(180, 180, 5, 200, L" Ctrl+Alt+P 截图/显示");
 	Main.CreateCheck(180, 210, 5, 94, L" 连续结束                   .exe");
 	Main.CreateCheck(180, 240, 5, 160, L" 禁止键盘钩子");
-	Main.CreateCheck(180, 270, 5, 160, L" 禁止鼠标钩子");//新
+	Main.CreateCheck(180, 270, 5, 160, L" 禁止鼠标钩子");
 	Main.CreateCheck(180, 300, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
 	Main.CreateCheck(180, 330, 5, 160, L" 低画质");
 	Main.CreateCheck(180, 360, 5, 160, L" 放大/缩小");
 	Main.CreateCheck(180, 390, 5, 310, L" 使用ProcessHacker和ntsd结束进程");
 
 	Main.CreateButton(470, 420, 100, 45, 5, L"永久隐藏", L"hidest");
-	Main.CreateButton(470, 475, 100, 45, 5, L"最小化", L"minisize");
-
+	Main.CreateButton(470, 475, 100, 45, 5, L"下载文件", L"upgrade");
 
 	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 ");
 
@@ -2965,15 +2960,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(680, 290, 120, 50, 0, L"俄罗斯方块", L"Game4");
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"Game5");//game结构体
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"Game6");
-
-	/*Main.CreateFrame(855, 75, 170, 420, 0, L" 有用的工具 ");
-
-	Main.CreateButton(880, 95, 120, 50, 0, L"PCHunter", L"f1");
-	Main.CreateButton(880, 160, 120, 50, 0, L"Process Hacker", L"f2");
-	Main.CreateButton(880, 225, 120, 50, 0, L"360", L"f3");*/
-	//Main.CreateButton(880, 290, 120, 50, 0, L"俄罗斯方块", L"f4");
-	//Main.CreateButton(880, 355, 120, 50, 0, L"见缝插针", L"f5");//game结构体
-	//Main.CreateButton(880, 420, 120, 50, 0, L"五子棋", L"f6");
 
 	Main.CreateArea(20, 10, 32, 32, 0);//创建点击区域
 	Main.CreateArea(170, 75, 135, 165, 4);
@@ -2997,16 +2983,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	UpWnd.InitClass(hInst);
 
-	UpWnd.CreateCheck(10, 10, 0, 100, L"hook.exe");
-	UpWnd.CreateCheck(10, 40, 0, 100, L"ntsd.exe");
-	UpWnd.CreateCheck(10, 70, 0, 100, L"PsExec.exe");
-	UpWnd.CreateCheck(10, 100, 0, 100, L"伪装工具条旧");
-	UpWnd.CreateCheck(10, 130, 0, 100, L"伪装工具条新");
-	UpWnd.CreateCheck(10, 160, 0, 100, L"驱动删除文件");
-	UpWnd.CreateCheck(10, 190, 0, 100, L"ARP攻击");
-	UpWnd.CreateCheck(10, 220, 0, 100, L"ProcessHacker");
-	UpWnd.CreateCheck(10, 250, 0, 100, L"32位驱动");
-	UpWnd.CreateCheck(10, 280, 0, 100, L"64位驱动");
+	UpWnd.CreateCheck(10, 10, 0, 100, L" hook.exe");
+	UpWnd.CreateCheck(10, 40, 0, 100, L" ntsd.exe");
+	UpWnd.CreateCheck(10, 70, 0, 100, L" PsExec.exe");
+	UpWnd.CreateCheck(10, 100, 0, 100, L" 伪装工具条旧");
+	UpWnd.CreateCheck(10, 130, 0, 100, L" 伪装工具条新");
+	UpWnd.CreateCheck(10, 160, 0, 100, L" 驱动删除文件");
+	UpWnd.CreateCheck(10, 190, 0, 100, L" ARP攻击");
+	UpWnd.CreateCheck(10, 220, 0, 100, L" ProcessHacker");
+	UpWnd.CreateCheck(10, 250, 0, 100, L" 32位驱动");
+	UpWnd.CreateCheck(10, 280, 0, 100, L" 64位驱动");
+	UpWnd.CreateCheck(10, 310, 0, 100, L" 语言文件");
 
 	if (!Main.hWnd)return FALSE;
 
@@ -3147,7 +3134,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	case WM_SETFOCUS: {Main.EditRegHotKey(); break; }
-	case WM_KILLFOCUS: {Main.EditUnHotKey(); break; }
+	case WM_KILLFOCUS:
+	{
+		Main.EditUnHotKey();
+		for (int i = 1; i <= Main.CurButton; ++i)Main.Button[i].Percent = 0;
+		break;
+	}
 	case WM_ERASEBKGND: {return 0; }
 	case WM_PAINT://绘图
 	{
@@ -3616,7 +3608,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
-		BUTTON_IN(x, L"minisize")
+		BUTTON_IN(x, L"upgrade")
 		{
 			if (FU == TRUE)
 				UpWnd.RegisterClassW(hInst, UpGProc, UpWindow),
@@ -3631,11 +3623,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
 				UpWnd.Check[i + 1].Value = FileExist[i];
 			}
-			UpWnd.hWnd = CreateWindowW(UpWindow, L"捕捉窗口", WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
-			//CreateCaret(CatchWnd.hWnd, NULL, 1, 20);
+			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 200, 380, nullptr, nullptr, hInst, nullptr);
 			ShowWindow(UpWnd.hWnd, SW_SHOW);
 			UpdateWindow(UpWnd.hWnd);
-			//ShowWindow(Main.hWnd, SW_MINIMIZE);
 			break;
 		}
 
@@ -4042,7 +4032,6 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	case WM_KILLFOCUS:
 	{
 		for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i);
-
 		CatchWnd.EditUnHotKey();
 		break;
 	}
@@ -4085,6 +4074,19 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SelectObject(Tdc, White);
 		Rectangle(Tdc, 0, 0, 2000, 2000);
 		UpWnd.DrawEVERYTHING();
+		if (FDtot != 0)
+		{
+			wchar_t tmp[34], tmp2[101];
+			if (FDtot == FDcur) { wcscpy_s(tmp2, Main.GetStr(L"Loaded")); FDtot = FDcur = 0; goto ok; }
+			wcscpy_s(tmp2, Main.GetStr(L"Loading"));
+			_itow_s(FDcur, tmp, 10);
+			wcscat_s(tmp2, tmp);
+			wcscat_s(tmp2, L"/");
+			_itow_s(FDtot, tmp, 10);
+			wcscat_s(tmp2, tmp);
+		ok:
+			TextOut(Tdc, 10, 340, tmp2, wcslen(tmp2));
+		}
 		BitBlt(Udc, 0, 0, 2000, 2000, Tdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 		break;
@@ -4115,16 +4117,14 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						int typ = i;
 						CreateThread(NULL, 0, DownloadThreadUp, &typ, 0, NULL);
-
 					}
 					else
 					{
 						wchar_t tmp[34], tmp2[501];
 						wcscpy_s(tmp, FileName[i - 1]);
-						if (wcsstr(tmp, L"\\") != 0)(_tcsrchr(tmp, _T('\\')))[1] = 0;
+						if (wcsstr(tmp, L"\\") != 0 && i != 4 && i != 5)(_tcsrchr(tmp, _T('\\')))[1] = 0;
 						wcscpy_s(tmp2, Path);
 						wcscat_s(tmp2, tmp);
-						//s(tmp2);
 						AutoDelete(tmp2);
 					}
 					UpWnd.Check[i].Value = 1 - UpWnd.Check[i].Value;
