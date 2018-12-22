@@ -28,7 +28,7 @@ LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//第二窗口
 LRESULT CALLBACK	UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 ATOM				InitScreen();
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
-
+void SearchLanguageFiles();
 HINSTANCE hInst;// 当前实例备份变量，CreateWindow时需要
 static wchar_t szWindowClass[] = L"GUI";//主窗口类名
 wchar_t CatchWindow[] = L"CatchWindow";//第二窗口类名
@@ -1197,7 +1197,6 @@ public:
 			x = wcsstr(x + 1, L"\\n");
 			if (x != 0)x[0] = '\0';
 			if (ExpLine == 1)wcscpy(Exp[ExpLine], y); else wcscpy(Exp[ExpLine], y + 2);
-			//s(Exp[ExpLine]);
 			SIZE *se = new SIZE;
 			if (ExpLine == 1)GetTextExtentPoint32(hdc, y, wcslen(y), se); else GetTextExtentPoint32(hdc, y + 2, wcslen(y + 2), se);//获取字符串的宽度
 			if (x != 0)x[0] = '\\';
@@ -1206,13 +1205,12 @@ public:
 			if (x == 0)break;
 			y = x;
 		}
-		//ExpHeight = 108;
-		//ExpWidth = 100;
 		POINT point;
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
 		ExpPoint = point;
-		InvalidateRect(hWnd, 0, 0);
+		Readd(6, 1);
+		Redraw(NULL);
 	}
 	void DestroyExp()
 	{
@@ -1221,7 +1219,7 @@ public:
 		ExpLine = ExpHeight = ExpWidth = 0;
 		InvalidateRect(hWnd, 0, 0);
 	}
-	void Erase(RECT &rc) { es.push(rc); }
+	__forceinline void Erase(RECT &rc) { es.push(rc); }
 	void Redraw(const RECT *rc) { InvalidateRect(hWnd, rc, FALSE); UpdateWindow(hWnd); }
 	void Readd(int type, int cur) { rs.push(std::make_pair(type, cur)); }
 	int ExpLine = 0;
@@ -2066,7 +2064,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
 	return 0;
 }
-
+BOOL DownFail = false;
 wchar_t Git[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/";
 void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
 {
@@ -2075,11 +2073,19 @@ void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
 	wcscpy(b, Path);
 	wcscat(b, c);
 	if (wcsstr(a, L"\\") != 0)*_tcsrchr(a, _T('\\')) = '/';
-	URLDownloadToFileW(NULL, a, b, 0, NULL);
-	FDcur++,
-		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
+	if (URLDownloadToFileW(NULL, a, b, 0, NULL)==S_OK)FDcur++; else
+	{
+		FDtot--;
+		if (!DownFail)Main.InfoBox(Main.GetStr(L"DownFail")), DownFail = true;
+	}
+	InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 }
-#define Create_tPath(x) wcscpy_s(tPath, Path);wcscat_s(tPath, x);CreateDirectory(tPath, NULL);
+void Create_tPath(wchar_t *t, const wchar_t *x)
+{
+	wcscpy(t, Path);
+	wcscat(t, x);
+	CreateDirectory(t, NULL);
+}
 DWORD WINAPI DownloadThreadUp(LPVOID pM)
 {
 	int *tp = (int *)pM;
@@ -2100,40 +2106,44 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	case 3:
 	case 4:
 	case 5:
-		if (cur == 4 || cur == 5) { Create_tPath(L"cheat"); }
+		if (cur == 4 || cur == 5) { Create_tPath(tPath,L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
 		wcscat_s(tPath, FileName[cur - 1]);
 		if (wcsstr(tURL, L"\\") != 0)*_tcsrchr(tURL, _T('\\')) = '/';
 		FDtot++;
-		URLDownloadToFileW(NULL, tURL, tPath, 0, NULL);
-		FDcur++;
+		if (URLDownloadToFileW(NULL, tURL, tPath, 0, NULL) == S_OK)FDcur++; else
+		{
+			FDtot--;
+			if (!DownFail)Main.InfoBox(Main.GetStr(L"DownFail")), DownFail = true;
+		}
 		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 		break;
 	case 6:
-		Create_tPath(L"deleter"); FDtot += 3;
+		Create_tPath(tPath, L"deleter"); FDtot += 3;
 		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name[i]); }
 		break;
 	case 7:
-		Create_tPath(L"arp"); FDtot += 6;
+		Create_tPath(tPath, L"arp"); FDtot += 6;
 		for (int i = 0; i < 6; ++i) { Updownload(tPath, tURL, name2[i]); }
 		break;
 	case 8:
-		Create_tPath(L"ProcessHacker"); FDtot += 3;
+		Create_tPath(tPath, L"ProcessHacker"); FDtot += 3;
 		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name3[i]); }
 		break;
 	case 9:
-		Create_tPath(L"x32"); FDtot += 5;
+		Create_tPath(tPath, L"x32"); FDtot += 5;
 		for (int i = 0; i < 5; ++i) { Updownload(tPath, tURL, name4[i]); }
 		break;
 	case 10:
-		Create_tPath(L"x64"); FDtot += 4;
+		Create_tPath(tPath, L"x64"); FDtot += 4;
 		for (int i = 0; i < 4; ++i) { Updownload(tPath, tURL, name5[i]); }
 		break;
 	case 11:
-		Create_tPath(L"language"); FDtot += 2;
+		Create_tPath(tPath, L"language"); FDtot += 2;
 		for (int i = 0; i < 2; ++i) { Updownload(tPath, tURL, name6[i]); }
+		SearchLanguageFiles();
 		break;
 	}
 
@@ -2193,6 +2203,7 @@ void RefreshTDstate()
 		_wcslwr_s(pe.szExeFile);
 		if (wcscmp(L"stu", pe.szExeFile) == 0)
 		{
+			if (TDPID != 0)return;
 			TDPID = pe.th32ProcessID;
 			TDProcess = true;
 			wchar_t tmp[101], tmp2[11];
@@ -2207,12 +2218,13 @@ void RefreshTDstate()
 			Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
 			Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 			Main.Readd(2, Main.GetNumbyID(L"re-TD"));
-			RECT rc = { 165, 390, 320, 505 };
+			RECT rc = { 165*Main.DPI, 390 * Main.DPI, 320 * Main.DPI, 505 * Main.DPI };
 			Main.Erase(rc);
-			Main.Redraw(NULL);
+			Main.Redraw(&rc);
 			return;
 		}
 	}
+	if (TDPID == 0)return;
 	TDPID = 0;
 	TDProcess = false;
 	wchar_t tmp[101], tmp2[11];
@@ -2227,9 +2239,9 @@ void RefreshTDstate()
 	Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
 	Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 	Main.Readd(2, Main.GetNumbyID(L"re-TD"));
-	RECT rc = { 165, 390, 320, 505 };
+	RECT rc = { 165 * Main.DPI, 390 * Main.DPI, 320 * Main.DPI, 505 * Main.DPI };
 	Main.Erase(rc);
-	Main.Redraw(NULL);
+	Main.Redraw(&rc);
 	return;
 }
 int Cathy()
@@ -2773,7 +2785,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	green = CreateSolidBrush(RGB(0, 206, 209));
 	grey = CreateSolidBrush(RGB(245, 245, 245));
 	Dgrey = CreateSolidBrush(RGB(230, 230, 230));
-	yellow = CreateSolidBrush(RGB(0xEE, 0xE6, 0x85));
+	yellow = CreateSolidBrush(RGB(244, 238, 175));
 	DBlue = CreatePen(PS_SOLID, 1, RGB(210, 255, 255));//笔
 	LBlue = CreatePen(PS_SOLID, 1, RGB(230, 255, 255));
 	YELLOW = CreatePen(PS_SOLID, 1, RGB(0xC1, 0xCD, 0xCD));
@@ -2893,8 +2905,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateFrame(160, 370, 160, 135, 2, L" 进程工具 ");
 	Main.CreateText(175, 390, 2, L"TDState", 0);
 	Main.CreateText(175, 415, 2, L"TDPID", 0);
-	Main.CreateText(250, 390, 2, L"TcmdOK", RGB(0, 255, 0));
+	Main.CreateText(250, 390, 2, L"TcmdNO", RGB(255, 0, 0));
 	Main.CreateButton(175, 445, 60, 45, 2, L"结束", L"kill-TD");
+	Main.Button[Main.CurButton].Enabled = false;
 	Main.CreateButton(245, 445, 60, 45, 2, L"启动", L"re-TD");
 
 	Main.CreateButton(345, 370, 115, 55, 2, L"程序窗口化", L"windows.ex");
@@ -4115,6 +4128,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						int typ = i;
 						CreateThread(NULL, 0, DownloadThreadUp, &typ, 0, NULL);
+						InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 					}
 					else
 					{

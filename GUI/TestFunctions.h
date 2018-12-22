@@ -287,10 +287,11 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"驱动层", L"Ring0");\
 	Main.CreateString(L"安装", L"Setup");\
 	Main.CreateString(L"已卸载", L"Uned");\
-Main.CreateString(L"极域状态: ", L"TDState");\
-Main.CreateString(L"PID: ", L"TDPID");\
-Main.CreateString(L"极域状态: ", L"_TDState");\
-Main.CreateString(L"PID: ", L"_TDPID");\
+	Main.CreateString(L"极域状态: ", L"TDState");\
+	Main.CreateString(L"PID: \\", L"TDPID");\
+	Main.CreateString(L"极域状态: ", L"_TDState");\
+	Main.CreateString(L"PID: ", L"_TDPID");\
+	Main.CreateString(L"下载失败", L"DownFail");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
 	CatchWnd.CreateString(L" 个窗口", L"Eat2")
 
