@@ -26,7 +26,7 @@ BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
 LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
 LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//第二窗口
 LRESULT CALLBACK	UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-void				InitScreen();
+ATOM				InitScreen();
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 
 HINSTANCE hInst;// 当前实例备份变量，CreateWindow时需要
@@ -695,6 +695,7 @@ public:
 	}
 	void EditHotKey(int wParam)
 	{
+		if (CoverEdit == 0)return;
 		switch (wParam)
 		{
 		case 34:
@@ -1176,7 +1177,7 @@ public:
 	{
 		hdc = HDc;
 		if (bitmap != NULL)DeleteObject(bitmap);
-		bitmap = CreateCompatibleBitmap(hdc, 100000, 100);
+		bitmap = CreateCompatibleBitmap(hdc, 8000, 80);
 	}
 	void Try2CreateExp()
 	{
@@ -1781,7 +1782,7 @@ void SwitchLanguage(LPWSTR name)
 			if (wcsstr(ReadTmp, L"<Edits>") != 0)type = 6;
 			if (ReadTmp[0] != '<')
 			{
-				if (Mainf)DispatchLanguage(ReadTmp, type, &Main); 
+				if (Mainf)DispatchLanguage(ReadTmp, type, &Main);
 				if (Catchf)DispatchLanguage(ReadTmp, type, &CatchWnd);
 				if (Upf)DispatchLanguage(ReadTmp, type, &UpWnd);
 			}
@@ -1970,13 +1971,13 @@ DWORD WINAPI GameThread(LPVOID pM)
 		lock = true;
 		if (!Effect)
 		{
-			SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width + 600)*Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);
-			Main.Button[Main.GetNumbyID(L"Close")].Left += 600;
+			SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width + 260)*Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);
+			Main.Button[Main.GetNumbyID(L"Close")].Left += 260;
 			InvalidateRect(Main.hWnd, NULL, FALSE);
 			UpdateWindow(Main.hWnd);
 			goto next;
 		}
-		for (int j = 1; j <= 600; j += 20)
+		for (int j = 1; j <= 260; j += 20)
 		{
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width + j)*Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);
 			RECT Rc;
@@ -1993,20 +1994,20 @@ DWORD WINAPI GameThread(LPVOID pM)
 		}
 		Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
 	next:
-		Main.Width += 600;
+		Main.Width += 260;
 	}
 	else
 	{
 		if (Effect)
-			for (int j = 1; j <= 600; j += 20)
+			for (int j = 1; j <= 260; j += 20)
 			{
 				::SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width - j)*Main.DPI, Main.Height*Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);//经测试不能使用RedrawObject
 				InvalidateRect(Main.hWnd, 0, FALSE);
 				UpdateWindow(Main.hWnd);
 				Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
 			}
-		Main.Width -= 600;
-		if (Effect)Main.Button[Main.GetNumbyID(L"Close")].Left += 20; else Main.Button[Main.GetNumbyID(L"Close")].Left -= 600;
+		Main.Width -= 260;
+		if (Effect)Main.Button[Main.GetNumbyID(L"Close")].Left += 20; else Main.Button[Main.GetNumbyID(L"Close")].Left -= 260;
 		::SetWindowPos(Main.hWnd, NULL, 0, 0, Main.Width *Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE);
 	}
 	lock = false;
@@ -2071,10 +2072,10 @@ void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
 {
 	wcscpy(a, Git);//b tpath
 	wcscat(a, c); //a tUrl
-	wcscpy(b, Path); 
+	wcscpy(b, Path);
 	wcscat(b, c);
-	if (wcsstr(a, L"\\") != 0)*_tcsrchr(a, _T('\\')) = '/'; 
-	URLDownloadToFileW(NULL, a, b, 0, NULL); 
+	if (wcsstr(a, L"\\") != 0)*_tcsrchr(a, _T('\\')) = '/';
+	URLDownloadToFileW(NULL, a, b, 0, NULL);
 	FDcur++,
 		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 }
@@ -2084,7 +2085,7 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	int *tp = (int *)pM;
 	int cur = *tp;
 	//DownloadProgress progress;
-	
+
 	wchar_t tURL[501], tPath[501];
 	const wchar_t name[][34] = { L"deleter\\DrvDelFile.exe",L"deleter\\DeleteFile.sys",L"deleter\\DeleteFile_x64.sys" };
 	const wchar_t name2[][34] = { L"arp\\wpcap.dll" ,L"arp\\npf.sys",L"arp\\npptools.dll",L"arp\\Packet.dll",L"arp\\WanPacket.dll" , L"arp\\arp.exe" };
@@ -2983,17 +2984,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	UpWnd.InitClass(hInst);
 
-	UpWnd.CreateCheck(10, 10, 0, 100, L" hook.exe");
-	UpWnd.CreateCheck(10, 40, 0, 100, L" ntsd.exe");
-	UpWnd.CreateCheck(10, 70, 0, 100, L" PsExec.exe");
-	UpWnd.CreateCheck(10, 100, 0, 100, L" 伪装工具条旧");
-	UpWnd.CreateCheck(10, 130, 0, 100, L" 伪装工具条新");
-	UpWnd.CreateCheck(10, 160, 0, 100, L" 驱动删除文件");
-	UpWnd.CreateCheck(10, 190, 0, 100, L" ARP攻击");
-	UpWnd.CreateCheck(10, 220, 0, 100, L" ProcessHacker");
-	UpWnd.CreateCheck(10, 250, 0, 100, L" 32位驱动");
-	UpWnd.CreateCheck(10, 280, 0, 100, L" 64位驱动");
-	UpWnd.CreateCheck(10, 310, 0, 100, L" 语言文件");
+	UpWnd.CreateCheck(15, 10, 0, 100, L" hook.exe");
+	UpWnd.CreateCheck(15, 40, 0, 100, L" ntsd.exe");
+	UpWnd.CreateCheck(15, 70, 0, 100, L" PsExec.exe");
+	UpWnd.CreateCheck(15, 100, 0, 100, L" 伪装工具条旧");
+	UpWnd.CreateCheck(15, 130, 0, 100, L" 伪装工具条新");
+	UpWnd.CreateCheck(15, 160, 0, 100, L" 驱动删除文件");
+	UpWnd.CreateCheck(15, 190, 0, 100, L" ARP攻击");
+	UpWnd.CreateCheck(15, 220, 0, 100, L" ProcessHacker");
+	UpWnd.CreateCheck(15, 250, 0, 100, L" 32位驱动");
+	UpWnd.CreateCheck(15, 280, 0, 100, L" 64位驱动");
+	UpWnd.CreateCheck(15, 310, 0, 100, L" 语言文件");
 
 	if (!Main.hWnd)return FALSE;
 
@@ -3030,19 +3031,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		KillTimer(hWnd, 4);
 		PostQuitMessage(0);
-		//ExitProcess(0);
 		break;
 	case	WM_CREATE:
 		if (Effect)
 		{
 			Cshadow.Initialize(hInst);
 			Cshadow.Create(hWnd);
-
 		}
-
 		rdc = GetDC(Main.hWnd);
 		hdc = CreateCompatibleDC(rdc);
-		hBmp = CreateCompatibleBitmap(rdc, 4000, 4000);
+		hBmp = CreateCompatibleBitmap(rdc, 1330, 1100);
 		SelectObject(hdc, hBmp);
 		ReleaseDC(Main.hWnd, rdc);
 		DragAcceptFiles(hWnd, true);
@@ -3194,16 +3192,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (Main.CurWnd == 4)
 		{
 			BitmapBrush = CreatePatternBrush(hZXFBitmap);
-			SelectObject(hdc, BitmapBrush);
-			Rectangle(hdc, 135 * 22, 170 * 18, 135 * 23, 170 * 19);
-			StretchBlt(hdc, 170 * Main.DPI, 75 * Main.DPI, 135 * Main.DPI, 170 * Main.DPI, hdc, 135 * 22, 170 * 18, 135, 170, SRCCOPY);
+			SelectObject(hdc, BitmapBrush);//621 550
+			Rectangle(hdc, 0, 170 * 5, 135, 170 * 6);
+			StretchBlt(hdc, 170 * Main.DPI, 75 * Main.DPI, 135 * Main.DPI, 170 * Main.DPI, hdc, 0, 170 * 5, 135, 170, SRCCOPY);
 			if (EasterEggFlag)
 			{
 				BitmapBrush = CreatePatternBrush(hZXFsign);
 				SelectObject(hdc, BitmapBrush);
 				SelectObject(hdc, White);
-				Rectangle(hdc, 105 * 34, 75 * 38, 105 * 35, 75 * 39);
-				StretchBlt(hdc, 165 * Main.DPI, 465 * Main.DPI, 105 * Main.DPI, 75 * Main.DPI, hdc, 105 * 34, 75 * 38, 105, 75, SRCCOPY);
+				Rectangle(hdc, 105 * 2, 75 * 12, 105 * 3, 75 * 13);
+				StretchBlt(hdc, 165 * Main.DPI, 465 * Main.DPI, 105 * Main.DPI, 75 * Main.DPI, hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
 			}
 			DeleteObject(BitmapBrush);
 		}
@@ -3623,7 +3621,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
 				UpWnd.Check[i + 1].Value = FileExist[i];
 			}
-			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 200, 380, nullptr, nullptr, hInst, nullptr);
+			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 210, 410, nullptr, nullptr, hInst, nullptr);
 			ShowWindow(UpWnd.hWnd, SW_SHOW);
 			UpdateWindow(UpWnd.hWnd);
 			break;
@@ -3896,7 +3894,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	case WM_CREATE:
 		Hdc = GetDC(CatchWnd.hWnd);
 		tdc = CreateCompatibleDC(Hdc);
-		HBMP = CreateCompatibleBitmap(Hdc, 2000, 2000);
+		HBMP = CreateCompatibleBitmap(Hdc, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
 		SelectObject(tdc, HBMP);
 		ReleaseDC(CatchWnd.hWnd, Hdc);
 		CatchWnd.SetHDC(tdc);
@@ -4063,7 +4061,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Udc = GetDC(hWnd);
 
 		Tdc = CreateCompatibleDC(Udc);
-		uBMP = CreateCompatibleBitmap(Udc, 2000, 2000);
+		uBMP = CreateCompatibleBitmap(Udc, 500, 500);
 		SelectObject(Tdc, uBMP);
 		ReleaseDC(UpWnd.hWnd, Udc);
 		UpWnd.SetHDC(Tdc);
@@ -4085,7 +4083,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			_itow_s(FDtot, tmp, 10);
 			wcscat_s(tmp2, tmp);
 		ok:
-			TextOut(Tdc, 10, 340, tmp2, wcslen(tmp2));
+			TextOut(Tdc, 20, 340, tmp2, wcslen(tmp2));
 		}
 		BitBlt(Udc, 0, 0, 2000, 2000, Tdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
@@ -4142,7 +4140,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-void InitScreen()
+ATOM InitScreen()
 {
 	WNDCLASSEXW scr = { 0 };
 	scr.cbSize = sizeof(WNDCLASSEX);
@@ -4151,5 +4149,5 @@ void InitScreen()
 	scr.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	scr.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	scr.lpszClassName = ScreenWindow;
-	RegisterClassExW(&scr);
+	return RegisterClassExW(&scr);
 }
