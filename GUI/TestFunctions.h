@@ -241,7 +241,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"按快捷键Ctrl+B切换", L"Tctrl+b");\
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
 	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
-	Main.CreateString(L"作者：minecraft cxy villager", L"Tcoder");\
+	Main.CreateString(L"作者：zouxiaofei1 cxy villager", L"Tcoder");\
 	Main.CreateString(L"版本：C++ v1.9 正式版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
 	Main.CreateString(L"CopyLeft© SA软件 2015 - 2019", L"_Tleft");\
@@ -275,7 +275,10 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"系统位数:", L"Tbit");\
 	Main.CreateString(L"系统版本:", L"Twinver");\
 	Main.CreateString(L"cmd状态:", L"Tcmd");\
-	Main.CreateString(L"极域版本: unknown", L"TTDv");\
+	Main.CreateString(L"", L"TTDv");\
+Main.CreateString(L"极域版本: ", L"_TTDv");\
+Main.CreateString(L"未知或不存在", L"TTDunk");\
+Main.CreateString(L"2010或之前", L"TTDold");\
 	Main.CreateString(L"IP地址:", L"TIP");\
 	Main.CreateString(L"存在", L"TcmdOK");\
 	Main.CreateString(L"不存在", L"TcmdNO");\

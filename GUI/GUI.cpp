@@ -1546,6 +1546,43 @@ void CheckIP()    //定义checkIP函数，用于取本机的ip地址
 	}
 }
 
+
+bool GetTDVer(wchar_t *source)
+{
+	if (source == NULL)return false;
+	wcscpy(source, Main.GetStr(L"_TTDv"));
+	HKEY hKey;
+	LONG ret;
+	wchar_t szLocation[100] = { 0 };
+	DWORD dwSize = sizeof(wchar_t) * 100;
+	DWORD dwType = REG_SZ;
+	if (Bit != 64)
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-Learning Class V6.0", 0, KEY_READ, &hKey);
+	else
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-Learning Class V6.0", 0, KEY_READ, &hKey);
+
+	if (ret != 0)
+	{
+		if (Bit != 64)
+			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain", 0, KEY_READ, &hKey);
+		else
+			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain", 0, KEY_READ, &hKey);
+		if (ret != 0)//极域可能不存在
+			wcscat(source, Main.GetStr(L"TTDunk"));
+		else//极域版本为2007之类
+			wcscat(source, Main.GetStr(L"TTDold"));//有TopDomain目录，但没有Version键值
+		RegCloseKey(hKey);
+		return true;
+	}
+	ret = RegQueryValueExW(hKey, L"Version", 0, &dwType, (LPBYTE)&szLocation, &dwSize);
+	if (ret != 0)return false;
+	if (*szLocation != 0)//一切正常
+		wcscat(source, szLocation);
+	else return false;
+	RegCloseKey(hKey);
+	return true;
+}
+
 void UpdateInfo()
 {
 	wchar_t tmp[301] = { 0 }, tmp2[1001] = { 0 }; int f;
@@ -1562,6 +1599,7 @@ void UpdateInfo()
 	CheckIP();
 	wcscpy_s(tmp2, Main.GetStr(L"TIP")); wcscat(tmp2, wip);
 	Main.SetStr(tmp2, L"TIP");
+	if(GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
 }
 void SetFrame()
 {
@@ -2192,6 +2230,7 @@ void ReturnWindows()
 
 void RefreshTDstate()
 {
+	RECT rc = { (LONG)(165 * Main.DPI), (LONG)(390 * Main.DPI),(LONG)(320 * Main.DPI),(LONG)(505 * Main.DPI) };
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -2218,7 +2257,6 @@ void RefreshTDstate()
 			Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
 			Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 			Main.Readd(2, Main.GetNumbyID(L"re-TD"));
-			RECT rc = { 165*Main.DPI, 390 * Main.DPI, 320 * Main.DPI, 505 * Main.DPI };
 			Main.Erase(rc);
 			Main.Redraw(&rc);
 			return;
@@ -2239,7 +2277,6 @@ void RefreshTDstate()
 	Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
 	Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 	Main.Readd(2, Main.GetNumbyID(L"re-TD"));
-	RECT rc = { 165 * Main.DPI, 390 * Main.DPI, 320 * Main.DPI, 505 * Main.DPI };
 	Main.Erase(rc);
 	Main.Redraw(&rc);
 	return;
@@ -2477,6 +2514,7 @@ void EasterEgg(bool flag)
 		KillTimer(Main.hWnd, 3), EasterEggFlag = false;
 }
 
+
 void AutoViewPass()
 {
 	HKEY hKey;
@@ -2491,20 +2529,20 @@ void AutoViewPass()
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
 
 	if (ret != 0 && slient == false)
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK) { RegCloseKey(hKey); return; }
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
 	ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType, (LPBYTE)&szLocation, &dwSize);
 	if (ret != 0 && slient == false)
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPUKE"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK) { RegCloseKey(hKey); return; }
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPUKE"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
 	if (szLocation[0] != 0)
 	{
 		wchar_t Tmp[300];
-
 		wcscpy_s(Tmp, Main.GetStr(L"pswdis"));
 		wcscat_s(Tmp, szLocation);
 		Main.InfoBox(Tmp);
 	}
 	else
 		Main.InfoBox(Main.GetStr(L"VPNULL"));
+	finish:
 	RegCloseKey(hKey);
 }
 void AutoClearPassWd()
@@ -2730,14 +2768,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 
 	if (!InitInstance(hInstance, nCmdShow))return FALSE;
-
-	wchar_t tmp[255];
-	for (int i = 0; i < numGames; ++i)
-	{
-		wcscpy_s(tmp, Path);
-		wcscat_s(tmp, GameName[i]);
-		if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
-	}
 
 cosl:
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GUI));
@@ -3167,7 +3197,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SelectObject(Main.hdc, WhiteBrush);
 			while (!Main.es.empty())
 			{
-				Rectangle(Main.hdc, Main.es.top().left*Main.DPI, Main.es.top().top*Main.DPI, Main.es.top().right*Main.DPI, Main.es.top().bottom*Main.DPI);
+				Rectangle(Main.hdc, Main.es.top().left, Main.es.top().top, Main.es.top().right, Main.es.top().bottom);
 				Main.es.pop();
 			}
 		}
@@ -3555,6 +3585,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				wcscpy_s(tmp, Path);
 				wcscat_s(tmp, L"games");
 				CreateDirectory(tmp, NULL);
+
+				for (int i = 0; i < numGames; ++i)
+				{
+					wcscpy_s(tmp, Path);
+					wcscat_s(tmp, GameName[i]);
+					if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
+				}
 
 				wcscpy_s(Main.Button[Main.CurCover].Name, Main.GetStr(L"Gamee"));
 				GameMode = 1;
