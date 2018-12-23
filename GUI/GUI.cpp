@@ -1,26 +1,22 @@
-﻿#include "stdafx.h"//头文件
+﻿//这是TopDomainTools工程源代码的主文件
+//by zouxiaofei1 2015 - 2019
+
+#include "stdafx.h"//头文件
 #include "GUI.h"
-#include "Shlobj.h" 
 #include "WndShadow.h"
 #include "Actions.h"
 #include "TestFunctions.h"
-#include <winsock.h>
-#include <WinBase.h>
-#include <stack>
 
 #define BUTTON_IN(x,y) if(x == Hash(y))
 #define Delta 10 //按钮渐变色速度
-#pragma comment(lib,"kernel32.lib")
-#pragma comment(lib,"shell32.lib")
-#pragma comment(lib, "urlmon.lib")//下载文件用的Lib   
-#pragma comment(lib,"Shlwapi.lib")
-#pragma comment(lib,"Advapi32.lib")
-#pragma comment(lib,"Imm32.lib")
-#pragma comment(lib, "ws2_32.lib")//Winsock API 库
-#pragma comment(lib, "netapi32.lib")
 
-#pragma warning(disable:4244)//禁用警告
-#pragma warning(disable:4996)
+#pragma comment(lib, "urlmon.lib")//下载文件用的Lib
+#pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
+#pragma comment(lib, "ws2_32.lib")//Winsock API 库
+#pragma comment(lib, "netapi32.lib")//同上
+
+#//pragma warning(disable:4244)//禁用警告
+//#pragma warning(disable:4996)
 
 BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
 LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
@@ -114,7 +110,7 @@ public:
 		CoverCheck = 0;
 
 		//默认宋体
-		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
+		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 	}
 
 	ATOM RegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
@@ -282,11 +278,11 @@ public:
 			{
 				SelectObject(hdc, BLACK);//绘制方框
 				SelectObject(hdc, DefFont);
-				MoveToEx(hdc, Frame[i].Left*DPI, Frame[i].Top*DPI, NULL);
-				LineTo(hdc, Frame[i].Left*DPI, Frame[i].Top*DPI + Frame[i].Height*DPI);
-				LineTo(hdc, Frame[i].Left*DPI + Frame[i].Width*DPI, Frame[i].Top*DPI + Frame[i].Height*DPI);
-				LineTo(hdc, Frame[i].Left*DPI + Frame[i].Width*DPI, Frame[i].Top*DPI);
-				LineTo(hdc, Frame[i].Left*DPI, Frame[i].Top *DPI);
+				MoveToEx(hdc, (int)(Frame[i].Left*DPI), (int)(Frame[i].Top*DPI), NULL);//多加点(int)xx*DPI 减少警告
+				LineTo(hdc, (int)(Frame[i].Left*DPI), (int)(Frame[i].Top*DPI + Frame[i].Height*DPI));
+				LineTo(hdc, (int)(Frame[i].Left*DPI + Frame[i].Width*DPI), (int)(Frame[i].Top*DPI + Frame[i].Height*DPI));
+				LineTo(hdc, (int)(Frame[i].Left*DPI + Frame[i].Width*DPI), (int)(Frame[i].Top*DPI));
+				LineTo(hdc, (int)(Frame[i].Left*DPI), (int)(Frame[i].Top *DPI));
 				SetTextColor(hdc, Frame[i].rgb);//打印文字
 				RECT rc = GetRECTf(i);
 				SetBkMode(hdc, OPAQUE);
@@ -300,7 +296,7 @@ public:
 	void DrawButtons(int cur)//绘制按钮
 	{
 		int i;
-		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Button
+		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Button(复制粘贴)
 		for (i = 1; i <= CurButton; ++i)
 		{
 		begin:
@@ -327,30 +323,30 @@ public:
 					goto ok;
 				}
 				if (CurCover == i && Button[i].DownTot == 0)//没有禁用&渐变色 -> 默认颜色
-					if (Press == 1)
-					{
-						SelectObject(hdc, Button[i].Press);
+					if (Press == 1) {
+						SelectObject(hdc, Button[i].Press);//按下按钮
 						SelectObject(hdc, Button[i].Press2);
 					}
-					else
-					{
-						SelectObject(hdc, Button[i].Hover);
+					else {
+						SelectObject(hdc, Button[i].Hover);//悬浮
 						SelectObject(hdc, Button[i].Hover2);
 					}
 				else
 				{
-					SelectObject(hdc, Button[i].Leave);
+					SelectObject(hdc, Button[i].Leave);//离开
 					SelectObject(hdc, Button[i].Leave2);
 				}
 			ok:
 				if (Button[i].Font == NULL)SelectObject(hdc, DefFont); else SelectObject(hdc, Button[i].Font);//字体
 
-				Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI, Button[i].Top*DPI + Button[i].Height*DPI);
+				Rectangle(hdc, (int)(Button[i].Left*DPI), (int)(Button[i].Top*DPI),
+					(int)(Button[i].Left*DPI + Button[i].Width*DPI), (int)(Button[i].Top*DPI + Button[i].Height*DPI));//绘制方框
 
 				if (Button[i].DownTot != 0)//下载进度条
 				{
 					SelectObject(hdc, Button[i].Hover);
-					Rectangle(hdc, Button[i].Left*DPI, Button[i].Top*DPI, Button[i].Left*DPI + Button[i].Width*DPI*(Button[i].Download - 1) / 100, Button[i].Top*DPI + Button[i].Height*DPI);
+					Rectangle(hdc, (int)(Button[i].Left*DPI), (int)(Button[i].Top*DPI),
+						(int)(Button[i].Left*DPI + Button[i].Width*DPI*(Button[i].Download - 1) / 100), (int)(Button[i].Top*DPI + Button[i].Height*DPI));
 				}
 
 				RECT rc = GetRECT(i);
@@ -386,20 +382,15 @@ public:
 				if (tmp != NULL)DeleteObject(tmp);//回收句柄
 				if (tmb != NULL)DeleteObject(tmb);
 			}
-
 			if (cur != 0)return;
 		}
 		SetTextColor(hdc, RGB(0, 0, 0));
-
 	}
+
 	void DrawChecks(int cur)//绘制Checks
 	{
 		int i;
-		if (cur != 0)
-		{
-			i = cur;
-			goto begin;
-		}
+		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Check
 		for (i = 1; i <= CurCheck; ++i)
 		{
 		begin:
@@ -408,40 +399,34 @@ public:
 				if (i == CoverCheck)SelectObject(hdc, BLUE); else SelectObject(hdc, LGREY);
 
 				SelectObject(hdc, grey);
-				SelectObject(hdc, DefFont);
-				Rectangle(hdc, Check[i].Left*DPI, Check[i].Top*DPI, Check[i].Left*DPI + 15 * DPI, Check[i].Top*DPI + 15 * DPI);
-				TextOut(hdc, Check[i].Left*DPI + 20 * DPI, Check[i].Top*DPI, Check[i].Name, (int)wcslen(Check[i].Name));
+				SelectObject(hdc, DefFont);//check默认边长为15，并不能调整
+				Rectangle(hdc, (int)(Check[i].Left*DPI), (int)(Check[i].Top*DPI), (int)(Check[i].Left*DPI + 15 * DPI), (int)(Check[i].Top*DPI + 15 * DPI));
+				TextOut(hdc, (int)(Check[i].Left*DPI + 20 * DPI), (int)(Check[i].Top*DPI), Check[i].Name, (int)wcslen(Check[i].Name));
 				if (Check[i].Value == 1)//打勾
-				{
-					SelectObject(hdc, GREEN);
-					MoveToEx(hdc, Check[i].Left*DPI + 2 * DPI, Check[i].Top*DPI + 7 * DPI, NULL);
-					LineTo(hdc, Check[i].Left*DPI + 7 * DPI, Check[i].Top*DPI + 12 * DPI);
-					LineTo(hdc, Check[i].Left*DPI + 12 * DPI, Check[i].Top*DPI + 2 * DPI);
+				{						//比较难看
+					SelectObject(hdc, GREEN);//试过了直接贴图，更难看
+					MoveToEx(hdc, (int)(Check[i].Left*DPI + 2 * DPI), (int)(Check[i].Top*DPI + 7 * DPI), NULL);//然后就只能这样了
+					LineTo(hdc, (int)(Check[i].Left*DPI + 7 * DPI), (int)(Check[i].Top*DPI + 12 * DPI));
+					LineTo(hdc, (int)(Check[i].Left*DPI + 12 * DPI), (int)(Check[i].Top*DPI + 2 * DPI));
 				}
 			}
 			if (cur != 0)return;
 		}
 	}
 	void DrawLines()//绘制线段
-	{
-		for (int i = 1; i <= CurLine; ++i)
-		{
+	{//线段一般不需要重绘
+		for (int i = 1; i <= CurLine; ++i)//因此没有加ObjectRedraw
 			if (Line[i].Page == 0 || Line[i].Page == CurWnd)
 			{
 				SelectObject(hdc, CreatePen(0, 1, Line[i].Color));
-				MoveToEx(hdc, Line[i].StartX*DPI, Line[i].StartY*DPI, NULL);
-				LineTo(hdc, Line[i].EndX*DPI, Line[i].EndY*DPI);
+				MoveToEx(hdc, (int)(Line[i].StartX*DPI), (int)(Line[i].StartY*DPI), NULL);
+				LineTo(hdc, (int)(Line[i].EndX*DPI), (int)(Line[i].EndY*DPI));
 			}
-		}
 	}
 	void DrawTexts(int cur)//绘制文字
 	{
 		int i;
-		if (cur != 0)
-		{
-			i = cur;
-			goto begin;
-		}
+		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Texts
 		for (i = 1; i <= CurText; ++i)
 		{
 		begin:
@@ -449,94 +434,93 @@ public:
 			{
 				SetTextColor(hdc, Text[i].rgb);
 				SelectObject(hdc, DefFont);
-
+				//文字的字体缩放效果不太理想
 				wchar_t *tmp = str[Hash(Text[i].Name)];
-				TextOutW(hdc, Text[i].Left*DPI, Text[i].Top*DPI, tmp, (int)wcslen(tmp));
+				TextOutW(hdc, (int)(Text[i].Left*DPI), (int)(Text[i].Top*DPI), tmp, (int)wcslen(tmp));
 			}
 			if (cur != 0)return;
 		}
 	}
 	void DrawExp()//绘制注释
-	{
-		if (ExpExist == false)return;
+	{//注释只有一个，自然不用ObjectRedraw
+		if (ExpExist == false)return;//注释不存在？
 		SelectObject(hdc, DefFont);
 		SelectObject(hdc, YELLOW);
 		SelectObject(hdc, yellow);
-		if (ExpPoint.x > Width / 2)ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;
-		if (ExpPoint.y > Height / 2)ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;
+		if (ExpPoint.x > Width / 2)ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//自动选择注释的位置
+		if (ExpPoint.y > Height / 2)ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//防止打印到窗口外面
 		Rectangle(hdc, ExpPoint.x, ExpPoint.y, ExpWidth + ExpPoint.x, ExpHeight + ExpPoint.y);
 		SetTextColor(hdc, RGB(0, 0, 0));
-		for (int i = 1; i <= ExpLine; ++i)
-			TextOutW(hdc, ExpPoint.x + 4, ExpPoint.y - 12 * DPI + 16 * i*DPI, Exp[i], (int)wcslen(Exp[i]));
+		for (int i = 1; i <= ExpLine; ++i)//逐行打印
+			TextOutW(hdc, ExpPoint.x + 4,(int)( ExpPoint.y - 12 * DPI + 16 * i*DPI), Exp[i], (int)wcslen(Exp[i]));//注意这里的ExpPoint是真实坐标
 	}
 
-	void DrawEdits(int cur)
+	void DrawEdits(int cur)//绘制输入框
 	{
 		int i;
-		HDC mdc;
+		HDC mdc;//创建缓存dc
 		mdc = CreateCompatibleDC(hdc);
 
 		SelectObject(mdc, bitmap);
 		SetBkMode(mdc, TRANSPARENT);
-		if (cur != 0)
-		{
-			i = cur;
-			goto begin;
-		}
-
+		if (cur != 0){i = cur;goto begin;}//如果使用ObjectRedraw则跳过其他Edits
 
 		for (i = 1; i <= CurEdit; ++i)
 		{
 		begin:
 			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
 			{
-
-				SelectObject(mdc, White);
+				SelectObject(mdc, White);//清空缓存dc
 				SelectObject(mdc, WhiteBrush);
 				Rectangle(mdc, 0, 0, 10000, 100);
+
 				SelectObject(hdc, WhiteBrush);
-				if (i == CoverEdit)SelectObject(hdc, BLUE); else SelectObject(hdc, BLACK);
-				Rectangle(hdc, (Edit[i].Left - 5)*DPI, Edit[i].Top*DPI, (Edit[i].Left + Edit[i].Width + 5)*DPI, (Edit[i].Top + Edit[i].Height)*DPI);
-				if (*Edit[i].OStr != 0)
-				{
+				if (i == CoverEdit)SelectObject(hdc, BLUE); else SelectObject(hdc, BLACK);//如果当前Edit被选中则用蓝色绘制边框
+				Rectangle(hdc, (int)((Edit[i].Left - 5)*DPI), (int)(Edit[i].Top*DPI),
+					(int)((Edit[i].Left + Edit[i].Width + 5)*DPI), (int)((Edit[i].Top + Edit[i].Height)*DPI));
+
+				if (*Edit[i].OStr != 0)//如果当前Edit显示的是Ostr(仅用于提示的灰色文字)
+				{//在Hdc上直接打印完走人
 					SetTextColor(hdc, RGB(150, 150, 150));
-					RECT rc;
-					rc.left = (Edit[i].Left - 5)*DPI; rc.top = Edit[i].Top*DPI;
-					rc.right = (Edit[i].Left + Edit[i].Width + 5)*DPI; rc.bottom = (Edit[i].Top + Edit[i].Height)*DPI;
+					RECT rc = { (long)((Edit[i].Left - 5)*DPI) , (long)(Edit[i].Top*DPI),(long)((Edit[i].Left + Edit[i].Width + 5)*DPI),(long)((Edit[i].Top + Edit[i].Height)*DPI) };
 					DrawTextW(hdc, Edit[i].OStr, wcslen(Edit[i].OStr), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 					continue;
 				}
-				SIZE sel, ser;
-				int pos1, pos2;
-				if (Edit[i].Pos1 > Edit[i].Pos2&&Edit[i].Pos2 != -1)pos1 = Edit[i].Pos2, pos2 = Edit[i].Pos1; else pos1 = Edit[i].Pos1, pos2 = Edit[i].Pos2;
 
-				if (Edit[i].font != NULL)SelectObject(mdc, Edit[i].font); else SelectObject(mdc, DefFont);
+				SIZE sel, ser;//pos1 / pos2:确定打印时“选中部分”真正的左右两端点
+				int pos1, pos2;//因为有时候从左到右移动鼠标选中文字，有时从右向左
+				if (Edit[i].Pos1 > Edit[i].Pos2&&Edit[i].Pos2 != -1)pos1 = Edit[i].Pos2, pos2 = Edit[i].Pos1; else pos1 = Edit[i].Pos1, pos2 = Edit[i].Pos2;
+				//pos1&pos2里记录的数值只表示选中的先后顺序，不代表左右，因此这里要特殊处理
+
+				if (Edit[i].font != NULL)SelectObject(mdc, Edit[i].font); else SelectObject(mdc, DefFont);//字体
 				if (pos2 == -1)
-				{
+				{//如果没有选中，直接打印+贴图 -> 走人
 					TextOutW(mdc, 0, 4, Edit[i].str, wcslen(Edit[i].str));
 					goto next;
 				}
-				GetTextExtentPoint32(mdc, Edit[i].str, pos1, &sel);
-				GetTextExtentPoint32(mdc, Edit[i].str, pos2, &ser);
+				//如果选中:较为复杂的情况
+				GetTextExtentPoint32(mdc, Edit[i].str, pos1, &sel);//选中条左边字符总长度
+				GetTextExtentPoint32(mdc, Edit[i].str, pos2, &ser);//选中条长度+左边字符总长度
 				SelectObject(mdc, BLUE);
-				SelectObject(mdc, BlueBrush);
-				Rectangle(mdc, sel.cx, 0, ser.cx, ser.cy + 5 * DPI);
+				SelectObject(mdc, BlueBrush);//用蓝色绘制选中条背景
+				Rectangle(mdc, sel.cx, 0, ser.cx, (int)(ser.cy + 5 * DPI));
 				SetTextColor(mdc, RGB(0, 0, 0));
-				TextOutW(mdc, 0, 4, Edit[i].str, pos1);
+				TextOutW(mdc, 0, 4, Edit[i].str, pos1);//黑色打印选中条左边文字
 				SetTextColor(mdc, RGB(255, 255, 255));
-				TextOutW(mdc, sel.cx, 4, &Edit[i].str[pos1], pos2 - pos1);
+				TextOutW(mdc, sel.cx, 4, &Edit[i].str[pos1], pos2 - pos1);//白色打印选中条中间文字
 				SetTextColor(mdc, RGB(0, 0, 0));
-				TextOutW(mdc, ser.cx, 4, &Edit[i].str[pos2], wcslen(&Edit[i].str[pos2]));
+				TextOutW(mdc, ser.cx, 4, &Edit[i].str[pos2], wcslen(&Edit[i].str[pos2]));//黑色打印选中条右边文字
+
 			next:
-				int yMax = (Edit[i].Top + Edit[i].Height / 2)* DPI - 4 - Edit[i].strHeight / 2;
-				if (yMax < Edit[i].Top*DPI + 1)yMax = Edit[i].Top*DPI + 1;
+				int yMax = (int)((Edit[i].Top + Edit[i].Height / 2)* DPI - 4 - Edit[i].strHeight / 2);
+				if (yMax < Edit[i].Top*DPI + 1)yMax = (int)(Edit[i].Top*DPI + 1);//贴图
 				if (Edit[i].XOffset == 0)
-					BitBlt(hdc, (Edit[i].Left + Edit[i].Width / 2)*DPI - Edit[i].strWidth / 2, yMax
+					BitBlt(hdc, (int)((Edit[i].Left + Edit[i].Width / 2)*DPI) - Edit[i].strWidth / 2, yMax
 						, Edit[i].strWidth \
 						, Edit[i].strHeight + 4, mdc, 0, 0, SRCCOPY);
 				else
-					BitBlt(hdc, Edit[i].Left*DPI, yMax
-						, Edit[i].Width *DPI\
+					BitBlt(hdc, (int)(Edit[i].Left*DPI), yMax
+						, (int)(Edit[i].Width *DPI)\
 						, Edit[i].strHeight + 4, mdc, Edit[i].XOffset, 0, SRCCOPY);
 			}
 			if (cur != 0)goto end;
@@ -567,21 +551,14 @@ public:
 	}
 	RECT GetRECT(int cur)//更新rc
 	{
-		RECT rc;
-		rc.left = Button[cur].Left*DPI;
-		rc.right = Button[cur].Left*DPI + Button[cur].Width*DPI;
-		rc.top = Button[cur].Top*DPI;
-		rc.bottom = Button[cur].Top*DPI + Button[cur].Height*DPI;
+		RECT rc = { (long)(Button[cur].Left*DPI), (long)(Button[cur].Top*DPI),
+			(long)(Button[cur].Left*DPI + Button[cur].Width*DPI),(long)(Button[cur].Top*DPI + Button[cur].Height*DPI) };
 		return rc;
 	}
-
 	RECT GetRECTf(int cur)
 	{
-		RECT rc;
-		rc.left = Frame[cur].Left*DPI + 10 * DPI;
-		rc.right = Frame[cur].Left*DPI + Frame[cur].Width*DPI;
-		rc.top = Frame[cur].Top*DPI - 7 * DPI;
-		rc.bottom = Frame[cur].Top*DPI + 30 * DPI;
+		RECT rc = { (long)(Frame[cur].Left*DPI + 10 * DPI) ,(long)(Frame[cur].Top*DPI - 7 * DPI) ,
+		(long)(Frame[cur].Left*DPI + Frame[cur].Width*DPI),(long)(Frame[cur].Top*DPI + 30 * DPI) };
 		return rc;
 	}
 	void SetEditStrOrFont(LPCWSTR Newstr, HFONT font, int cur)
@@ -1599,7 +1576,7 @@ void UpdateInfo()
 	CheckIP();
 	wcscpy_s(tmp2, Main.GetStr(L"TIP")); wcscat(tmp2, wip);
 	Main.SetStr(tmp2, L"TIP");
-	if(GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
+	if (GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
 }
 void SetFrame()
 {
@@ -2111,7 +2088,7 @@ void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
 	wcscpy(b, Path);
 	wcscat(b, c);
 	if (wcsstr(a, L"\\") != 0)*_tcsrchr(a, _T('\\')) = '/';
-	if (URLDownloadToFileW(NULL, a, b, 0, NULL)==S_OK)FDcur++; else
+	if (URLDownloadToFileW(NULL, a, b, 0, NULL) == S_OK)FDcur++; else
 	{
 		FDtot--;
 		if (!DownFail)Main.InfoBox(Main.GetStr(L"DownFail")), DownFail = true;
@@ -2144,7 +2121,7 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	case 3:
 	case 4:
 	case 5:
-		if (cur == 4 || cur == 5) { Create_tPath(tPath,L"cheat"); }
+		if (cur == 4 || cur == 5) { Create_tPath(tPath, L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
@@ -2542,7 +2519,7 @@ void AutoViewPass()
 	}
 	else
 		Main.InfoBox(Main.GetStr(L"VPNULL"));
-	finish:
+finish:
 	RegCloseKey(hKey);
 }
 void AutoClearPassWd()
@@ -2784,7 +2761,6 @@ cosl:
 	}
 	return (int)msg.wParam;
 }
-//注册窗口类。
 
 void SearchLanguageFiles()
 {

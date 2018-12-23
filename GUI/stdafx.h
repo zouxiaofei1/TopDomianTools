@@ -28,3 +28,7 @@
 #include <ctime>
 #include <aclapi.h>
 #include <locale.h>
+#include <winsock.h>
+#include <WinBase.h>
+#include <stack>
+#include <Shlobj.h>

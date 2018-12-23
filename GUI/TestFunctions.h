@@ -6,7 +6,7 @@ constexpr auto Bitstr = L"32Bit Update 199";
 constexpr auto Bitstr = L"64Bit Update 199";
 #endif
 
-void charTowchar(const char *chr, wchar_t *wchar, long long size);
+void charTowchar(const char *chr, wchar_t *wchar, int size);
 void s(int cathy)
 {
 	wchar_t Cathytmp[34];
@@ -19,9 +19,12 @@ void s(LPCSTR cathy)
 	MessageBoxA(NULL, cathy, "", NULL);
 }
 
-void charTowchar(const char *chr, wchar_t *wchar, long long size)
+void charTowchar(const char *chr, wchar_t *wchar, int size)
 {
-	MultiByteToWideChar(CP_ACP, 0, chr, strlen(chr) + 1, wchar, size / sizeof(wchar[0]));
+	MultiByteToWideChar(CP_ACP, 
+		0, chr, strlen(chr) + 1,
+		wchar, 
+		size / sizeof(wchar[0]));
 }
 
 #pragma warning(disable:4244)
