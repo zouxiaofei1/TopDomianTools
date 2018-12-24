@@ -98,7 +98,6 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
 
 	if (hServiceMgr == NULL)
 	{
-		//s(9);
 		bRet = FALSE;
 		goto BeforeLeave;
 	}

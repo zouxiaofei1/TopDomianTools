@@ -15,7 +15,7 @@
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
 #pragma comment(lib, "netapi32.lib")//同上
 
-#//pragma warning(disable:4244)//禁用警告
+//#pragma warning(disable:4244)//禁用警告
 //#pragma warning(disable:4996)
 
 BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
@@ -41,7 +41,7 @@ HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
 ULONG CurrentProcessId;//当前程序Pid，用于自动防控制
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
-wchar_t szVDesk[] = L"Cathy";//虚拟桌面名称
+wchar_t szVDesk[] = L"GUIdesk";//虚拟桌面名称
 BOOL Admin; //是否管理员
 int Bit;//系统位数 32 34 64
 HHOOK KeyboardHook, MouseHook;//键盘/鼠标钩子
@@ -75,11 +75,11 @@ HDC Tdc, Udc;
 HBITMAP uBMP;
 
 BOOL TOP;//是否置顶
-const int numGames = 6, numFiles = 11;//(游戏)数
+const int numGames = 6, numFiles = 12;// 游戏/文件 数
 BOOL GameExist[numGames + 1], FileExist[numFiles + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
 L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
-wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"ntsd.exe" ,L"PsExec.exe",L"cheat\\old.exe", L"cheat\\new.exe" ,L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
+wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"sethc.exe",L"ntsd.exe" ,L"PsExec.exe",L"cheat\\old.exe", L"cheat\\new.exe" ,L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
 L"ProcessHacker\\ProcessHacker.exe",L"x32\\sethc.exe",L"x64\\Kill.sys",L"language\\English.ini" };
 int FDcur, FDtot;
 DWORD expid[100], tdpid[100];//explorer PID + 被监视窗口 PID
@@ -2121,7 +2121,8 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	case 3:
 	case 4:
 	case 5:
-		if (cur == 4 || cur == 5) { Create_tPath(tPath, L"cheat"); }
+	case 6:
+		if (cur == 5 || cur == 6) { Create_tPath(tPath, L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
@@ -2135,27 +2136,27 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 		}
 		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 		break;
-	case 6:
+	case 7:
 		Create_tPath(tPath, L"deleter"); FDtot += 3;
 		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name[i]); }
 		break;
-	case 7:
+	case 8:
 		Create_tPath(tPath, L"arp"); FDtot += 6;
 		for (int i = 0; i < 6; ++i) { Updownload(tPath, tURL, name2[i]); }
 		break;
-	case 8:
+	case 9:
 		Create_tPath(tPath, L"ProcessHacker"); FDtot += 3;
 		for (int i = 0; i < 3; ++i) { Updownload(tPath, tURL, name3[i]); }
 		break;
-	case 9:
+	case 10:
 		Create_tPath(tPath, L"x32"); FDtot += 5;
 		for (int i = 0; i < 5; ++i) { Updownload(tPath, tURL, name4[i]); }
 		break;
-	case 10:
+	case 11:
 		Create_tPath(tPath, L"x64"); FDtot += 4;
 		for (int i = 0; i < 4; ++i) { Updownload(tPath, tURL, name5[i]); }
 		break;
-	case 11:
+	case 12:
 		Create_tPath(tPath, L"language"); FDtot += 2;
 		for (int i = 0; i < 2; ++i) { Updownload(tPath, tURL, name6[i]); }
 		SearchLanguageFiles();
@@ -2878,11 +2879,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(325, 180, 110, 50, 1, L"驱动层", L"SethcR0");
 
 	Main.CreateFrame(170, 75, 410, 175, 1, L" Sethc ");
-	Main.CreateFrame(170, 275, 410, 95, 1, L" 更强的Hook ");
+	Main.CreateFrame(170, 275, 410, 95, 1, L" 全局键盘钩子 ");
 	Main.CreateFrame(170, 395, 410, 122, 1, L" 虚拟桌面 ");
 
-	Main.CreateButton(195, 300, 110, 50, 1, L"安装", L"hookS");//HOOK
-	Main.CreateButton(325, 300, 110, 50, 1, L"卸载", L"hookU");//12
+	Main.CreateButton(195, 300, 110, 50, 1, L"安装", L"hookS");
+	Main.CreateButton(325, 300, 110, 50, 1, L"卸载", L"hookU");
 
 	Main.CreateButton(195, 420, 110, 50, 1, L"运行程序", L"runinVD");//桌面
 	Main.CreateButton(450, 420, 110, 50, 1, L"切换桌面", L"SwitchD");
@@ -3004,16 +3005,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	UpWnd.InitClass(hInst);
 
 	UpWnd.CreateCheck(15, 10, 0, 100, L" hook.exe");
-	UpWnd.CreateCheck(15, 40, 0, 100, L" ntsd.exe");
-	UpWnd.CreateCheck(15, 70, 0, 100, L" PsExec.exe");
-	UpWnd.CreateCheck(15, 100, 0, 100, L" 伪装工具条旧");
-	UpWnd.CreateCheck(15, 130, 0, 100, L" 伪装工具条新");
-	UpWnd.CreateCheck(15, 160, 0, 100, L" 驱动删除文件");
-	UpWnd.CreateCheck(15, 190, 0, 100, L" ARP攻击");
-	UpWnd.CreateCheck(15, 220, 0, 100, L" ProcessHacker");
-	UpWnd.CreateCheck(15, 250, 0, 100, L" 32位驱动");
-	UpWnd.CreateCheck(15, 280, 0, 100, L" 64位驱动");
-	UpWnd.CreateCheck(15, 310, 0, 100, L" 语言文件");
+	UpWnd.CreateCheck(15, 40, 0, 100, L" sethc.exe");
+	UpWnd.CreateCheck(15, 70, 0, 100, L" ntsd.exe");
+	UpWnd.CreateCheck(15, 100, 0, 100, L" PsExec.exe");
+	UpWnd.CreateCheck(15, 130, 0, 100, L" 伪装工具条旧");
+	UpWnd.CreateCheck(15, 160, 0, 100, L" 伪装工具条新");
+	UpWnd.CreateCheck(15, 190, 0, 100, L" 驱动删除文件");
+	UpWnd.CreateCheck(15, 220, 0, 100, L" ARP攻击");
+	UpWnd.CreateCheck(15, 250, 0, 100, L" ProcessHacker");
+	UpWnd.CreateCheck(15, 280, 0, 100, L" 32位驱动");
+	UpWnd.CreateCheck(15, 310, 0, 100, L" 64位驱动");
+	UpWnd.CreateCheck(15, 340, 0, 100, L" 语言文件");
 
 	if (!Main.hWnd)return FALSE;
 
@@ -3647,7 +3649,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
 				UpWnd.Check[i + 1].Value = FileExist[i];
 			}
-			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 210, 410, nullptr, nullptr, hInst, nullptr);
+			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 210, 440, nullptr, nullptr, hInst, nullptr);
 			ShowWindow(UpWnd.hWnd, SW_SHOW);
 			UpdateWindow(UpWnd.hWnd);
 			break;
@@ -4087,7 +4089,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Udc = GetDC(hWnd);
 
 		Tdc = CreateCompatibleDC(Udc);
-		uBMP = CreateCompatibleBitmap(Udc, 500, 500);
+		uBMP = CreateCompatibleBitmap(Udc, 200, 500);
 		SelectObject(Tdc, uBMP);
 		ReleaseDC(UpWnd.hWnd, Udc);
 		UpWnd.SetHDC(Tdc);
@@ -4096,7 +4098,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Udc = BeginPaint(hWnd, &ps);
 		SelectObject(Tdc, WhiteBrush);//白色背景
 		SelectObject(Tdc, White);
-		Rectangle(Tdc, 0, 0, 2000, 2000);
+		Rectangle(Tdc, 0, 0, 200, 500);
 		UpWnd.DrawEVERYTHING();
 		if (FDtot != 0)
 		{
@@ -4109,9 +4111,9 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			_itow_s(FDtot, tmp, 10);
 			wcscat_s(tmp2, tmp);
 		ok:
-			TextOut(Tdc, 20, 340, tmp2, wcslen(tmp2));
+			TextOut(Tdc, 20, 370, tmp2, wcslen(tmp2));
 		}
-		BitBlt(Udc, 0, 0, 2000, 2000, Tdc, 0, 0, SRCCOPY);
+		BitBlt(Udc, 0, 0, 200, 500, Tdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
@@ -4150,7 +4152,8 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						if (wcsstr(tmp, L"\\") != 0 && i != 4 && i != 5)(_tcsrchr(tmp, _T('\\')))[1] = 0;
 						wcscpy_s(tmp2, Path);
 						wcscat_s(tmp2, tmp);
-						AutoDelete(tmp2);
+						DeleteDirectory(tmp2);
+						DeleteFile(tmp2);
 					}
 					UpWnd.Check[i].Value = 1 - UpWnd.Check[i].Value;
 				}
