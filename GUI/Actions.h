@@ -13,8 +13,8 @@ VOID Restart()
 {
 	CreateThread(NULL, 0, BlackThread, nullptr, 0, nullptr);
 	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
-	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(INT, BOOL, BOOL, INT*);
-	typedef int(__stdcall *PFN_ZwShutdownSystem)(INT);
+	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
+	typedef int(__stdcall *PFN_ZwShutdownSystem)(int);
 	HMODULE hModule = ::LoadLibrary(_T("ntdll.dll"));
 	if (hModule != NULL)
 	{
@@ -57,7 +57,7 @@ typedef BOOL(WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 {
 	HMODULE hNtDll = GetModuleHandleW(L"NTDLL");
-	//typedef int(__stdcall *PFN_ZwShutdownSystem)(INT);
+	//typedef int(__stdcall *PFN_ZwShutdownSystem)(int);
 
 	typedef int(__stdcall *tRtlGetVersion)(PRTL_OSVERSIONINFOW);
 	tRtlGetVersion pRtlGetVersion = nullptr;

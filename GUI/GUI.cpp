@@ -15,9 +15,6 @@
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
 #pragma comment(lib, "netapi32.lib")//同上
 
-//#pragma warning(disable:4244)//禁用警告
-//#pragma warning(disable:4996)
-
 BOOL				InitInstance(HINSTANCE, int);//部分(重要)函数的前向声明
 LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
 LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//第二窗口
@@ -69,10 +66,6 @@ HDC hdc, rdc;//主窗口缓冲hdc + 贴图hdc
 HBITMAP hBmp;//主窗口hbmp
 HDC pdc;//截图伪装窗口hdc
 CWndShadow Cshadow;//主窗口阴影特效
-HDC tdc, Hdc;//吃窗口缓冲hdc + 贴图hdc
-HBITMAP HBMP;//吃窗口hbmp
-HDC Tdc, Udc;
-HBITMAP uBMP;
 
 BOOL TOP;//是否置顶
 const int numGames = 6, numFiles = 12;// 游戏/文件 数
@@ -452,18 +445,18 @@ public:
 		Rectangle(hdc, ExpPoint.x, ExpPoint.y, ExpWidth + ExpPoint.x, ExpHeight + ExpPoint.y);
 		SetTextColor(hdc, RGB(0, 0, 0));
 		for (int i = 1; i <= ExpLine; ++i)//逐行打印
-			TextOutW(hdc, ExpPoint.x + 4,(int)( ExpPoint.y - 12 * DPI + 16 * i*DPI), Exp[i], (int)wcslen(Exp[i]));//注意这里的ExpPoint是真实坐标
+			TextOutW(hdc, ExpPoint.x + 4, (int)(ExpPoint.y - 12 * DPI + 16 * i*DPI), Exp[i], (int)wcslen(Exp[i]));//注意这里的ExpPoint是真实坐标
 	}
 
 	void DrawEdits(int cur)//绘制输入框
 	{
 		int i;
 		HDC mdc;//创建缓存dc
-		mdc = CreateCompatibleDC(hdc);
+		mdc = CreateCompatibleDC(tdc);
 
 		SelectObject(mdc, bitmap);
 		SetBkMode(mdc, TRANSPARENT);
-		if (cur != 0){i = cur;goto begin;}//如果使用ObjectRedraw则跳过其他Edits
+		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Edits
 
 		for (i = 1; i <= CurEdit; ++i)
 		{
@@ -472,7 +465,7 @@ public:
 			{
 				SelectObject(mdc, White);//清空缓存dc
 				SelectObject(mdc, WhiteBrush);
-				Rectangle(mdc, 0, 0, 10000, 100);
+				Rectangle(mdc, 0, 0, 8000, 80);
 
 				SelectObject(hdc, WhiteBrush);
 				if (i == CoverEdit)SelectObject(hdc, BLUE); else SelectObject(hdc, BLACK);//如果当前Edit被选中则用蓝色绘制边框
@@ -580,7 +573,7 @@ public:
 		SIZE se;
 		GetTextExtentPoint32(mdc, Edit[cur].str, wcslen(Edit[cur].str), &se);
 		Edit[cur].strWidth = se.cx; if (se.cy != 0) Edit[cur].strHeight = se.cy;
-		if (Edit[cur].Width*DPI < se.cx)Edit[cur].XOffset = (se.cx - Edit[cur].Width*DPI) / 2; else Edit[cur].XOffset = 0;
+		if ((int)(Edit[cur].Width*DPI) < se.cx)Edit[cur].XOffset = (int)(se.cx - Edit[cur].Width*DPI) / 2; else Edit[cur].XOffset = 0;
 		ReleaseDC(hWnd, mdc);
 		DeleteDC(mdc);
 		DeleteObject(bmp);
@@ -595,7 +588,7 @@ public:
 			point.x = Point.x - (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) + Edit[cur].strWidth / 2;
 		}
 		else
-			point.x = Point.x - Edit[cur].Left*DPI + Edit[cur].XOffset;
+			point.x = (long)(Point.x - Edit[cur].Left*DPI + Edit[cur].XOffset);
 		HDC mdc;
 		HBITMAP bmp;
 		mdc = CreateCompatibleDC(hdc);
@@ -724,7 +717,7 @@ public:
 		RegisterHotKey(hWnd, 39, MOD_CONTROL, 'A');
 		RegisterHotKey(hWnd, 40, NULL, VK_DELETE);
 		DestroyCaret();
-		CreateCaret(hWnd, NULL, 1, 20 * DPI);
+		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 	}
 	void EditCHAR(wchar_t wParam)
 	{
@@ -853,9 +846,9 @@ public:
 		else
 			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos1, &se);
 		if (Edit[cur].XOffset == 0)
-			SetCaretPos(se.cx + (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) - Edit[cur].strWidth / 2, (Edit[cur].Top + Edit[cur].Height / 2 - 4) *DPI - Edit[cur].strHeight / 2);
+			SetCaretPos(se.cx + (long)((Edit[cur].Left + Edit[cur].Width / 2)*DPI) - Edit[cur].strWidth / 2, (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) *DPI - Edit[cur].strHeight / 2));
 		else
-			SetCaretPos(se.cx + Edit[cur].Left*DPI - Edit[cur].XOffset, (Edit[cur].Top + Edit[cur].Height / 2 - 4)*DPI - Edit[cur].strHeight / 2);
+			SetCaretPos((int)(se.cx + Edit[cur].Left*DPI - Edit[cur].XOffset), (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4)*DPI - Edit[cur].strHeight / 2));
 		ShowCaret(hWnd);
 		DeleteDC(mdc);
 		DeleteObject(bmp);
@@ -885,20 +878,20 @@ public:
 	RECT GetRECTe(int cur)
 	{
 		RECT rc;
-		rc.left = (Edit[cur].Left - 5)*DPI;
-		rc.right = (Edit[cur].Left + Edit[cur].Width + 5)*DPI;
-		rc.top = Edit[cur].Top*DPI;
-		rc.bottom = (Edit[cur].Top + Edit[cur].Height)*DPI;
+		rc.left = (long)((Edit[cur].Left - 5)*DPI);
+		rc.right = (long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI);
+		rc.top = (long)(Edit[cur].Top*DPI);
+		rc.bottom = (long)((Edit[cur].Top + Edit[cur].Height)*DPI);
 		return rc;
 	}
 
 	RECT GetRECTc(int cur)
 	{
 		RECT rc;
-		rc.left = Check[cur].Left*DPI;
-		rc.top = Check[cur].Top*DPI;
-		rc.right = Check[cur].Left *DPI + 15 * DPI;
-		rc.bottom = Check[cur].Top *DPI + 15 * DPI;
+		rc.left = (long)(Check[cur].Left*DPI);
+		rc.top = (long)(Check[cur].Top*DPI);
+		rc.right = (long)(Check[cur].Left *DPI + 15 * DPI);
+		rc.bottom = (long)(Check[cur].Top *DPI + 15 * DPI);
 		return rc;
 	}
 
@@ -1081,8 +1074,8 @@ public:
 		else
 			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos1, &se);
 		if (se.cx < Edit[cur].XOffset)Edit[cur].XOffset = se.cx - 1;// s(se.cx);
-		if (se.cx > Edit[cur].XOffset + Edit[cur].Width*DPI)Edit[cur].XOffset += se.cx - (Edit[cur].XOffset + Edit[cur].Width*DPI) - 1;
-		if (Edit[cur].strWidth - Edit[cur].XOffset < Edit[cur].Width*DPI)Edit[cur].XOffset = Edit[cur].strWidth - Edit[cur].Width*DPI;
+		if (se.cx > (long)(Edit[cur].XOffset + Edit[cur].Width*DPI))Edit[cur].XOffset += (int)(se.cx - (Edit[cur].XOffset + Edit[cur].Width*DPI) - 1);
+		if (Edit[cur].strWidth - Edit[cur].XOffset < Edit[cur].Width*DPI)Edit[cur].XOffset = (int)(Edit[cur].strWidth - Edit[cur].Width*DPI);
 		RefreshCaretByPos(cur);
 		EditRedraw(cur);
 		DeleteDC(mdc);
@@ -1111,24 +1104,24 @@ public:
 	void SetDPI(DOUBLE NewDPI)
 	{
 		DPI = NewDPI;
-		DefFont = CreateFontW(16 * DPI, 8 * DPI, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
+		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 		for (int i = 1; i <= CurEdit; ++i)SetEditStrOrFont(0, 0, i), RefreshXOffset(i);
 		RefreshCaretByPos(CoverEdit);
-		SetWindowPos(hWnd, NULL, 0, 0, Width * DPI, Height* DPI, SWP_NOMOVE | SWP_NOREDRAW);
+		SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI), (int)(Height* DPI), SWP_NOMOVE | SWP_NOREDRAW);
 		DestroyCaret();
-		CreateCaret(hWnd, NULL, 1, 20 * DPI);
+		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 
 		while (!rs.empty())rs.pop();
 		InvalidateRect(hWnd, NULL, false);
 		UpdateWindow(hWnd);
 	}
 
-	void CreateMain(int Left, int Top, int Wid, int Hei, LPCWSTR name, LONG Defs, bool obredraw)
+	void CreateMain(int Left, int Top, int Wid, int Hei, LPCWSTR name, LONG Defs, bool obredraw)//to be removed
 	{
 		Obredraw = obredraw;
 		Width = Wid;
 		Height = Hei;
-		hWnd = CreateWindowW(szWindowClass, name, Defs, Left, Top, Wid * DPI, Hei * DPI, NULL, nullptr, hInstance, nullptr);
+		hWnd = CreateWindowW(szWindowClass, name, Defs, Left, Top, (int)(Wid * DPI), (int)(Hei * DPI), NULL, nullptr, hInstance, nullptr);
 		Timer = GetTickCount();
 		SetTimer(hWnd, 4, 100, (TIMERPROC)TimerProc);
 		CreateCaret(hWnd, NULL, 1, 20);
@@ -1272,12 +1265,13 @@ public:
 	int Press;
 	//int RedrawType;
 	//1 = Frame  2 = Button  3 = Check  4 = Explainations  5 = Edit
-	//struct REDRAW{int type, cur;};
 	std::stack<std::pair<int, int>>rs;
 	std::stack<RECT>es;
 	//int RedrawCur;
-	HDC hdc;
-	HBITMAP bitmap;
+	HDC hdc;//缓存dc
+	HDC tdc;//真实dc
+	HBITMAP bitmap;//Edit专用缓存bitmap
+	HBITMAP Bitmap;//缓存窗口bitmap
 	int Width, Height;
 	HWND hWnd;
 	HINSTANCE hInstance;
@@ -1984,7 +1978,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 		lock = true;
 		if (!Effect)
 		{
-			SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width + 260)*Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);
+			SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + 260)*Main.DPI), (int)(Main.Height *Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
 			Main.Button[Main.GetNumbyID(L"Close")].Left += 260;
 			InvalidateRect(Main.hWnd, NULL, FALSE);
 			UpdateWindow(Main.hWnd);
@@ -1992,15 +1986,15 @@ DWORD WINAPI GameThread(LPVOID pM)
 		}
 		for (int j = 1; j <= 260; j += 20)
 		{
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width + j)*Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);
+			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + j)*Main.DPI), (int)(Main.Height *Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
 			RECT Rc;
-			Rc.left = Main.Width*Main.DPI;
+			Rc.left = (long)(Main.Width*Main.DPI);
 			Rc.top = 0;
-			Rc.right = (Main.Width + j)*Main.DPI;
-			Rc.bottom = Main.Height*Main.DPI;
+			Rc.right = (long)((Main.Width + j)*Main.DPI);
+			Rc.bottom = (long)(Main.Height*Main.DPI);
 			InvalidateRect(Main.hWnd, &Rc, FALSE);
 			Rc = Main.GetRECT(Main.GetNumbyID(L"Close"));
-			Rc.left -= 20 * Main.DPI;
+			Rc.left -= (long)(20 * Main.DPI);
 			InvalidateRect(Main.hWnd, &Rc, FALSE);
 			UpdateWindow(Main.hWnd);
 			Main.Button[Main.GetNumbyID(L"Close")].Left += 20;
@@ -2014,14 +2008,14 @@ DWORD WINAPI GameThread(LPVOID pM)
 		if (Effect)
 			for (int j = 1; j <= 260; j += 20)
 			{
-				::SetWindowPos(Main.hWnd, NULL, 0, 0, (Main.Width - j)*Main.DPI, Main.Height*Main.DPI, SWP_NOMOVE | SWP_NOREDRAW);//经测试不能使用RedrawObject
+				::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j)*Main.DPI), (int)(Main.Height*Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//经测试不能使用RedrawObject
 				InvalidateRect(Main.hWnd, 0, FALSE);
 				UpdateWindow(Main.hWnd);
 				Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
 			}
 		Main.Width -= 260;
 		if (Effect)Main.Button[Main.GetNumbyID(L"Close")].Left += 20; else Main.Button[Main.GetNumbyID(L"Close")].Left -= 260;
-		::SetWindowPos(Main.hWnd, NULL, 0, 0, Main.Width *Main.DPI, Main.Height *Main.DPI, SWP_NOMOVE);
+		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width *Main.DPI), (int)(Main.Height *Main.DPI), SWP_NOMOVE);
 	}
 	lock = false;
 	return 0;
@@ -2628,10 +2622,8 @@ void ChangePasswordEx(int type)
 		for (int i = 0; i < len; ++i)
 		{
 			data[i * 2 + 1] = tmp[i] >> 8;
-			data[i * 2] = tmp[i] - (tmp[i] >> 8 << 8);
+			data[i * 2] = (BYTE)tmp[i] - (tmp[i] >> 8 << 8);
 		}
-		for (int i = 0; i < len; ++i)printf("%x ", data[i]);
-		//HKEY hKey;
 		if (Bit != 64)
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
 		else
@@ -3193,11 +3185,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetBkMode(hdc, TRANSPARENT);
 
 		SelectObject(hdc, WhiteBrush);//白色背景
-		Rectangle(hdc, 0, 0, 1230 * Main.DPI, Main.Height*Main.DPI + 1);
+		Rectangle(hdc, 0, 0, (int)(1230 * Main.DPI), (int)(Main.Height*Main.DPI + 1));//1230 -> 8xx
 
 		SelectObject(hdc, GREEN);//绿色顶部
 		SelectObject(hdc, green);
-		Rectangle(hdc, 0, 0, 1230 * Main.DPI, 50 * Main.DPI);
+		Rectangle(hdc, 0, 0, (int)(1230 * Main.DPI), (int)(50 * Main.DPI));
 
 		SetTextColor(hdc, RGB(0, 0, 0));
 		SelectObject(hdc, BLACK);
@@ -3208,27 +3200,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (f == true)  goto finish;
 
 		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI));
-		DrawIconEx(hdc, 20 * Main.DPI, 10 * Main.DPI, hicon, 32 * Main.DPI, 32 * Main.DPI, 0, NULL, DI_NORMAL | DI_COMPAT);
+		DrawIconEx(hdc, (int)(20 * Main.DPI), (int)(10 * Main.DPI), hicon, (int)(32 * Main.DPI), (int)(32 * Main.DPI), 0, NULL, DI_NORMAL | DI_COMPAT);
 		DeleteObject(hicon);
 		if (Main.CurWnd == 4)
 		{
 			BitmapBrush = CreatePatternBrush(hZXFBitmap);
 			SelectObject(hdc, BitmapBrush);//621 550
 			Rectangle(hdc, 0, 170 * 5, 135, 170 * 6);
-			StretchBlt(hdc, 170 * Main.DPI, 75 * Main.DPI, 135 * Main.DPI, 170 * Main.DPI, hdc, 0, 170 * 5, 135, 170, SRCCOPY);
+			StretchBlt(hdc, (int)(170 * Main.DPI), (int)(75 * Main.DPI), (int)(135 * Main.DPI), (int)(170 * Main.DPI), hdc, 0, 170 * 5, 135, 170, SRCCOPY);
 			if (EasterEggFlag)
 			{
 				BitmapBrush = CreatePatternBrush(hZXFsign);
 				SelectObject(hdc, BitmapBrush);
 				SelectObject(hdc, White);
 				Rectangle(hdc, 105 * 2, 75 * 12, 105 * 3, 75 * 13);
-				StretchBlt(hdc, 165 * Main.DPI, 465 * Main.DPI, 105 * Main.DPI, 75 * Main.DPI, hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
+				StretchBlt(hdc, (int)(165 * Main.DPI), (int)(465 * Main.DPI), (int)(105 * Main.DPI), (int)(75 * Main.DPI), hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
 			}
 			DeleteObject(BitmapBrush);
 		}
 
 	finish:
-		BitBlt(rdc, rc.left, rc.top, max((long)Main.Width*Main.DPI, rc.right - rc.left), max((long)Main.Height*Main.DPI, rc.bottom - rc.top), hdc, rc.left, rc.top, SRCCOPY);
+		BitBlt(rdc, rc.left, rc.top, max((long)(Main.Width*Main.DPI), rc.right - rc.left), max((long)(Main.Height*Main.DPI), rc.bottom - rc.top), hdc, rc.left, rc.top, SRCCOPY);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -3734,38 +3726,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							RegisterHotKey(Main.hWnd, 4, MOD_CONTROL, 'R');
 							break;
 						}
-						case 6:
-						{
-							RegisterHotKey(Main.hWnd, 5, MOD_CONTROL, 'T');
-							break;
-						}
+						case 6:RegisterHotKey(Main.hWnd, 5, MOD_CONTROL, 'T'); break;
 						case 7:
 						{
 							if (FS == TRUE)InitScreen(), FS = FALSE;
 							RegisterHotKey(Main.hWnd, 6, MOD_CONTROL | MOD_ALT, 'P');
 							break;
 						}
-						case 8:
-							SetTimer(hWnd, 1, 1000, (TIMERPROC)TimerProc);
-							break;
-						case 9:
-						case 10:
-							SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc);
-							break;
-						case 11:
-							RegMouseKey();
-							break;
+						case 8:SetTimer(hWnd, 1, 1000, (TIMERPROC)TimerProc); break;
+						case 9:case 10:SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc); break;
+						case 11:RegMouseKey(); break;
 						case 12:
 							Effect = false;
 							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | ~WS_EX_LAYERED);
 							SetLayeredWindowAttributes(Main.hWnd, NULL, 255, LWA_ALPHA);//半透明特效
-							DestroyWindow(Cshadow.m_hWnd);
+							ShowWindow(Cshadow.m_hWnd, SW_HIDE);
 							Main.ButtonEffect = false;
 							KillTimer(Main.hWnd, 5);
 							break;
 						case 13:
 							Main.SetDPI(0.75);
-							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
+							SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(420 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
 						}
@@ -3774,12 +3755,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						switch (i)
 						{
-						case 1:
-							KillProcess(L"old");
-							break;
-						case 2:
-							KillProcess(L"new");
-							break;
+						case 1:KillProcess(L"old"); break;
+						case 2:KillProcess(L"new"); break;
 						case 3:
 							NOTIFYICONDATA tnd;
 							tnd.cbSize = sizeof(NOTIFYICONDATA);
@@ -3787,40 +3764,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							tnd.uID = IDR_MAINFRAME;
 							Shell_NotifyIcon(NIM_DELETE, &tnd);
 							break;
-						case 4:
-							TOP = FALSE;
-							break;
-						case 5:
-							UnregisterHotKey(Main.hWnd, 4);
-							break;
-						case 6:
-							UnregisterHotKey(Main.hWnd, 5);
-							break;
-						case 7:
-							UnregisterHotKey(Main.hWnd, 6);
-							break;
-						case 8:
-							KillTimer(hWnd, 1);
-							break;
-						case 9:
-						case 10:
-							KillTimer(hWnd, 7);
-							break;
-						case 11:
-							UnMouseKey();
-							break;
+						case 4:TOP = FALSE; break;
+						case 5:UnregisterHotKey(Main.hWnd, 4); break;
+						case 6:UnregisterHotKey(Main.hWnd, 5); break;
+						case 7:UnregisterHotKey(Main.hWnd, 6); break;
+						case 8:KillTimer(hWnd, 1); break;
+						case 9:case 10:KillTimer(hWnd, 7); break;
+						case 11:UnMouseKey(); break;
 						case 12:
 							Effect = true;
 							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 							SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);
-							//Cshadow.Initialize(hInst);
-							//Cshadow.Create(Main.hWnd);
 							Main.ButtonEffect = true;
 							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
+							ShowWindow(Cshadow.m_hWnd, SW_SHOW);
 							break;
 						case 13:
 							Main.SetDPI(1.5);
-							SetWindowPos(FileList, 0, 180 * Main.DPI, 420 * Main.DPI, 265 * Main.DPI, 120 * Main.DPI, NULL);
+							SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(420 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
 						}
@@ -3832,7 +3793,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 		}
-		Main.Timer = time(0);
+		Main.Timer = (DWORD)time(0);
 		Main.DestroyExp();
 		break;
 	case WM_MOUSEMOVE: {Main.MouseMove(); break; }
@@ -3864,7 +3825,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostMessage(Main.hWnd, WM_MOUSEMOVE, NULL, 0);
 		break;
 	case WM_CHAR:
-		Main.EditCHAR(wParam);
+		Main.EditCHAR((wchar_t)wParam);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -3920,26 +3881,27 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	switch (message)
 	{
 	case WM_CREATE:
-		Hdc = GetDC(CatchWnd.hWnd);
-		tdc = CreateCompatibleDC(Hdc);
-		HBMP = CreateCompatibleBitmap(Hdc, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
-		SelectObject(tdc, HBMP);
-		ReleaseDC(CatchWnd.hWnd, Hdc);
-		CatchWnd.SetHDC(tdc);
+	{
+		CatchWnd.tdc = GetDC(CatchWnd.hWnd);
+		HDC h = CreateCompatibleDC(CatchWnd.tdc);
+		CatchWnd.Bitmap = CreateCompatibleBitmap(CatchWnd.tdc, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
+		SelectObject(h, CatchWnd.Bitmap);
+		CatchWnd.SetHDC(h);
+		ReleaseDC(CatchWnd.hWnd, CatchWnd.tdc);
+	}
 	case WM_CLOSE:
 		KillTimer(hWnd, 4);
 		ReturnWindows();
 		ShowWindow(hWnd, SW_HIDE);
 		break;
 	case WM_PAINT:
-		Hdc = BeginPaint(CatchWnd.hWnd, &ps);
-
+		CatchWnd.tdc = BeginPaint(CatchWnd.hWnd, &ps);
 		if (tdhcur == 0)
 		{
-			SelectObject(tdc, WhiteBrush);//白色背景
-			SelectObject(tdc, White);
-			SelectObject(tdc, CatchWnd.DefFont);
-			Rectangle(tdc, 0, 0, 2000, 2000);
+			SelectObject(CatchWnd.hdc, WhiteBrush);//白色背景
+			SelectObject(CatchWnd.hdc, White);
+			//SelectObject(CatchWnd.hdc, CatchWnd.DefFont);
+			Rectangle(CatchWnd.hdc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
 
 			CatchWnd.DrawButtons(0);
 			CatchWnd.DrawEdits(0);
@@ -3948,8 +3910,8 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			_itow_s(EatList.size(), tmp2, 10);
 			wcscat_s(tmp1, tmp2);
 			wcscat_s(tmp1, CatchWnd.GetStr(L"Eat2"));
-			TextOutW(tdc, 20, 155, tmp1, (int)wcslen(tmp1));
-			BitBlt(Hdc, 0, 0, 2000, 2000, tdc, 0, 0, SRCCOPY);
+			TextOutW(CatchWnd.hdc, 20, 155, tmp1, (int)wcslen(tmp1));
+			BitBlt(CatchWnd.tdc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES), CatchWnd.hdc, 0, 0, SRCCOPY);
 		}
 		if (tdhcur != 0)
 		{
@@ -3959,9 +3921,8 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			int left, width, top, height;
 
 			GetClientRect(tdh[displaycur], &rc);
-
 			GetClientRect(CatchWnd.hWnd, &rc2);
-			Rectangle(tdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
+			//Rectangle(CatchWnd.tdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
 
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
 			const double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
@@ -3970,19 +3931,20 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			{
 				left = 0;
 				width = rc2.right - rc2.left;
-				top = (rc2.bottom - rc2.top) / 2 - (rc2.right - rc2.left) / wh1 / 2;
-				height = (rc2.right - rc2.left) / wh1;
+				top = (int)((rc2.bottom - rc2.top) / 2 - (rc2.right - rc2.left) / wh1 / 2);
+				height = (int)((rc2.right - rc2.left) / wh1);
 			}
 			else
 			{
 				top = 0;
 				height = rc2.bottom - rc2.top;
-				left = (rc2.right - rc2.left) / 2 - (rc2.bottom - rc2.top) * wh1 / 2.0;
-				width = (rc2.bottom - rc2.top) * wh1;
+				left = (int)((rc2.right - rc2.left) / 2 - (rc2.bottom - rc2.top) * wh1 / 2.0);
+				width = (int)((rc2.bottom - rc2.top) * wh1);
 			}
 
-			SetStretchBltMode(CatchWnd.hdc, HALFTONE);
-			StretchBlt(Hdc, left, top, width, height, hdctd, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SRCCOPY);
+			SetStretchBltMode(CatchWnd.tdc, HALFTONE);
+			StretchBlt(CatchWnd.tdc, left, top, width, height, hdctd, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SRCCOPY);
+			//BitBlt(CatchWnd.tdc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES), CatchWnd.hdc, 0, 0, SRCCOPY);
 			ReleaseDC(tdh[displaycur], hdctd);
 		}
 		EndPaint(CatchWnd.hWnd, &ps);
@@ -4040,7 +4002,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		break;
 	case WM_CHAR:
 	{
-		CatchWnd.EditCHAR(wParam);
+		CatchWnd.EditCHAR((wchar_t)wParam);
 		break;
 	}
 	case WM_SETFOCUS:
@@ -4081,25 +4043,25 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-
 	PAINTSTRUCT ps;
 	switch (message)
 	{
 	case WM_CREATE:
-		Udc = GetDC(hWnd);
-
-		Tdc = CreateCompatibleDC(Udc);
-		uBMP = CreateCompatibleBitmap(Udc, 200, 500);
-		SelectObject(Tdc, uBMP);
-		ReleaseDC(UpWnd.hWnd, Udc);
-		UpWnd.SetHDC(Tdc);
-
+	{
+		UpWnd.tdc = GetDC(hWnd);
+		HDC h = CreateCompatibleDC(UpWnd.tdc);
+		UpWnd.Bitmap = CreateCompatibleBitmap(UpWnd.tdc, 200, 500);
+		SelectObject(h, UpWnd.Bitmap);
+		UpWnd.SetHDC(h);
+		ReleaseDC(UpWnd.hWnd, UpWnd.tdc);
+	}
 	case WM_PAINT:
-		Udc = BeginPaint(hWnd, &ps);
-		SelectObject(Tdc, WhiteBrush);//白色背景
-		SelectObject(Tdc, White);
-		Rectangle(Tdc, 0, 0, 200, 500);
-		UpWnd.DrawEVERYTHING();
+		UpWnd.tdc = BeginPaint(hWnd, &ps);
+		SelectObject(UpWnd.hdc, WhiteBrush);//白色背景
+		SelectObject(UpWnd.hdc, White);
+		Rectangle(UpWnd.hdc, 0, 0, 200, 500);
+		UpWnd.DrawChecks(0);
+		//TextOut(UpWnd.tdc, 20, 370, L"1",1);
 		if (FDtot != 0)
 		{
 			wchar_t tmp[34], tmp2[101];
@@ -4111,9 +4073,9 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			_itow_s(FDtot, tmp, 10);
 			wcscat_s(tmp2, tmp);
 		ok:
-			TextOut(Tdc, 20, 370, tmp2, wcslen(tmp2));
+			TextOut(UpWnd.hdc, 20, 370, tmp2, wcslen(tmp2));
 		}
-		BitBlt(Udc, 0, 0, 200, 500, Tdc, 0, 0, SRCCOPY);
+		BitBlt(UpWnd.tdc, 0, 0, 200, 500, UpWnd.hdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:

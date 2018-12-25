@@ -11,19 +11,6 @@
 #endif
 #endif
 
-// Some definitions for VC++ 6.0 without newest SDK
-//#ifndef WS_EX_LAYERED
-//#define WS_EX_LAYERED 0x00080000
-//#endif
-
-//#ifndef AC_SRC_ALPHA
-//#define AC_SRC_ALPHA 0x01
-//#endif
-
-//#ifndef ULW_ALPHA
-//#define ULW_ALPHA 0x00000002
-//#endif
-
 // Vista aero related message
 #ifndef WM_DWMCOMPOSITIONCHANGED
 #define WM_DWMCOMPOSITIONCHANGED 0x031E
@@ -426,7 +413,9 @@ void CWndShadow::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 			else if (dLength <= nKernelSize)
 			{
 				UINT32 nFactor = ((UINT32)((1 - (dLength - nCenterSize) / (m_nSharpness + 1)) * m_nDarkness));
+#pragma warning(disable:4244)
 				*pKernelIter =(unsigned char) nFactor << 24 | PreMultiply(m_Color, nFactor);
+#pragma warning(default:4244)
 			}
 			else
 				*pKernelIter = 0;
