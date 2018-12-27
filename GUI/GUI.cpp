@@ -7,9 +7,6 @@
 #include "Actions.h"
 #include "TestFunctions.h"
 
-#define BUTTON_IN(x,y) if(x == Hash(y))
-#define Delta 10 //按钮渐变色速度
-
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib
 #pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
@@ -109,7 +106,6 @@ public:
 	ATOM RegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
 	{
 		WNDCLASSEXW wcex = { 0 };
-
 		wcex.cbSize = sizeof(WNDCLASSEX);
 		wcex.style = CS_HREDRAW | CS_VREDRAW;
 		wcex.lpfnWndProc = proc;
@@ -120,7 +116,6 @@ public:
 		wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
 		wcex.lpszClassName = ClassName;
 		wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
-
 		return RegisterClassExW(&wcex);
 	}
 	inline wchar_t *GetStr(LPCWSTR ID) { return str[Hash(ID)]; }//通过Hash + map 来快速索引字符串的数据结构
@@ -508,12 +503,12 @@ public:
 				int yMax = (int)((Edit[i].Top + Edit[i].Height / 2)* DPI - 4 - Edit[i].strHeight / 2);
 				if (yMax < Edit[i].Top*DPI + 1)yMax = (int)(Edit[i].Top*DPI + 1);//贴图
 				if (Edit[i].XOffset == 0)
-					BitBlt(hdc, (int)((Edit[i].Left + Edit[i].Width / 2)*DPI) - Edit[i].strWidth / 2, yMax
-						, Edit[i].strWidth \
+					BitBlt(hdc, (int)((Edit[i].Left + Edit[i].Width / 2)*DPI) - Edit[i].strWidth / 2, yMax//Xoffset为0时居中
+						, Edit[i].strWidth
 						, Edit[i].strHeight + 4, mdc, 0, 0, SRCCOPY);
 				else
-					BitBlt(hdc, (int)(Edit[i].Left*DPI), yMax
-						, (int)(Edit[i].Width *DPI)\
+					BitBlt(hdc, (int)(Edit[i].Left*DPI), yMax//有Xoffset时直接根据Xoffset贴
+						, (int)(Edit[i].Width *DPI)//注意Xoffset不用再乘上DPI
 						, Edit[i].strHeight + 4, mdc, Edit[i].XOffset, 0, SRCCOPY);
 			}
 			if (cur != 0)goto end;
@@ -522,33 +517,25 @@ public:
 		DeleteDC(mdc);
 	}
 
-	void RedrawObject(int type, int cur)
+	void RedrawObject(int type, int cur)//ObjectRedraw技术的分派函数
 	{
 		if (type == 1)DrawFrames(cur);
 		if (type == 2)DrawButtons(cur);
 		if (type == 3)DrawChecks(cur);
 		if (type == 4)DrawTexts(cur);
 		if (type == 5)DrawEdits(cur);
-		DrawExp();
+		DrawExp();//如果type不是1~5就自动DrawExp , 毕竟Exp只能有一个
 	}
 
-	void DrawEVERYTHING()
-	{
-		DrawFrames(NULL);
-		DrawButtons(NULL);
-		DrawChecks(NULL);
-		DrawLines();
-		DrawTexts(NULL);
-		DrawEdits(NULL);
-		DrawExp();
-	}
-	RECT GetRECT(int cur)//更新rc
+	//自动绘制所有控件的函数，效率低，不应经常使用
+	void DrawEVERYTHING() { DrawFrames(0); DrawButtons(0); DrawChecks(0); DrawLines(); DrawTexts(0); DrawEdits(0); DrawExp(); }
+	RECT GetRECT(int cur)//更新Buttons的rc
 	{
 		RECT rc = { (long)(Button[cur].Left*DPI), (long)(Button[cur].Top*DPI),
 			(long)(Button[cur].Left*DPI + Button[cur].Width*DPI),(long)(Button[cur].Top*DPI + Button[cur].Height*DPI) };
 		return rc;
 	}
-	RECT GetRECTf(int cur)
+	RECT GetRECTf(int cur)//更新Frames的rc
 	{
 		RECT rc = { (long)(Frame[cur].Left*DPI + 10 * DPI) ,(long)(Frame[cur].Top*DPI - 7 * DPI) ,
 		(long)(Frame[cur].Left*DPI + Frame[cur].Width*DPI),(long)(Frame[cur].Top*DPI + 30 * DPI) };
@@ -626,7 +613,6 @@ public:
 			GlobalUnlock(hData);
 			CloseClipboard();
 		}
-
 		int len = strlen(buffer), len2 = wcslen(Edit[cur].str) + 1;
 		wchar_t *Buffer = new wchar_t[len + 1], *zxf = new wchar_t[len + len2];
 		ZeroMemory(Buffer, sizeof(wchar_t)*len);
@@ -668,36 +654,23 @@ public:
 		if (CoverEdit == 0)return;
 		switch (wParam)
 		{
-		case 34:
-			EditMove(CoverEdit, -1);
-			break;
-		case 35:
-			EditMove(CoverEdit, 1);
-			break;
-		case 36:
-			EditPaste(CoverEdit);
-			break;
-		case 37:
-			EditCopy(CoverEdit);
-			break;
+		case 34:EditMove(CoverEdit, -1); break;
+		case 35:EditMove(CoverEdit, 1); break;
+		case 36:EditPaste(CoverEdit); break;
+		case 37:EditCopy(CoverEdit); break;
 		case 38:
 			if (Edit[CoverEdit].Pos2 != -1)
-			{
-				EditCopy(CoverEdit);
-				EditDelete(CoverEdit, min(Edit[CoverEdit].Pos1, Edit[CoverEdit].Pos2), \
+				EditCopy(CoverEdit),
+				EditDelete(CoverEdit, min(Edit[CoverEdit].Pos1, Edit[CoverEdit].Pos2),
 					max(Edit[CoverEdit].Pos1, Edit[CoverEdit].Pos2));
-			}
 			break;
-		case 39:
-			EditAll(CoverEdit);
-			break;
+		case 39:EditAll(CoverEdit); break;
 		case 40:
 			if (wcslen(Edit[CoverEdit].str) == (UINT)Edit[CoverEdit].Pos1)break;
 			int pos1 = Edit[CoverEdit].Pos1, pos2 = Edit[CoverEdit].Pos2;
 			if (pos2 != -1)
 				EditDelete(CoverEdit, min(pos1, pos2), max(pos1, pos2));
-			else
-				EditDelete(CoverEdit, pos1, pos1 + 1);
+			else EditDelete(CoverEdit, pos1, pos1 + 1);
 			break;
 		}
 		return;
@@ -786,7 +759,6 @@ public:
 		RefreshCaretByPos(CoverEdit);
 		EditRedraw(cur);
 	}
-
 	void EditMove(int cur, int off)
 	{
 		int xback;
@@ -797,8 +769,6 @@ public:
 		if ((unsigned int)Edit[cur].Pos1 > wcslen(Edit[cur].str))Edit[cur].Pos1 = wcslen(Edit[cur].str);
 		RefreshXOffset(cur);
 		RefreshCaretByPos(cur);
-		//ShowCaret(hWnd);
-
 	}
 	void EditCopy(int cur)
 	{
@@ -829,7 +799,6 @@ public:
 			CloseClipboard();
 		}
 	}
-
 	void RefreshCaretByPos(int cur)
 	{
 		if (Edit[cur].Pos1 == -1)return;
@@ -853,7 +822,6 @@ public:
 		DeleteDC(mdc);
 		DeleteObject(bmp);
 	}
-
 	void EditDown(int cur)
 	{
 		POINT point;
@@ -864,7 +832,6 @@ public:
 		if (*Edit[cur].OStr != 0)
 		{
 			*Edit[cur].OStr = 0;
-			//delete[]Edit[cur].str;
 			ZeroMemory(Edit[cur].str, sizeof(Edit[cur].str));
 		}
 		Edit[cur].Pos1 = Edit[cur].Pos2 = -1;
@@ -875,34 +842,30 @@ public:
 		EditRedraw(cur);
 	}
 
-	RECT GetRECTe(int cur)
+	RECT GetRECTe(int cur)//更新Edit的rc
 	{
-		RECT rc;
-		rc.left = (long)((Edit[cur].Left - 5)*DPI);
-		rc.right = (long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI);
-		rc.top = (long)(Edit[cur].Top*DPI);
-		rc.bottom = (long)((Edit[cur].Top + Edit[cur].Height)*DPI);
+		RECT rc{ (long)((Edit[cur].Left - 5)*DPI) ,(long)(Edit[cur].Top*DPI),
+		(long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI),(long)((Edit[cur].Top + Edit[cur].Height)*DPI) };
 		return rc;
 	}
 
-	RECT GetRECTc(int cur)
+	RECT GetRECTc(int cur)//更新Check的rc
 	{
-		RECT rc;
-		rc.left = (long)(Check[cur].Left*DPI);
-		rc.top = (long)(Check[cur].Top*DPI);
-		rc.right = (long)(Check[cur].Left *DPI + 15 * DPI);
-		rc.bottom = (long)(Check[cur].Top *DPI + 15 * DPI);
+		RECT rc{ (long)(Check[cur].Left*DPI) ,(long)(Check[cur].Top*DPI) ,
+			(long)(Check[cur].Left *DPI + 15 * DPI) ,(long)(Check[cur].Top *DPI + 15 * DPI) };
 		return rc;
 	}
 
-	BOOL InsideArea(int cur, POINT point)
+	BOOL InsideArea(int cur, POINT point)//通过POINT判断是否在指定Area内
 	{
-		return (Area[cur].Left*DPI <= point.x) && (Area[cur].Top*DPI <= point.y) && ((Area[cur].Left + Area[cur].Width)*DPI >= point.x) && ((Area[cur].Top + Area[cur].Height)*DPI >= point.y);
+		return (Area[cur].Left*DPI <= point.x) && (Area[cur].Top*DPI <= point.y) &&
+			((Area[cur].Left + Area[cur].Width)*DPI >= point.x) && ((Area[cur].Top + Area[cur].Height)*DPI >= point.y);
 	}
 
-	BOOL InsideEdit(int cur, POINT point)
+	BOOL InsideEdit(int cur, POINT point)//通过POINT判断是否在指定Edit内
 	{
-		return ((Edit[cur].Left - 5)*DPI <= point.x &&Edit[cur].Top*DPI <= point.y && (long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
+		return ((Edit[cur].Left - 5)*DPI <= point.x &&Edit[cur].Top*DPI <= point.y &&
+			(long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
 	}
 
 	void LeftButtonDown()
@@ -1116,20 +1079,6 @@ public:
 		UpdateWindow(hWnd);
 	}
 
-	void CreateMain(int Left, int Top, int Wid, int Hei, LPCWSTR name, LONG Defs, bool obredraw)//to be removed
-	{
-		Obredraw = obredraw;
-		Width = Wid;
-		Height = Hei;
-		hWnd = CreateWindowW(szWindowClass, name, Defs, Left, Top, (int)(Wid * DPI), (int)(Hei * DPI), NULL, nullptr, hInstance, nullptr);
-		Timer = GetTickCount();
-		SetTimer(hWnd, 4, 100, (TIMERPROC)TimerProc);
-		CreateCaret(hWnd, NULL, 1, 20);
-		SetCaretBlinkTime(500);
-		GetCursorPos(&ExpPoint2);
-		ScreenToClient(hWnd, &ExpPoint2);
-	}
-
 	LPWSTR GetCurInsideID()
 	{
 		POINT point;
@@ -1195,7 +1144,7 @@ public:
 	int ExpLine = 0;
 	int ExpHeight;
 	int ExpWidth;
-	wchar_t Exp[101][301];
+	wchar_t Exp[11][101];
 	POINT ExpPoint, ExpPoint2;
 	struct ButtonEx
 	{
@@ -1207,32 +1156,32 @@ public:
 		wchar_t Name[31], ID[11], Exp[301];
 		COLORREF FontRGB;
 		BYTE b1[3], b2[3], p1[3], p2[3];
-	}Button[100];
+	}Button[MAX_BUTTON];
 
 	struct FrameEx
 	{
 		int Left, Top, Width, Height, Page;
 		COLORREF rgb;
 		wchar_t Name[51];
-	}Frame[20];
+	}Frame[MAX_FRAME];
 	struct CheckEx
 	{
 		int Left, Top, Page, Width;//width跟绘制没什么关系，见Insidec函数
 		bool Value;
 		wchar_t Name[51];
-	}Check[20];
+	}Check[MAX_CHECK];
 	struct LineEx
 	{
 		int StartX, StartY, EndX, EndY, Page;
 		COLORREF Color;
-	}Line[20];
+	}Line[MAX_LINE];
 
 	struct TextEx
 	{
 		int Left, Top, Page;
 		COLORREF rgb;
-		wchar_t Name[201];
-	}Text[25];
+		wchar_t Name[101];
+	}Text[MAX_TEXT];
 
 	struct EditEx
 	{
@@ -1241,17 +1190,17 @@ public:
 		bool Press;
 		wchar_t *str, ID[11], OStr[21];
 		HFONT font;
-	}Edit[10];
+	}Edit[MAX_EDIT];
 	struct AreaEx
 	{
 		int Left, Top, Width, Height, Page;
-	}Area[10];
+	}Area[MAX_AREA];
 	struct GUIString
 	{
 		wchar_t *str, ID[11];
-	}string[100];
-	std::unordered_map<unsigned int, wchar_t*> str;
-	std::unordered_map<unsigned int, int>but;
+	}string[MAX_STRING];
+	std::map<unsigned int, wchar_t*> str;
+	std::map<unsigned int, int>but;
 	HFONT DefFont;
 	int Msv;//鼠标移出检测变量
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;
@@ -1263,11 +1212,8 @@ public:
 	int CurWnd;
 	int CoverEdit;
 	int Press;
-	//int RedrawType;
-	//1 = Frame  2 = Button  3 = Check  4 = Explainations  5 = Edit
 	std::stack<std::pair<int, int>>rs;
 	std::stack<RECT>es;
-	//int RedrawCur;
 	HDC hdc;//缓存dc
 	HDC tdc;//真实dc
 	HBITMAP bitmap;//Edit专用缓存bitmap
@@ -1279,8 +1225,7 @@ public:
 	BOOL ShowExp = FALSE;
 	int CurButtonBack;
 	bool ExpExist = false;
-private:
-
+private://没有任何private变量或函数= =
 }Main, CatchWnd, UpWnd;
 
 DWORD ShellCreateInVDesk(PTSTR szName)
@@ -1294,18 +1239,9 @@ DWORD ShellCreateInVDesk(PTSTR szName)
 	return pi.dwProcessId;
 }
 
-DWORD WINAPI DebugThread(LPVOID pM)
-{
-	DWORD pid = *(DWORD*)pM;
-	s(pid);
-	DebugActiveProcess(pid);
-	ExitThread(0);
-	//return 0;
-}
 class DownloadProgress : public IBindStatusCallback {
 public:
 	wchar_t curi[11];
-	//int cur, sum;
 	HRESULT __stdcall QueryInterface(const IID &, void **) { return E_NOINTERFACE; }
 	ULONG STDMETHODCALLTYPE AddRef(void) { return 1; }//暂时没用的函数，从msdn上抄下来的
 	ULONG STDMETHODCALLTYPE Release(void) { return 1; }
@@ -1314,11 +1250,8 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE OnLowResource(DWORD reserved) { UNREFERENCED_PARAMETER(reserved); return S_OK; }
 	virtual HRESULT STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szError) { UNREFERENCED_PARAMETER(hresult); UNREFERENCED_PARAMETER(szError); return E_NOTIMPL; }
 	virtual HRESULT STDMETHODCALLTYPE GetBindInfo(DWORD *grfBINDF, BINDINFO *pbindinfo) { UNREFERENCED_PARAMETER(grfBINDF); UNREFERENCED_PARAMETER(pbindinfo); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) {
-		UNREFERENCED_PARAMETER(grfBSCF); UNREFERENCED_PARAMETER(dwSize); UNREFERENCED_PARAMETER(pformatetc); UNREFERENCED_PARAMETER(pstgmed); return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) { UNREFERENCED_PARAMETER(grfBSCF); UNREFERENCED_PARAMETER(dwSize); UNREFERENCED_PARAMETER(pformatetc); UNREFERENCED_PARAMETER(pstgmed); return E_NOTIMPL; }
 	virtual HRESULT STDMETHODCALLTYPE OnObjectAvailable(REFIID riid, IUnknown *punk) { UNREFERENCED_PARAMETER(riid); UNREFERENCED_PARAMETER(punk); return E_NOTIMPL; }
-
 	virtual HRESULT __stdcall OnProgress(ULONG ulProgress, ULONG ulProgressMax, ULONG ulStatusCode, LPCWSTR szStatusText)
 	{
 		UNREFERENCED_PARAMETER(ulStatusCode);
@@ -1362,15 +1295,13 @@ void FindTop(wchar_t *name)
 	{
 		pe.szExeFile[3] = '\0';
 		_wcslwr(pe.szExeFile);
-
 		if (wcsstr(pe.szExeFile, name) != 0)tdpid[++Cur] = pe.th32ProcessID;
 	}
 	tdpid[0] = Cur;
-	//s(Cur);
 	EnumWindows(EnumFunc, NULL);
 }
 
-DWORD WINAPI ThreadFun(LPVOID pM)
+DWORD WINAPI ThreadFun(LPVOID pM)//置顶线程
 {
 	UNREFERENCED_PARAMETER(pM);
 	while (TOP == 1)
@@ -1389,7 +1320,6 @@ BOOL CALLBACK lpEnumFunc(HWND hwnd, LPARAM lParam)
 	ULONG nProcessID; HANDLE hProcessHandle;
 	LONG A;
 	A = GetWindowLongW(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST;
-
 	if (A != 0)
 	{
 		::GetWindowThreadProcessId(hwnd, &nProcessID);
@@ -1415,47 +1345,6 @@ void KillTop()
 	}
 	expid[0] = Cur;
 	EnumWindows(lpEnumFunc, NULL);
-}
-typedef struct _CLIENT_ID
-{
-	HANDLE UniqueProcess;
-	HANDLE UniqueThread;
-}CLIENT_ID, *PCLIENT_ID;
-typedef struct _OBJECT_ATTRIBUTES
-{
-	ULONG Length;
-	HANDLE RootDirectory;
-	PVOID ObjectName;
-	ULONG Attritubes;
-	PVOID SecurityDescriptor;
-	PVOID SecurityQualityOfService;
-}OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
-typedef  DWORD(__stdcall *NTOPENPROCESS)(
-	OUT PHANDLE ProcessHandle,
-	IN ACCESS_MASK DesiredAccess,
-	IN POBJECT_ATTRIBUTES ObejectAttributes,
-	IN PCLIENT_ID PClient_Id
-	);
-bool MyOpenProcess(OUT PHANDLE ProcessHandle, DWORD PID)
-{
-	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
-	if (hModule == NULL)
-		return FALSE;
-	NTOPENPROCESS NtOpenProcess = (NTOPENPROCESS)GetProcAddress(hModule, "NtOpenProcess");
-	if (NtOpenProcess == NULL)
-		return FALSE;
-	CLIENT_ID ClientID;
-	ClientID.UniqueProcess = (HANDLE)PID; //UniqueProcess可以接受PID
-	ClientID.UniqueThread = 0;
-	OBJECT_ATTRIBUTES oa;
-	oa.Length = sizeof(oa);
-	oa.RootDirectory = 0;
-	oa.ObjectName = 0;
-	oa.Attritubes = 0;
-	oa.SecurityDescriptor = 0;
-	oa.SecurityQualityOfService = 0;
-	NtOpenProcess(ProcessHandle, PROCESS_ALL_ACCESS, &oa, &ClientID);
-	return 0;
 }
 
 BOOL KillProcess(LPCWSTR ProcessName)
@@ -1497,7 +1386,7 @@ BOOL KillProcess(LPCWSTR ProcessName)
 	return TRUE;
 }
 
-void CheckIP()    //定义checkIP函数，用于取本机的ip地址  
+void CheckIP()//定义checkIP函数，用于取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
@@ -1516,7 +1405,6 @@ void CheckIP()    //定义checkIP函数，用于取本机的ip地址
 		WSACleanup();
 	}
 }
-
 
 bool GetTDVer(wchar_t *source)
 {
@@ -1553,7 +1441,6 @@ bool GetTDVer(wchar_t *source)
 	RegCloseKey(hKey);
 	return true;
 }
-
 void UpdateInfo()
 {
 	wchar_t tmp[301] = { 0 }, tmp2[1001] = { 0 }; int f;
@@ -1575,11 +1462,7 @@ void UpdateInfo()
 void SetFrame()
 {
 	const int t[] = { 1,4,5,7,9 };
-	for (int i = 0; i < 5; ++i)
-	{
-		Main.Frame[t[i]].rgb = RGB(255, 0, 0);
-		wcscat_s(Main.Frame[t[i]].Name, Main.GetStr(L"Useless"));
-	}
+	for (int i = 0; i < 5; ++i)Main.Frame[t[i]].rgb = RGB(255, 0, 0), wcscat_s(Main.Frame[t[i]].Name, Main.GetStr(L"Useless"));
 	Main.Frame[2].rgb = RGB(5, 200, 135);
 	wcscat_s(Main.Frame[2].Name, Main.GetStr(L"Usable"));
 	Main.Frame[3].rgb = RGB(10, 255, 10);
@@ -1588,7 +1471,7 @@ void SetFrame()
 void GetPath()//得到两个路径
 {
 	GetModuleFileName(NULL, Path, MAX_PATH);
-	GetModuleFileName(NULL, Name, MAX_PATH);
+	wcscpy_s(Name, Path);
 	(_tcsrchr(Path, _T('\\')))[1] = 0;
 }
 void GetInfo(__out LPSYSTEM_INFO lpSystemInfo)//得到环境变量
@@ -1602,17 +1485,17 @@ void GetInfo(__out LPSYSTEM_INFO lpSystemInfo)//得到环境变量
 }
 void GetBit()//系统位数
 {
-	SYSTEM_INFO si;
-	GetInfo(&si);
+	SYSTEM_INFO si;//据说是有效的检测系统位数的方法
+	GetInfo(&si);//AMD64 \ Intel64 ?
 	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) Bit = 64; else Bit = 32;
 	//32 means 32bit GUI on 32bit System
 	//34 means 32bit GUI on 64bit System
 	//64 means 64bit GUI on 64bit System
 	if (sizeof(int*) * 8 == 32 && Bit == 64)Bit = 34;
 }
-BOOL Backup()
+BOOL Backup()//备份sethc.exe
 {
-	if (GetFileAttributes(SethcPath) == INVALID_FILE_ATTRIBUTES)SethcState = false;
+	if (GetFileAttributes(SethcPath) == INVALID_FILE_ATTRIBUTES) { SethcState = false; return false; }//如果sethc本来就不存在 -> 退出
 	if (GetFileAttributes(L"C:\\SAtemp") != -1)return FALSE;
 	CreateDirectory(L"C:\\SAtemp", NULL);
 	CopyFile(SethcPath, L"C:\\SAtemp\\sethc.exe", TRUE);
@@ -1938,17 +1821,14 @@ void AutoDelete(wchar_t *tmp)
 		DeleteFile(tmp);
 }
 
-bool UninstallSethc()
-{
+bool UninstallSethc()//恢复原来的sethc
+{//不是常用的函数，但（历史原因）还是被保留下来
 	DeleteFile(SethcPath);
-	if (CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE) == false)
-	{
-		Main.InfoBox(Main.GetStr(L"USFail"));
-		return false;
-	}
-	else return true;
+	if (CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE) == false) { Main.InfoBox(Main.GetStr(L"USFail")); return false; }
+	else { SethcState = true; return true; }
 }
-void RegMouseKey()
+
+void RegMouseKey()//注册键盘控制鼠标的热键
 {
 	RegisterHotKey(Main.hWnd, 8, MOD_CONTROL, 188);
 	RegisterHotKey(Main.hWnd, 9, MOD_CONTROL, 190);
@@ -1957,47 +1837,33 @@ void RegMouseKey()
 	RegisterHotKey(Main.hWnd, 12, MOD_CONTROL, VK_RIGHT);
 	RegisterHotKey(Main.hWnd, 13, MOD_CONTROL, VK_DOWN);
 }
-void UnMouseKey()
-{
-	for (int i = 8; i < 14; ++i)UnregisterHotKey(Main.hWnd, i);
-}
+void UnMouseKey() { for (int i = 8; i < 14; ++i)UnregisterHotKey(Main.hWnd, i); }//注销热键
 
-LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	return CallNextHookEx(MouseHook, nCode, wParam, lParam);
-}
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	return CallNextHookEx(KeyboardHook, nCode, wParam, lParam);
-}
+LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(MouseHook, nCode, wParam, lParam); }//空的全局钩子函数
+LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(KeyboardHook, nCode, wParam, lParam); }
+
 DWORD WINAPI GameThread(LPVOID pM)
 {
 	UNREFERENCED_PARAMETER(pM);
 	if (Main.Width < 700)
-	{
-		lock = true;
-		if (!Effect)
+	{//展开窗口
+		lock = true;//自制线程锁？
+		if (!Effect)//无特效
 		{
 			SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + 260)*Main.DPI), (int)(Main.Height *Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
 			Main.Button[Main.GetNumbyID(L"Close")].Left += 260;
-			InvalidateRect(Main.hWnd, NULL, FALSE);
-			UpdateWindow(Main.hWnd);
+			Main.Redraw(NULL);
 			goto next;
 		}
 		for (int j = 1; j <= 260; j += 20)
 		{
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + j)*Main.DPI), (int)(Main.Height *Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
-			RECT Rc;
-			Rc.left = (long)(Main.Width*Main.DPI);
-			Rc.top = 0;
-			Rc.right = (long)((Main.Width + j)*Main.DPI);
-			Rc.bottom = (long)(Main.Height*Main.DPI);
-			InvalidateRect(Main.hWnd, &Rc, FALSE);
+			RECT Rc{ (long)(Main.Width*Main.DPI) ,0,(long)((Main.Width + j)*Main.DPI) ,(long)(Main.Height*Main.DPI) };
+			Main.Redraw(&Rc);//重绘展开部分
 			Rc = Main.GetRECT(Main.GetNumbyID(L"Close"));
 			Rc.left -= (long)(20 * Main.DPI);
-			InvalidateRect(Main.hWnd, &Rc, FALSE);
-			UpdateWindow(Main.hWnd);
-			Main.Button[Main.GetNumbyID(L"Close")].Left += 20;
+			Main.Redraw(&Rc);//重绘“关闭”按钮
+			Main.Button[Main.GetNumbyID(L"Close")].Left += 20;//右移“关闭按钮”
 		}
 		Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
 	next:
@@ -2020,57 +1886,38 @@ DWORD WINAPI GameThread(LPVOID pM)
 	lock = false;
 	return 0;
 }
-
+const wchar_t GitGame[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/";
+bool DownloadGames(const wchar_t *url, const wchar_t *file, DownloadProgress *p, const wchar_t *but, int tot, int cur)
+{
+	wchar_t Fp[501], URL[121];
+	wcscpy_s(Fp, Path);
+	wcscat_s(Fp, file);
+	wcscpy_s(URL, GitGame);
+	wcscat_s(URL, url);
+	if (but != NULL)
+	{
+		Main.Button[Main.GetNumbyID(but)].DownTot = tot;
+		Main.Button[Main.GetNumbyID(but)].DownCur = cur;
+		Main.Button[Main.GetNumbyID(but)].Download = 0;
+		wcscpy_s(p->curi, but);
+	}
+	if (URLDownloadToFileW(NULL, URL, Fp, 0, p) == S_OK)return true; else return false;
+}
 DWORD WINAPI DownloadThread(LPVOID pM)
 {
-	int *tp = (int *)pM;
-	int cur = *tp;
-	//s(cur);
+	bool f;
+	const wchar_t t[5][10] = { L"fly.exe",L"2048.exe",L"block.exe",L"1.exe",L"chess.exe" },
+		g[5][6] = { L"Game2",L"Game3" ,L"Game4" ,L"Game5" ,L"Game6" };
+	//int *tp = (int *)pM;
+	int cur = *(int *)pM;
 	DownloadProgress progress;
-	wchar_t tmp[501];
-	wcscpy_s(tmp, Path);
-	wcscat_s(tmp, GameName[cur - 1]);
-	switch (cur)
-	{
-	case 1://小飞
-		//s(0);
-		wcscpy_s(progress.curi, L"Game1");
-		Main.Button[Main.GetNumbyID(L"Game1")].DownTot = 2;
-		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 1;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/xiaofei.exe", tmp, 0, &progress);
-		wcscpy_s(tmp, Path);
-		wcscat_s(tmp, L"Games\\14000词库.ini");
-		Main.Button[Main.GetNumbyID(L"Game1")].Download = 0;
-		Main.Button[Main.GetNumbyID(L"Game1")].DownCur = 2;
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/14000%E8%AF%8D%E5%BA%93.ini", tmp, 0, &progress);
-		break;
-	case 2://Flappy
-		Main.Button[Main.GetNumbyID(L"Game2")].DownTot = Main.Button[Main.GetNumbyID(L"Game2")].DownCur = 1;
-		wcscpy_s(progress.curi, L"Game2");
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/fly.exe", tmp, 0, &progress);
-		break;
-	case 3://2048
-		Main.Button[Main.GetNumbyID(L"Game3")].DownTot = Main.Button[Main.GetNumbyID(L"Game3")].DownCur = 1;
-		wcscpy_s(progress.curi, L"Game3");
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/2048.exe", tmp, 0, &progress);
-		break;
-	case 4://俄罗斯方块
-		Main.Button[Main.GetNumbyID(L"Game4")].DownTot = Main.Button[Main.GetNumbyID(L"Game4")].DownCur = 1;
-		wcscpy_s(progress.curi, L"Game4");
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/block.exe", tmp, 0, &progress);
-		break;
-	case 5://见缝插针
-		Main.Button[Main.GetNumbyID(L"Game5")].DownTot = Main.Button[Main.GetNumbyID(L"Game5")].DownCur = 1;
-		wcscpy_s(progress.curi, L"Game5");
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/1.exe", tmp, 0, &progress);
-		break;
-	case 6://Chess
-		Main.Button[Main.GetNumbyID(L"Game6")].DownTot = Main.Button[Main.GetNumbyID(L"Game6")].DownCur = 1;
-		wcscpy_s(progress.curi, L"Game6");
-		URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/chess.exe", tmp, 0, &progress);
-		break;
+	if (cur == 1) {
+		f = DownloadGames(L"xiaofei.exe", GameName[0], &progress, L"Game1", 2, 1);
+		DownloadGames(L"14000%E8%AF%8D%E5%BA%93.ini", L"Games\\14000词库.ini", &progress, L"Game1", 2, 2);
 	}
-	if (GetFileAttributes(tmp) != -1)GameExist[cur - 1] = true;
+	else
+		f = DownloadGames(t[cur - 2], GameName[cur - 1], &progress, g[cur - 2], 1, 1);
+	GameExist[cur - 1] = f;
 	return 0;
 }
 BOOL DownFail = false;
@@ -2104,18 +1951,13 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	wchar_t tURL[501], tPath[501];
 	const wchar_t name[][34] = { L"deleter\\DrvDelFile.exe",L"deleter\\DeleteFile.sys",L"deleter\\DeleteFile_x64.sys" };
 	const wchar_t name2[][34] = { L"arp\\wpcap.dll" ,L"arp\\npf.sys",L"arp\\npptools.dll",L"arp\\Packet.dll",L"arp\\WanPacket.dll" , L"arp\\arp.exe" };
-	const wchar_t name3[][340] = { L"ProcessHacker\\ProcessHacker.exe" ,L"ProcessHacker\\kprocesshacker.sys",L"ProcessHacker\\kprocesshacker64.sys" };
+	const wchar_t name3[][34 * 2] = { L"ProcessHacker\\ProcessHacker.exe" ,L"ProcessHacker\\kprocesshacker.sys",L"ProcessHacker\\kprocesshacker64.sys" };
 	const wchar_t name4[][34] = { L"x32\\360.sys" ,L"x32\\BSOD.sys",L"x32\\Kill.sys",L"x32\\DeleteFile.sys" ,L"x32\\sethc.exe" };
 	const wchar_t name5[][34] = { L"x64\\360.sys" ,L"x64\\BSOD.sys",L"x64\\Kill.sys",L"x64\\DeleteFile.sys" };
 	const wchar_t name6[][34] = { L"language\\English.ini" ,L"language\\Chinese.ini" };
 	switch (cur)
 	{
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-	case 6:
+	case 1:case 2:case 3:case 4:case 5:case 6:
 		if (cur == 5 || cur == 6) { Create_tPath(tPath, L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
@@ -2777,28 +2619,18 @@ void SearchLanguageFiles()
 }
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-	DBlueBrush = CreateSolidBrush(RGB(210, 255, 255));//笔刷
-	LBlueBrush = CreateSolidBrush(RGB(230, 255, 255));
-	WhiteBrush = CreateSolidBrush(RGB(255, 255, 255));
-	BlueBrush = CreateSolidBrush(RGB(40, 130, 240));
-	green = CreateSolidBrush(RGB(0, 206, 209));
-	grey = CreateSolidBrush(RGB(245, 245, 245));
-	Dgrey = CreateSolidBrush(RGB(230, 230, 230));
-	yellow = CreateSolidBrush(RGB(244, 238, 175));
-	DBlue = CreatePen(PS_SOLID, 1, RGB(210, 255, 255));//笔
-	LBlue = CreatePen(PS_SOLID, 1, RGB(230, 255, 255));
-	YELLOW = CreatePen(PS_SOLID, 1, RGB(0xC1, 0xCD, 0xCD));
-	RED = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-	BLACK = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-	White = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
-	GREEN = CreatePen(PS_SOLID, 2, RGB(5, 195, 195));
-	LGREY = CreatePen(PS_SOLID, 1, RGB(115, 115, 115));
-	BLUE = CreatePen(PS_SOLID, 1, RGB(40, 130, 240));
+	InitBrushs;
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	Main.InitClass(hInst);
 	if (!Main.RegisterClassW(hInst, WndProc, szWindowClass))return FALSE;
-	Main.CreateMain(CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, L"极域破解v1.9", 0, true);
+
+	Main.Obredraw = true;
+	Main.hWnd = CreateWindowW(szWindowClass, L"极域破解v1.9", NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, NULL, nullptr, hInstance, nullptr);
+	Main.Timer = GetTickCount();
+	SetTimer(Main.hWnd, 4, 100, (TIMERPROC)TimerProc);
+	CreateCaret(Main.hWnd, NULL, 1, 20);
+	SetCaretBlinkTime(500);
 
 	if (Effect)
 	{
@@ -2825,7 +2657,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');
 	RegisterHotKey(Main.hWnd, 2, MOD_CONTROL, 'B');
 	RegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');
-	//	Main.EditRegHotKey();
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
@@ -3021,7 +2852,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	InvalidateRect(Main.hWnd, NULL, FALSE);
 	UpdateWindow(Main.hWnd);
 
-	typedef struct tagCHANGEFILTERSTRUCT {
+	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
 		DWORD cbSize;
 		DWORD ExtStatus;
 	} CHANGEFILTERSTRUCT, *PCHANGEFILTERSTRUCT;
@@ -3065,9 +2896,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ScreenToClient(hWnd, &point);
 		if (Main.InsideEdit(4, point) == TRUE)
 		{
-			wchar_t tmp[501];
+			wchar_t tmp[501], *a = Main.Edit[Main.GetNumByIDe(L"E_View")].OStr;
 			HDROP hDrop = (HDROP)wParam;
 			DragQueryFile(hDrop, 0, tmp, MAX_PATH);
+			if (wcslen(a) != 0)*a = 0;
 			Main.SetEditStrOrFont(tmp, NULL, Main.GetNumByIDe(L"E_View"));
 			Main.EditRedraw(Main.GetNumByIDe(L"E_View"));
 		}
@@ -3487,16 +3319,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			Main.InfoBox(Main.GetStr(L"ACOK"));
 			break;
 		}
-		BUTTON_IN(x, L"ClearPass")
-		{
-			AutoClearPassWd();
-			break;
-		}
-		BUTTON_IN(x, L"ViewPass")
-		{
-			AutoViewPass();
-			break;
-		}
+		BUTTON_IN(x, L"ClearPass") { AutoClearPassWd(); break; }
+		BUTTON_IN(x, L"ViewPass") { AutoViewPass(); break; }
 		BUTTON_IN(x, L"CP1") { ChangePasswordEx(1); break; }
 		BUTTON_IN(x, L"CP2") { ChangePasswordEx(2); break; }
 		BUTTON_IN(x, L"kill-TD") { KillProcess(L"stu"); break; }
