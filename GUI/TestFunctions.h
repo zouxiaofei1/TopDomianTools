@@ -260,6 +260,8 @@ unsigned int Hash(const wchar_t *str)
 	CatchWnd.CreateString(L"剩余 ", L"Timer1");\
 	CatchWnd.CreateString(L" 秒", L"Timer2");\
 	CatchWnd.CreateString(NULL, L"back");\
+	CatchWnd.CreateString(L"进程名称:", L"Processnam");\
+CatchWnd.CreateString(L"延迟:", L"Delay");\
 	Main.CreateString(L"explorer.exe", L"E_runinVD");\
 	Main.CreateString(L"输入端口", L"E_ApplyCh");\
 	Main.CreateString(L"输入密码", L"E_CP");\

@@ -29,10 +29,9 @@ wchar_t UpWindow[] = L"UpdateWindow";//窗口类名
 
 BOOL Effect = TRUE;//特效开关
 wchar_t Path[301], Name[301];//程序路径 and 路径+程序名 
-wchar_t SethcPath[255];//Sethc路径
+wchar_t SethcPath[255], ntsdPath[255];//Sethc路径 & ntsd路径
 BOOL FC = TRUE, FS = TRUE, FU = TRUE;//是否第一次启动窗口并注册类
 HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
-ULONG CurrentProcessId;//当前程序Pid，用于自动防控制
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
 wchar_t szVDesk[] = L"GUIdesk";//虚拟桌面名称
@@ -83,9 +82,7 @@ DWORD TDPID;//记录极域程序PID
 bool TDProcess;//极域是否在运行
 
 
-
 //空下几行为Class留位置
-
 
 
 class CathyClass//控件主类
@@ -991,7 +988,7 @@ public:
 		if (CoverArea == 0)
 			AreaGetNewInside(point);
 		else
-			if (InsideArea(CoverArea, point))CoverArea = 0;
+			if (!InsideArea(CoverArea, point))CoverArea = 0;
 
 		if (Msv == 0)
 		{//检测鼠标移进移出的代码
@@ -1010,16 +1007,18 @@ public:
 			DestroyExp();
 		}
 	}
-	void EditRedraw(int cur)
+	void EditRedraw(int cur)//重绘Edit的外壳函数
 	{
 		if (Obredraw)Readd(5, cur);
 		RECT rc = GetRECTe(cur);
-		Redraw(&rc);
+		Redraw(&rc);//标准ObjectRedraw写法
 	}
-	void InfoBox(LPCWSTR Str)
+	void InfoBox(LPCWSTR Str)//全自动的MessageBox
 	{
-		if (!slient)MessageBox(hWnd, Str, GetStr(L"Info"), MB_ICONINFORMATION);
-		else printf("%ls\n", Str);
+		bool f = (bool)GetStr(Str);
+		if (!slient)
+			if (f)MessageBox(hWnd, GetStr(Str), GetStr(L"Info"), 0x40L); else MessageBox(hWnd, Str, GetStr(L"Info"), 0x40L);
+		else if (f)printf("%ls\n", GetStr(Str)); else printf("%ls\n", Str);
 	}
 	void RefreshXOffset(int cur)
 	{
@@ -1048,7 +1047,7 @@ public:
 		DeleteObject(bmp);
 	}
 
-	inline int GetNumByIDe(LPCWSTR ID)
+	int GetNumByIDe(LPCWSTR ID)//通过Edit的ID获取其编号
 	{
 		for (int i = 1; i <= CurEdit; ++i)if (wcscmp(ID, Edit[i].ID) == 0)return i;
 		return 0;
@@ -1064,8 +1063,7 @@ public:
 		CurWnd = Page;
 		while (!rs.empty())rs.pop();
 		while (!es.empty())es.pop();
-		InvalidateRect(hWnd, NULL, FALSE);
-		UpdateWindow(hWnd);
+		Redraw(NULL);
 	}
 	void SetDPI(DOUBLE NewDPI)
 	{
@@ -1078,8 +1076,7 @@ public:
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 
 		while (!rs.empty())rs.pop();
-		InvalidateRect(hWnd, NULL, false);
-		UpdateWindow(hWnd);
+		Redraw(NULL);
 	}
 
 	LPWSTR GetCurInsideID()
@@ -1139,17 +1136,15 @@ public:
 		if (ExpExist == false)return;
 		ExpExist = false;
 		ExpLine = ExpHeight = ExpWidth = 0;
-		InvalidateRect(hWnd, 0, 0);
+		Redraw(NULL);
 	}
-	__forceinline void Erase(RECT &rc) { es.push(rc); }
+	FORCEINLINE void Erase(RECT &rc) { es.push(rc); }
 	void Redraw(const RECT *rc) { InvalidateRect(hWnd, rc, FALSE); UpdateWindow(hWnd); }
 	void Readd(int type, int cur) { rs.push(std::make_pair(type, cur)); }
-	int ExpLine = 0;
-	int ExpHeight;
-	int ExpWidth;
+	int ExpLine, ExpHeight, ExpWidth;
 	wchar_t Exp[11][101];
 	POINT ExpPoint, ExpPoint2;
-	struct ButtonEx
+	struct ButtonEx//按钮
 	{
 		long Left, Top, Width, Height, Page, Download, Percent, DownCur, DownTot;
 		bool Visible, Enabled, Border = true;
@@ -1160,33 +1155,30 @@ public:
 		COLORREF FontRGB;
 		BYTE b1[3], b2[3], p1[3], p2[3];
 	}Button[MAX_BUTTON];
-
-	struct FrameEx
+	struct FrameEx//控件框结构体
 	{
 		int Left, Top, Width, Height, Page;
-		COLORREF rgb;
+		COLORREF rgb;//自定义颜色
 		wchar_t Name[51];
-	}Frame[MAX_FRAME];
-	struct CheckEx
+	}Frame[MAX_FRAME];//现在为了节约内存空间都用MAX_XXX了 ， 具体可以到GUI.h里改
+	struct CheckEx//选择框结构体
 	{
-		int Left, Top, Page, Width;//width跟绘制没什么关系，见Insidec函数
+		int Left, Top, Page, Width;//width跟绘制无关，用来检测是否按下
 		bool Value;
 		wchar_t Name[51];
 	}Check[MAX_CHECK];
-	struct LineEx
+	struct LineEx//线段
 	{
-		int StartX, StartY, EndX, EndY, Page;
+		int StartX, StartY, EndX, EndY, Page;//线段的起始坐标和终点坐标
 		COLORREF Color;
 	}Line[MAX_LINE];
-
-	struct TextEx
+	struct TextEx//文字
 	{
 		int Left, Top, Page;
 		COLORREF rgb;
-		wchar_t Name[101];
+		wchar_t Name[11];//这里的"Name"其实是GUIString的ID
 	}Text[MAX_TEXT];
-
-	struct EditEx
+	struct EditEx//输入框
 	{
 		int Left, Top, Width, Height, Page;
 		int strWidth, strHeight, Pos1, Pos2, XOffset;
@@ -1194,11 +1186,11 @@ public:
 		wchar_t *str, ID[11], OStr[21];
 		HFONT font;
 	}Edit[MAX_EDIT];
-	struct AreaEx
+	struct AreaEx//点击区域
 	{
 		int Left, Top, Width, Height, Page;
 	}Area[MAX_AREA];
-	struct GUIString
+	struct GUIString//GUI工程专用带ID标签的字符串
 	{
 		wchar_t *str, ID[11];
 	}string[MAX_STRING];
@@ -1229,62 +1221,53 @@ public:
 private://没有任何private变量或函数= =
 }Main, CatchWnd, UpWnd;
 
-DWORD ShellCreateInVDesk(PTSTR szName)
-{
-	STARTUPINFO si = { 0 };
-	si.cb = sizeof(si);
-	si.lpDesktop = szVDesk;
-	PROCESS_INFORMATION pi;
-	if (!CreateProcess(NULL, szName, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-		Main.InfoBox(Main.GetStr(L"StartFail"));
-	return pi.dwProcessId;
-}
-
+#pragma warning(disable:4100)//禁用警告
 class DownloadProgress : public IBindStatusCallback {
-public:
+public://这些函数有些参数没有用到，会导致大量警告.
 	wchar_t curi[11];
 	HRESULT __stdcall QueryInterface(const IID &, void **) { return E_NOINTERFACE; }
-	ULONG STDMETHODCALLTYPE AddRef(void) { return 1; }//暂时没用的函数，从msdn上抄下来的
-	ULONG STDMETHODCALLTYPE Release(void) { return 1; }
-	HRESULT STDMETHODCALLTYPE OnStartBinding(DWORD dwReserved, IBinding *pib) { UNREFERENCED_PARAMETER(dwReserved); UNREFERENCED_PARAMETER(pib); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE GetPriority(LONG *pnPriority) { UNREFERENCED_PARAMETER(pnPriority); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnLowResource(DWORD reserved) { UNREFERENCED_PARAMETER(reserved); return S_OK; }
-	virtual HRESULT STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szError) { UNREFERENCED_PARAMETER(hresult); UNREFERENCED_PARAMETER(szError); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE GetBindInfo(DWORD *grfBINDF, BINDINFO *pbindinfo) { UNREFERENCED_PARAMETER(grfBINDF); UNREFERENCED_PARAMETER(pbindinfo); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) { UNREFERENCED_PARAMETER(grfBSCF); UNREFERENCED_PARAMETER(dwSize); UNREFERENCED_PARAMETER(pformatetc); UNREFERENCED_PARAMETER(pstgmed); return E_NOTIMPL; }
-	virtual HRESULT STDMETHODCALLTYPE OnObjectAvailable(REFIID riid, IUnknown *punk) { UNREFERENCED_PARAMETER(riid); UNREFERENCED_PARAMETER(punk); return E_NOTIMPL; }
+	ULONG STDMETHODCALLTYPE AddRef() { return 1; }//暂时没用的函数，从msdn上抄下来的
+	ULONG STDMETHODCALLTYPE Release() { return 1; }
+	HRESULT STDMETHODCALLTYPE OnStartBinding(DWORD dwReserved, IBinding *pib) { return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE GetPriority(LONG *pnPriority) { return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE OnLowResource(DWORD reserved) { return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szError) { return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE GetBindInfo(DWORD *grfBINDF, BINDINFO *pbindinfo) { return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE OnDataAvailable(DWORD grfBSCF, DWORD dwSize, FORMATETC *pformatetc, STGMEDIUM *pstgmed) { return E_NOTIMPL; }
+	virtual HRESULT STDMETHODCALLTYPE OnObjectAvailable(REFIID riid, IUnknown *punk) { return E_NOTIMPL; }
 	virtual HRESULT __stdcall OnProgress(ULONG ulProgress, ULONG ulProgressMax, ULONG ulStatusCode, LPCWSTR szStatusText)
 	{
-		UNREFERENCED_PARAMETER(ulStatusCode);
-		UNREFERENCED_PARAMETER(szStatusText);
-		if (ulProgressMax != 0)
-		{
-			double percentage = double(ulProgress * 1.0 / ulProgressMax * 100);
+		if (ulProgressMax != 0)//ulProgress：已下载的字节数
+		{//ulProgressMax：总字节数
+			double percentage = double(ulProgress * 1.0 / ulProgressMax * 100);//计算下载百分比
 			if (Main.Button[Main.GetNumbyID(curi)].Download != (int)percentage + 1)
 			{
 				Main.Button[Main.GetNumbyID(curi)].Download = (int)percentage + 1;
 				RECT rc = Main.GetRECT(Main.GetNumbyID(curi));
-				Main.Readd(2, Main.GetNumbyID(curi));
+				Main.Readd(2, Main.GetNumbyID(curi));//重绘
 				Main.Redraw(&rc);
 			}
 		}
 		return S_OK;
-	}
+	}//同样没有private..
 };
-BOOL CALLBACK EnumFunc(HWND hwnd, LPARAM lParam)
+#pragma warning(default:4100)//恢复警告
+
+BOOL CALLBACK EnumTDwnd(HWND hwnd, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);
 	ULONG nProcessID;
-	LONG A;
+	LONG A;//遍历所有窗口
 	A = GetWindowLongW(hwnd, GWL_STYLE) & WS_VISIBLE;
 	if (A != 0 && GetParent(hwnd) == NULL)
 	{
-		::GetWindowThreadProcessId(hwnd, &nProcessID);
+		::GetWindowThreadProcessId(hwnd, &nProcessID);//如果pid正确，把hwnd记录下来
 		for (unsigned int i = 1; i <= tdpid[0]; ++i)if (tdpid[i] == nProcessID) { tdh[++tdhcur] = hwnd; }
 	}
 	return 1;
 }
-void FindTop(wchar_t *name)
+
+void FindTDhwnd(wchar_t *name)//查找被监视的窗口
 {
 	name[3] = 0;
 	_wcslwr(name);
@@ -1295,44 +1278,44 @@ void FindTop(wchar_t *name)
 	while (Process32Next(hSnapShot, &pe))
 	{
 		pe.szExeFile[3] = '\0';
-		_wcslwr(pe.szExeFile);
+		_wcslwr(pe.szExeFile);//记录下符合要求的pid
 		if (wcsstr(pe.szExeFile, name) != 0)tdpid[++Cur] = pe.th32ProcessID;
 	}
-	tdpid[0] = Cur;
-	EnumWindows(EnumFunc, NULL);
+	tdpid[0] = Cur;//数量存在tdpid[0]里
+	EnumWindows(EnumTDwnd, NULL);
 }
 
-DWORD WINAPI ThreadFun(LPVOID pM)//置顶线程
+DWORD WINAPI TopThread(LPVOID pM)//置顶线程
 {
 	UNREFERENCED_PARAMETER(pM);
 	while (TOP == 1)
-	{
+	{//连续置顶	(然而比不过任务管理器，人家有CreateWindowWithBand)
 		SetWindowPos(Main.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 	}
-	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
+	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);//取消置顶
 	SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
 	return 0;
 }
 
-BOOL CALLBACK lpEnumFunc(HWND hwnd, LPARAM lParam)
-{
+BOOL CALLBACK EnumTopWnd(HWND hwnd, LPARAM lParam)
+{//枚举置顶窗口
 	UNREFERENCED_PARAMETER(lParam);
-	ULONG nProcessID; HANDLE hProcessHandle;
+	ULONG nProcessID; HANDLE hProcessHandle=0;
 	LONG A;
 	A = GetWindowLongW(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST;
 	if (A != 0)
 	{
 		::GetWindowThreadProcessId(hwnd, &nProcessID);
-		if (CurrentProcessId == nProcessID)goto a;
-		for (unsigned int i = 1; i <= expid[0]; ++i)if (expid[i] == nProcessID)goto a;
-		hProcessHandle = ::OpenProcess(PROCESS_TERMINATE, FALSE, nProcessID);
-		::TerminateProcess(hProcessHandle, 4);
+		if (GetCurrentProcessId() == nProcessID)goto ok;//如果是被保护的进程ID -> 跳过
+		for (unsigned int i = 1; i <= expid[0]; ++i)if (expid[i] == nProcessID)goto ok;//用unsigned int 以避免"有符号/无符号不匹配"
+		MyOpenProcess(&hProcessHandle, nProcessID);
+		MyTerminateProcess(hProcessHandle);
 	}
-a:
+ok:
 	return 1;
 }
-void KillTop()
+void KillTop()//杀掉置顶窗口
 {
 	ZeroMemory(&expid, sizeof(expid));
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); DWORD Cur = 0;
@@ -1345,12 +1328,12 @@ void KillTop()
 		if (wcsstr(pe.szExeFile, L"exp") != 0)expid[++Cur] = pe.th32ProcessID;
 	}
 	expid[0] = Cur;
-	EnumWindows(lpEnumFunc, NULL);
+	EnumWindows(EnumTopWnd, NULL);
 }
 
-BOOL KillProcess(LPCWSTR ProcessName)
+BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 {
-	if (Main.Check[14].Value)
+	if (Main.Check[14].Value)//如果开启ntsd & processhacker 结束进程
 	{
 		wchar_t tmp[501];
 		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
@@ -1361,103 +1344,94 @@ BOOL KillProcess(LPCWSTR ProcessName)
 		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	PROCESSENTRY32 pe;
+	PROCESSENTRY32 pe;//创建进程快照（标准写法）
 	pe.dwSize = sizeof(PROCESSENTRY32);
 	if (!Process32First(hSnapShot, &pe))return FALSE;
-
-	typedef DWORD(CALLBACK* NTTERMINATEPROCESS)(HANDLE, UINT);
-	NTTERMINATEPROCESS NtTerminateProcess;
-	HMODULE hNtdll = NULL;
-	hNtdll = LoadLibrary(L"ntdll.dll");
-	NtTerminateProcess = (NTTERMINATEPROCESS)GetProcAddress(hNtdll, "NtTerminateProcess");
-
 	while (Process32Next(hSnapShot, &pe))
 	{
-		pe.szExeFile[3] = 0;
+		pe.szExeFile[3] = 0;//根据进程名前三个字符标识
 		_wcslwr_s(pe.szExeFile);
 		if (wcscmp(ProcessName, pe.szExeFile) == 0 || ProcessName == NULL)
 		{
 			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = 0;
-			MyOpenProcess(&hProcess, dwProcessID);
-			NtTerminateProcess(hProcess, 1);
+			MyOpenProcess(&hProcess, dwProcessID);//使用NtOpenProcess和NtTerminateProcess
+			MyTerminateProcess(hProcess);//(一般并没有什么用)
 			CloseHandle(hProcess);
 		}
 	}
 	return TRUE;
 }
 
-void CheckIP()//定义checkIP函数，用于取本机的ip地址  
+void CheckIP()//取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
 	char *ip;
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
-	{
+	{//具体原理也不太清楚，详见百科，反正知道这段代码很占空间就是了
 		if (gethostname(name, sizeof(name)) == 0)
-		{
 			if ((hostinfo = gethostbyname(name)) != NULL)
-			{
+			{//wip存ip地址字符串
 				ip = inet_ntoa(*(struct in_addr *)*hostinfo->h_addr_list);
 				charTowchar(ip, wip, sizeof(wip) * 2);
 			}
-		}
 		WSACleanup();
 	}
 }
 
-bool GetTDVer(wchar_t *source)
-{
-	if (source == NULL)return false;
-	wcscpy(source, Main.GetStr(L"_TTDv"));
+bool GetTDVer(wchar_t *source)//获取极域版本
+{//返回值复制到source里
+	if (source == NULL)return false;//连source都没有当然直接退出
+	wcscpy(source, Main.GetStr(L"_TTDv"));//在前面加上"极域版本："之类的字符串
 	HKEY hKey;
-	LONG ret;
+	LONG ret;//标准的注册表操作
 	wchar_t szLocation[100] = { 0 };
 	DWORD dwSize = sizeof(wchar_t) * 100;
 	DWORD dwType = REG_SZ;
-	if (Bit != 64)
+	if (Bit != 64)//分32位和64位讨论
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-Learning Class V6.0", 0, KEY_READ, &hKey);
-	else
+	else//然而现在极域好像也有64位了怎么办
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-Learning Class V6.0", 0, KEY_READ, &hKey);
 
-	if (ret != 0)
+	if (ret != 0)//打开失败
 	{
-		if (Bit != 64)
+		if (Bit != 64)//再看看上级目录存不存在
 			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain", 0, KEY_READ, &hKey);
-		else
+		else//(因为很旧版的极域没有v6.0这个东西，完全无法获取版本号)
 			ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain", 0, KEY_READ, &hKey);
-		if (ret != 0)//极域可能不存在
+		if (ret != 0)//连TopDomain目录都没有，极域可能不存在
 			wcscat(source, Main.GetStr(L"TTDunk"));
-		else//极域版本为2007之类
-			wcscat(source, Main.GetStr(L"TTDold"));//有TopDomain目录，但没有Version键值
+		else//极域版本为2007之类，给个模棱两可的答案
+			wcscat(source, Main.GetStr(L"TTDold"));
 		RegCloseKey(hKey);
 		return true;
-	}
+	}//打开成功，至少有这个目录
 	ret = RegQueryValueExW(hKey, L"Version", 0, &dwType, (LPBYTE)&szLocation, &dwSize);
-	if (ret != 0)return false;
+	if (ret != 0)return false;//打开成功却没有键值？
 	if (*szLocation != 0)//一切正常
 		wcscat(source, szLocation);
 	else return false;
 	RegCloseKey(hKey);
 	return true;
 }
-void UpdateInfo()
+void UpdateInfo()//修改"关于"界面信息的函数
 {
 	wchar_t tmp[301] = { 0 }, tmp2[1001] = { 0 }; int f;
-	GetOSDisplayString(tmp);
-	wcscpy_s(tmp2, Main.GetStr(L"Tbit"));
+	wcscpy_s(tmp2, Main.GetStr(L"Tbit"));//系统位数
 	if (Bit == 32)wcscat_s(tmp2, L"32"); else wcscat_s(tmp2, L"64");
 	Main.SetStr(tmp2, L"Tbit");
+	GetOSDisplayString(tmp);//系统版本
 	wcscpy_s(tmp2, Main.GetStr(L"Twinver")); wcscat(tmp2, tmp);
 	Main.SetStr(tmp2, L"Twinver");
 	if (Bit == 34)f = GetFileAttributes(L"C:\\windows\\sysnative\\cmd.exe"); else f = GetFileAttributes(L"C:\\windows\\system32\\cmd.exe");
-	Main.SetStr(tmp2, L"Twinver"); wcscpy_s(tmp2, Main.GetStr(L"Tcmd"));
+	wcscpy_s(tmp2, Main.GetStr(L"Tcmd"));//是否有cmd
 	if (f != -1)wcscat(tmp2, Main.GetStr(L"TcmdOK")); else wcscat(tmp2, Main.GetStr(L"TcmdNO"));
 	Main.SetStr(tmp2, L"Tcmd");
-	CheckIP();
+	CheckIP();//ip地址
 	wcscpy_s(tmp2, Main.GetStr(L"TIP")); wcscat(tmp2, wip);
-	Main.SetStr(tmp2, L"TIP");
+	Main.SetStr(tmp2, L"TIP");//极域版本
 	if (GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
 }
 void SetFrame()
@@ -1650,7 +1624,7 @@ void SwitchLanguage(LPWSTR name)
 		FILE *fp;
 
 		_wfopen_s(&fp, name, L"r,ccs=UNICODE");
-		if (fp == NULL)Main.InfoBox(Main.GetStr(L"StartFail"));
+		if (fp == NULL)Main.InfoBox(L"StartFail");
 		while (!feof(fp))
 		{
 			fgetws(ReadTmp, 1000, fp);
@@ -1680,8 +1654,9 @@ void SwitchLanguage(LPWSTR name)
 		SetWindowText(UpWnd.hWnd, UpWnd.GetStr(L"Title"));
 		haveInfo = true;
 		SetFrame();
-		InvalidateRect(CatchWnd.hWnd, 0, 0);
-		InvalidateRect(UpWnd.hWnd, 0, 0);
+		Main.Redraw(NULL);
+		if (CatchWnd.hWnd)CatchWnd.Redraw(NULL);
+		if (UpWnd.hWnd)UpWnd.Redraw(NULL);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER) { s(L"error"); }
 }
@@ -1697,8 +1672,8 @@ int SetupSethc()//安装sethc
 bool AutoSetupSethc()//安装sethc的外壳函数
 {
 	int flag = SetupSethc();
-	if (flag == 0) { Main.InfoBox(Main.GetStr(L"CSFail")); return false; }
-	if (flag == 2) { Main.InfoBox(Main.GetStr(L"NoSethc")); return false; }
+	if (flag == 0) { Main.InfoBox(L"CSFail"); return false; }
+	if (flag == 2) { Main.InfoBox(L"NoSethc"); return false; }
 	return true;
 }
 bool DeleteSethc()//删除sethc
@@ -1750,7 +1725,7 @@ bool DeleteSethcS()//用驱动删除sethc.exe
 	wchar_t p1[34], p2[34];
 	if (DeleteSethc())return true;//先尝试应用层删除
 	if (Bit == 32)
-		wcscpy_s(p1, L"x32\\deletefile.sys"),
+		wcscpy_s(p1, L"x32\\deletefile.sys"),//32位和64位选择不同驱动
 		wcscpy_s(p2, L"x32\\kill.sys");
 	else
 		wcscpy_s(p1, L"x64\\deletefile.sys"),
@@ -1758,7 +1733,7 @@ bool DeleteSethcS()//用驱动删除sethc.exe
 	UnloadNTDriver(L"deletefile");
 
 	flag1 = LoadNTDriver(L"deletefile", p1);
-	UnloadNTDriver(L"kill");
+	UnloadNTDriver(L"kill");//加载deletefile和kill两个驱动
 	flag2 = LoadNTDriver(L"kill", p2);
 	WinExec("net stop kill", SW_HIDE);
 	UnloadNTDriver(L"deletefile");
@@ -1769,11 +1744,8 @@ int SetupSethcS()
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"x32\\sethc.exe");
-	if (GetFileAttributes(tmp) == -1)return 2;
-	if (Bit != 34)
-		return CopyFile(tmp, L"C:\\Windows\\System32\\sethc.exe", false);
-	else
-		return CopyFile(tmp, L"C:\\Windows\\SysNative\\sethc.exe", false);
+	if (GetFileAttributes(tmp) == -1)return 2;//没有驱动sethc
+	return CopyFile(tmp, SethcPath, false);//返回是否成功
 }
 int CopyNTSD()
 {
@@ -1796,8 +1768,8 @@ int CopyNTSD()
 bool AutoCopyNTSD()
 {
 	int flag = CopyNTSD();
-	if (flag == 0) { Main.InfoBox(Main.GetStr(L"CNTSDFail")); return false; }
-	if (flag == 2) { Main.InfoBox(Main.GetStr(L"NoNTSD")); return false; }
+	if (flag == 0) { Main.InfoBox(L"CNTSDFail"); return false; }
+	if (flag == 2) { Main.InfoBox(L"NoNTSD"); return false; }
 	return true;
 }
 
@@ -1805,7 +1777,7 @@ void AutoDelete(wchar_t *tmp)
 {
 	int FileType;
 	FileType = GetFileAttributes(tmp);
-	if (FileType == -1) { Main.InfoBox(Main.GetStr(L"TINotF")); return; }
+	if (FileType == -1) { Main.InfoBox(L"TINotF"); return; }
 	TakeOwner(tmp);
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
@@ -1817,7 +1789,7 @@ void AutoDelete(wchar_t *tmp)
 bool UninstallSethc()//恢复原来的sethc
 {//不是常用的函数，但（历史原因）还是被保留下来
 	DeleteFile(SethcPath);
-	if (CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE) == false) { Main.InfoBox(Main.GetStr(L"USFail")); return false; }
+	if (CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE) == false) { Main.InfoBox(L"USFail"); return false; }
 	else { SethcState = true; return true; }
 }
 
@@ -1924,7 +1896,7 @@ void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
 	if (URLDownloadToFileW(NULL, a, b, 0, NULL) == S_OK)FDcur++; else
 	{
 		FDtot--;
-		if (!DownFail)Main.InfoBox(Main.GetStr(L"DownFail")), DownFail = true;
+		if (!DownFail)Main.InfoBox(L"DownFail"), DownFail = true;
 	}
 	InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 }
@@ -1960,7 +1932,7 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 		if (URLDownloadToFileW(NULL, tURL, tPath, 0, NULL) == S_OK)FDcur++; else
 		{
 			FDtot--;
-			if (!DownFail)Main.InfoBox(Main.GetStr(L"DownFail")), DownFail = true;
+			if (!DownFail)Main.InfoBox(L"DownFail"), DownFail = true;
 		}
 		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 		break;
@@ -2338,7 +2310,7 @@ void AutoViewPass()
 		Main.InfoBox(Tmp);
 	}
 	else
-		Main.InfoBox(Main.GetStr(L"VPNULL"));
+		Main.InfoBox(L"VPNULL");
 finish:
 	RegCloseKey(hKey);
 }
@@ -2362,7 +2334,7 @@ void AutoClearPassWd()
 
 	if (ret != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACFail"));
+		Main.InfoBox(L"ACFail");
 		RegCloseKey(hKey);
 		return;
 	}
@@ -2372,7 +2344,7 @@ void AutoClearPassWd()
 
 	if (ret != 0 || ret2 != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACUKE"));
+		Main.InfoBox(L"ACUKE");
 		RegCloseKey(hKey);
 		return;
 	}
@@ -2384,7 +2356,7 @@ void AutoClearPassWd()
 
 	if (ret != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACFail"));
+		Main.InfoBox(L"ACFail");
 		RegCloseKey(hKey);
 		return;
 	}
@@ -2393,12 +2365,12 @@ void AutoClearPassWd()
 
 	if (ret != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACUKE"));
+		Main.InfoBox(L"ACUKE");
 		RegCloseKey(hKey);
 		return;
 	}
 
-	Main.InfoBox(Main.GetStr(L"ACOK"));
+	Main.InfoBox(L"ACOK");
 	RegCloseKey(hKey);
 }
 void ChangePasswordEx(int type)
@@ -2423,7 +2395,7 @@ void ChangePasswordEx(int type)
 
 	if (ret != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACFail"));
+		Main.InfoBox(L"ACFail");
 		RegCloseKey(hKey);
 		return;
 	}
@@ -2432,7 +2404,7 @@ void ChangePasswordEx(int type)
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t)*wcslen(tmp));
 	if (ret != 0)
 	{
-		Main.InfoBox(Main.GetStr(L"ACUKE"));
+		Main.InfoBox(L"ACUKE");
 		RegCloseKey(hKey);
 		return;
 	}
@@ -2459,10 +2431,7 @@ void ChangePasswordEx(int type)
 		if (Bit != 64)change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, false);
 		else change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, true);
 	}
-	Main.InfoBox(Main.GetStr(L"ACOK"));
-	return;
-
-	//if (type == 3)sub_430CD0(NULL, NULL, NULL);
+	Main.InfoBox(L"ACOK");
 	return;
 }
 
@@ -2472,7 +2441,7 @@ bool RunCmdLine(LPWSTR str)
 	{
 		Main.Check[4].Value = 1;
 		TOP = TRUE;
-		CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
+		CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
 		return false;
 	}
 	DWORD pid = GetParentProcessID(GetCurrentProcessId());
@@ -2485,7 +2454,7 @@ bool RunCmdLine(LPWSTR str)
 
 	if (wcsstr(str, L"-sethc") != NULL)
 	{
-		if (!DeleteSethc())Main.InfoBox(Main.GetStr(L"DSR3Fail"));
+		if (!DeleteSethc())Main.InfoBox(L"DSR3Fail");
 		AutoSetupSethc();
 		AutoCopyNTSD();
 		ExitProcess(0);
@@ -2493,10 +2462,10 @@ bool RunCmdLine(LPWSTR str)
 	if (wcsstr(str, L"-hook") != NULL)
 	{
 		KillProcess(L"hoo");
-		if (!RunHOOK())Main.InfoBox(Main.GetStr(L"OneFail"));
+		if (!RunHOOK())Main.InfoBox(L"OneFail");
 		ExitProcess(0);
 	}
-	if (wcsstr(str, L"-auto") != NULL) { CurrentProcessId = GetCurrentProcessId(); KillTop(); ExitProcess(0); }
+	if (wcsstr(str, L"-auto") != NULL) { KillTop(); ExitProcess(0); }
 	if (wcsstr(str, L"-unsethc") != NULL) {
 		DeleteFile(SethcPath);
 		CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE); ExitProcess(0);
@@ -2537,19 +2506,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	GetBit();//获取位数
 	if (Bit != 34)
-		wcscpy_s(SethcPath, L"C:\\Windows\\System32\\sethc.exe");
-	else
-		wcscpy_s(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe");
+		wcscpy_s(SethcPath, L"C:\\Windows\\System32\\sethc.exe"),
+		wcscpy_s(ntsdPath, L"C:\\Windows\\System32\\ntsd.exe");
+	else//根据系统位数设置path
+		wcscpy_s(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe"),
+		wcscpy_s(ntsdPath, L"C:\\Windows\\SysNative\\ntsd.exe");
 
 	BOOL Flag = Backup();
 	if (wcslen(lpCmdLine) != 0) { if (RunCmdLine(lpCmdLine) == true)goto cosl; }
 
 	defaultDesk = GetThreadDesktop(GetCurrentThreadId());//创建虚拟桌面
 	hVirtualDesk = CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
-	if (Flag == TRUE)ShellCreateInVDesk(szProcess);
+	if (Flag == TRUE)
+	{
+		STARTUPINFO si = { 0 };
+		si.cb = sizeof(si);
+		si.lpDesktop = szVDesk;
+		RunEXE(szProcess, NULL, &si);
+	}
 	hCurrentDesk = defaultDesk;
 
-	//MyRegisterClass(hInstance);
 
 	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
 	SEtProcessDPIAware SetProcessDPIAware;
@@ -2673,7 +2649,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		Main.Button[Main.CurButton].Enabled = Main.Button[Main.CurButton - 1].Enabled = false;
 		wcscpy_s(Main.Button[Main.CurButton].Name, Main.GetStr(L"Deleted"));
 		wcscpy_s(Main.Button[Main.CurButton - 1].Name, Main.GetStr(L"Deleted"));
-
 	}
 
 	Main.CreateButton(195, 180, 110, 50, 1, L"应用层", L"SethcR3");
@@ -2702,7 +2677,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateCheck(165, 255, 2, 130, L" 伪装工具条旧");
 	Main.CreateCheck(165, 280, 2, 80, L" 伪装工具条新");
 	Main.CreateCheck(165, 305, 2, 130, L" 伪装托盘图标");
-
 	Main.CreateButton(185, 155, 110, 45, 2, L"应用", L"ApplyCh");
 
 	Main.CreateButton(365, 102, 97, 45, 2, L"清空密码", L"ClearPass");//16
@@ -2797,11 +2771,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	CatchWnd.InitClass(hInst);
 
-	CatchWnd.CreateEditEx(10 + 5, 20, 260 - 10, 50, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
-	CatchWnd.CreateEditEx(285 + 5, 20, 45 - 10, 50, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
-	CatchWnd.CreateButton(10, 85, 100, 50, 0, L"捕捉窗口", L"CatchW");
-	CatchWnd.CreateButton(120, 85, 100, 50, 0, L"监视窗口", L"CopyW");
-	CatchWnd.CreateButton(230, 85, 100, 50, 0, L"释放窗口", L"ReturnW");
+	CatchWnd.CreateText(10, 10, 0, L"Processnam", NULL);
+	CatchWnd.CreateText(300, 10, 0, L"Delay", NULL);
+	CatchWnd.CreateEditEx(10 + 5, 35, 260 - 10, 40, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
+	CatchWnd.CreateEditEx(295 + 5, 35, 50 - 10, 40, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
+	CatchWnd.CreateButton(10, 85, 130, 50, 0, L"捕捉窗口", L"CatchW");
+	CatchWnd.CreateButton(120, 85, 130, 50, 0, L"监视窗口", L"CopyW");
+	CatchWnd.CreateButton(230, 85, 130, 50, 0, L"释放窗口", L"ReturnW");
+
 
 	UpWnd.InitClass(hInst);
 
@@ -2827,8 +2804,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.Height = 550;
 
 	ShowWindow(Main.hWnd, nCmdShow);
-	InvalidateRect(Main.hWnd, NULL, FALSE);
-	UpdateWindow(Main.hWnd);
+	Main.Redraw(NULL);//第一次创建窗口时全部重绘
 
 	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
 		DWORD cbSize;
@@ -3126,25 +3102,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (oneclick == 1)
 			{
 				RegisterHotKey(Main.hWnd, 3, NULL, VK_SCROLL);
-				Main.InfoBox(Main.GetStr(L"OneOK"));
+				Main.InfoBox(L"OneOK");
 				wcscpy(Main.Button[Main.GetNumbyID(L"QuickSetup")].Name, Main.GetStr(L"unQS"));
 			}
 			else
 			{
 				UnregisterHotKey(Main.hWnd, 3);
-				Main.InfoBox(Main.GetStr(L"unQSOK"));
+				Main.InfoBox(L"unQSOK");
 				wcscpy(Main.Button[Main.GetNumbyID(L"QuickSetup")].Name, Main.GetStr(L"setQS"));
 			}
 			break;
 		}
 		BUTTON_IN(x, L"DelR3")
 		{
-			if (!DeleteSethc())Main.InfoBox(Main.GetStr(L"DSR3Fail")); else goto delok;
+			if (!DeleteSethc())Main.InfoBox(L"DSR3Fail"); else goto delok;
 			break;
 		}
 		BUTTON_IN(x, L"DelR0")
 		{
-			if (!DeleteSethcS())Main.InfoBox(Main.GetStr(L"DSR0Fail"));
+			if (!DeleteSethcS())Main.InfoBox(L"DSR0Fail");
 			else
 			{
 			delok:
@@ -3161,8 +3137,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (SethcInstallState == false)
 			{
 				int flag = SetupSethcS();
-				if (flag == 0)Main.InfoBox(Main.GetStr(L"CSFail"));//安装失败
-				if (flag == 2)Main.InfoBox(Main.GetStr(L"NoSethc"));//没有文件
+				if (flag == 0)Main.InfoBox(L"CSFail");//安装失败
+				if (flag == 2)Main.InfoBox(L"NoSethc");//没有文件
 				if (flag == 1)//成功
 				{
 					Main.Button[Main.GetNumbyID(L"SethcR3")].Enabled = false;
@@ -3208,7 +3184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"hookS")
 		{
 			KillProcess(L"hoo");
-			if (!RunHOOK())Main.InfoBox(Main.GetStr(L"OneFail"));
+			if (!RunHOOK())Main.InfoBox(L"OneFail");
 			else
 			{
 				wcscpy_s(Main.Button[Main.GetNumbyID(L"hookS")].Name, Main.GetStr(L"Installed"));
@@ -3231,7 +3207,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"runinVD")
 		{
-			ShellCreateInVDesk(Main.Edit[Main.GetNumByIDe(L"E_runinVD")].str);
+			STARTUPINFO si = { 0 };
+			si.cb = sizeof(si);
+			si.lpDesktop = szVDesk;
+			RunEXE(Main.Edit[Main.GetNumByIDe(L"E_runinVD")].str, NULL, &si);
 			break;
 		}
 		BUTTON_IN(x, L"SwitchD") { SDesktop(); break; }
@@ -3250,7 +3229,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (ret != 0)
 			{
-				Main.InfoBox(Main.GetStr(L"ACFail"));
+				Main.InfoBox(L"ACFail");
 				RegCloseKey(hKey);
 				break;
 			}
@@ -3258,12 +3237,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ret = RegSetValueEx(hKey, L"ChannelId", 0, REG_DWORD, (const BYTE*)&a, sizeof(int));
 			if (ret != 0)
 			{
-				Main.InfoBox(Main.GetStr(L"ACUKE"));
+				Main.InfoBox(L"ACUKE");
 				RegCloseKey(hKey);
 				break;
 			}
 			RegCloseKey(hKey);
-			Main.InfoBox(Main.GetStr(L"ACOK"));
+			Main.InfoBox(L"ACOK");
 			break;
 		}
 		BUTTON_IN(x, L"ClearPass") { AutoClearPassWd(); break; }
@@ -3296,15 +3275,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DWORD word = 1; HKEY hKey; LONG ret;
 			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
 			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
-		BUTTON_IN(x, L"auto-5")
-		{
-			CurrentProcessId = GetCurrentProcessId();
-			KillTop();
-			break;
-		}
+		BUTTON_IN(x, L"auto-5") { KillTop(); break; }
 		BUTTON_IN(x, L"viewfile") { openfile(); break; }
 		BUTTON_IN(x, L"folder") { BrowseFolder(); break; }
 		BUTTON_IN(x, L"TI")
@@ -3352,7 +3326,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
-			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
 
 		}
@@ -3364,20 +3338,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			LONG ret;
 			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
 			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
 		BUTTON_IN(x, L"Killer")
 		{
 			UnloadNTDriver(L"360");
 			bool flag;
-			Main.InfoBox(Main.GetStr(L"360Start"));
+			Main.InfoBox(L"360Start");
 			if (Bit == 32)
 				flag = LoadNTDriver(L"360", L"x32\\360.sys");
 			else
 				flag = LoadNTDriver(L"360", L"x64\\360.sys");
 			if (flag == false)
-				Main.InfoBox(Main.GetStr(L"360Fail"));
+				Main.InfoBox(L"360Fail");
 			break;
 		}
 		BUTTON_IN(x, L"more.txt")
@@ -3385,13 +3359,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			wchar_t tmp[301] = L"Notepad ";
 			wcscat_s(tmp, Path);
 			wcscat_s(tmp, L"关于&帮助.txt");
-			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
 		BUTTON_IN(x, L"sysinfo")
 		{
 			wchar_t tmp[] = L"C:\\Windows\\System32\\Msinfo32.exe";
-			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
@@ -3461,7 +3435,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							wchar_t tmp[301];
 							wcscpy_s(tmp, Path);
 							if (i == 1)wcscat_s(tmp, L"cheat\\old.exe"); else wcscat_s(tmp, L"cheat\\new.exe");
-							if (!RunEXE(tmp, NULL, NULL))Main.InfoBox(Main.GetStr(L"StartFail")), Main.Check[i].Value = true;
+							if (!RunEXE(tmp, NULL, NULL))Main.InfoBox(L"StartFail"), Main.Check[i].Value = true;
 							break;
 						}
 						case 3:
@@ -3474,32 +3448,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							tnd.uCallbackMessage = 34;
 							tnd.hIcon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_TD));
 							wcscpy_s(tnd.szTip, Main.GetStr(L"tnd"));
-							if (!Shell_NotifyIcon(NIM_ADD, &tnd))Main.InfoBox(Main.GetStr(L"StartFail")), Main.Check[3].Value = true;
+							if (!Shell_NotifyIcon(NIM_ADD, &tnd))Main.InfoBox(L"StartFail"), Main.Check[3].Value = true;
 							break;
 						}
-						case 4:
-						{
-							TOP = TRUE;
-							CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
-							break;
-						}
-						case 5:
-						{
-							if (Admin == 0)Main.InfoBox(Main.GetStr(L"BSODAsk"));
-							RegisterHotKey(Main.hWnd, 4, MOD_CONTROL, 'R');
-							break;
-						}
-						case 6:RegisterHotKey(Main.hWnd, 5, MOD_CONTROL, 'T'); break;
-						case 7:
-						{
+						case 4: {TOP = TRUE; CreateThread(NULL, 0, TopThread, NULL, 0, NULL); break; }
+						case 5: {if (Admin == 0)Main.InfoBox(L"BSODAsk"); RegisterHotKey(Main.hWnd, 4, MOD_CONTROL, 'R'); break; }
+						case 6: {RegisterHotKey(Main.hWnd, 5, MOD_CONTROL, 'T'); break; }
+						case 7: {
 							if (FS == TRUE)InitScreen(), FS = FALSE;
 							RegisterHotKey(Main.hWnd, 6, MOD_CONTROL | MOD_ALT, 'P');
 							break;
 						}
-						case 8:SetTimer(hWnd, 1, 1000, (TIMERPROC)TimerProc); break;
-						case 9:case 10:SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc); break;
-						case 11:RegMouseKey(); break;
+						case 8: {SetTimer(hWnd, 1, 1000, (TIMERPROC)TimerProc); break; }
+						case 9:case 10: {SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc); break; }
+						case 11: {RegMouseKey(); break; }
 						case 12:
+						{
 							Effect = false;
 							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | ~WS_EX_LAYERED);
 							SetLayeredWindowAttributes(Main.hWnd, NULL, 255, LWA_ALPHA);//半透明特效
@@ -3507,46 +3471,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							Main.ButtonEffect = false;
 							KillTimer(Main.hWnd, 5);
 							break;
+						}
 						case 13:
+						{
 							Main.SetDPI(0.75);
 							SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(420 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
-							break;
+							break; }
 						}
 					}
 					else
 					{
 						switch (i)
 						{
-						case 1:KillProcess(L"old"); break;
-						case 2:KillProcess(L"new"); break;
-						case 3:
+						case 1: {KillProcess(L"old"); break; }
+						case 2: {KillProcess(L"new"); break; }
+						case 3: {
 							NOTIFYICONDATA tnd;
 							tnd.cbSize = sizeof(NOTIFYICONDATA);
 							tnd.hWnd = Main.hWnd;
 							tnd.uID = IDR_MAINFRAME;
 							Shell_NotifyIcon(NIM_DELETE, &tnd);
-							break;
-						case 4:TOP = FALSE; break;
-						case 5:UnregisterHotKey(Main.hWnd, 4); break;
-						case 6:UnregisterHotKey(Main.hWnd, 5); break;
-						case 7:UnregisterHotKey(Main.hWnd, 6); break;
-						case 8:KillTimer(hWnd, 1); break;
-						case 9:case 10:KillTimer(hWnd, 7); break;
-						case 11:UnMouseKey(); break;
-						case 12:
+							break; }
+						case 4: {TOP = FALSE; break; }
+						case 5:case 6:case 7: {UnregisterHotKey(Main.hWnd, i - 1); break; }
+						case 8: {KillTimer(hWnd, 1); break; }
+						case 9:case 10: {KillTimer(hWnd, 7); break; }
+						case 11: {UnMouseKey(); break; }
+						case 12: {
 							Effect = true;
 							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 							SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);
 							Main.ButtonEffect = true;
 							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
-							ShowWindow(Cshadow.m_hWnd, SW_SHOW);
-							break;
-						case 13:
+							ShowWindow(Cshadow.m_hWnd, SW_SHOW); }
+								 break;
+						case 13: {
 							Main.SetDPI(1.5);
 							SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(420 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break;
+						}
 						}
 					}
 					RECT rc = Main.GetRECTc(i);
@@ -3655,7 +3620,8 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	case WM_CLOSE:
 		KillTimer(hWnd, 4);
 		ReturnWindows();
-		ShowWindow(hWnd, SW_HIDE);
+		DestroyWindow(CatchWnd.hWnd);
+		CatchWnd.hWnd = 0;
 		break;
 	case WM_PAINT:
 		CatchWnd.tdc = BeginPaint(CatchWnd.hWnd, &ps);
@@ -3663,11 +3629,9 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		{
 			SelectObject(CatchWnd.hdc, WhiteBrush);//白色背景
 			SelectObject(CatchWnd.hdc, White);
-			//SelectObject(CatchWnd.hdc, CatchWnd.DefFont);
 			Rectangle(CatchWnd.hdc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
 
-			CatchWnd.DrawButtons(0);
-			CatchWnd.DrawEdits(0);
+			CatchWnd.DrawEVERYTHING();
 			wchar_t tmp1[50], tmp2[50];
 			wcscpy_s(tmp1, CatchWnd.GetStr(L"Eat1"));
 			_itow_s(EatList.size(), tmp2, 10);
@@ -3707,7 +3671,6 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 			SetStretchBltMode(CatchWnd.tdc, HALFTONE);
 			StretchBlt(CatchWnd.tdc, left, top, width, height, hdctd, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SRCCOPY);
-			//BitBlt(CatchWnd.tdc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES), CatchWnd.hdc, 0, 0, SRCCOPY);
 			ReleaseDC(tdh[displaycur], hdctd);
 		}
 		EndPaint(CatchWnd.hWnd, &ps);
@@ -3717,7 +3680,6 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		break;
 	case WM_MOUSEMOVE:
 		CatchWnd.MouseMove();
-
 		break;
 	case WM_LBUTTONUP:
 		POINT point;
@@ -3748,7 +3710,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					wchar_t x[1001];
 					wcscpy_s(x, CatchWnd.Edit[CatchWnd.GetNumByIDe(L"E_Pname")].str);
 					tdhcur = 0;
-					FindTop(x);
+					FindTDhwnd(x);
 					if (tdhcur != 0)displaycur = 1; else displaycur = 0;
 					SetTimer(CatchWnd.hWnd, 6, 16, (TIMERPROC)TimerProc);
 					RegisterHotKey(hWnd, 513, MOD_ALT, VK_LEFT);
@@ -3824,7 +3786,6 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SelectObject(UpWnd.hdc, White);
 		Rectangle(UpWnd.hdc, 0, 0, 200, 500);
 		UpWnd.DrawChecks(0);
-		//TextOut(UpWnd.tdc, 20, 370, L"1",1);
 		if (FDtot != 0)
 		{
 			wchar_t tmp[34], tmp2[101];
@@ -3885,10 +3846,8 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-	case WM_MOUSEMOVE:
-		UpWnd.MouseMove();
-		break;
-
+	case WM_MOUSEMOVE:UpWnd.MouseMove(); break;
+	case WM_CLOSE:UpWnd.hWnd = 0;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
