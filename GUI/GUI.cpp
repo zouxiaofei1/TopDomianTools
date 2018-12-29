@@ -868,86 +868,87 @@ public:
 			(long)((Edit[cur].Left + Edit[cur].Width + 5)*DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height)*DPI >= point.y);
 	}
 
-	void LeftButtonDown()
+	void LeftButtonDown()//鼠标左键按下
 	{
 		POINT point;
 		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
-		if (CurCover != -1)
+		ScreenToClient(hWnd, &point);//惯例 获取坐标
+		if (CurCover != -1)//当按钮按下 & 停留在按钮上时
 		{
 			Press = 1;
-			RECT rc;
-			rc = GetRECT(CurCover);
+			RECT rc = GetRECT(CurCover);
 			if (Obredraw)Readd(2, CurCover);
-			Redraw(NULL);
+			Redraw(&rc);
 		}
-		if (CoverEdit != 0)
+		if (CoverEdit != 0)//停留在Edit上时
 		{
-			if (InsideEdit(CoverEdit, point))Edit[CoverEdit].Press = true;
+			Edit[CoverEdit].Press = true;
+			EditDown(CoverEdit);
 		}
-		for (int i = 1; i <= CurEdit; ++i)
-			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
-				if (InsideEdit(i, point) != 0) { EditDown(i);  break; }
 		Timer = GetTickCount();
-		DestroyExp();
+		DestroyExp();//任何操作都会导致exp的关闭
 	}
 
-	void CheckGetNewInside(POINT &point)
+	void CheckGetNewInside(POINT &point)//检查point是否在check内
 	{
-		for (int i = 1; i <= CurCheck; ++i)
+		for (int i = 1; i <= CurCheck; ++i)//遍历所有check
 		{
-			if (Check[i].Page == CurWnd || Check[i].Page == 0)
-			{
-				if (InsideCheck(i, point) != 0)
+			if (Check[i].Page == CurWnd || Check[i].Page == 0)//不再同一页面 -> 直接跳过
+				if (InsideCheck(i, point) != 0)//在check的文字中或方框内
 				{
-					CoverCheck = i;
+					CoverCheck = i;//设置covercheck
 					if (Obredraw)Readd(3, i);
-					RECT rc = GetRECTc(i);
+					RECT rc = GetRECTc(i);//重绘
 					Redraw(&rc);
 					break;
 				}
-			}
 		}
 	}
-	void ButtonGetNewInside(POINT &point)
+	void ButtonGetNewInside(POINT &point)//检查point是否在check内
 	{
-		for (int i = 0; i <= CurButton; ++i)
-		{
+		for (int i = 0; i <= CurButton; ++i)//历史原因，Button编号是从0开始的
 			if ((Button[i].Page == CurWnd || Button[i].Page == 0) && Button[i].Enabled)
-			{
-				if (InsideButton(i, point))
+				if (InsideButton(i, point))//在按钮中
 				{
-					CurCover = i;
-					if (ButtonEffect)
+					CurCover = i;//设置curcover
+					if (ButtonEffect)//特效开启
 					{
-						Button[i].Percent += 40;
+						Button[i].Percent += 40;//先给40%的颜色 （太淡了看不出来）
 						if (Button[i].Percent > 100)Button[i].Percent = 100;
 					}
 					if (Obredraw)Readd(2, i);
-					RECT rc = GetRECT(i);
+					RECT rc = GetRECT(i);//重绘
 					Redraw(&rc);
 					return;
 				}
-			}
-		}
 	}
-
-	void MouseMove()
+	void AreaGetNewInside(POINT &point)//Area 同理
+	{
+		for (int i = 1; i <= CurArea; ++i)
+			if (Area[i].Page == CurWnd || Area[i].Page == 0)
+				if (InsideArea(i, point))CoverArea = i;
+	}
+	void EditGetNewInside(POINT &point) //Edit 同理
+	{
+		for (int i = 1; i <= CurEdit; ++i)//Edit 同理
+			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
+				if (InsideEdit(i, point))CoverEdit = i;
+	}
+	void MouseMove()//鼠标移动
 	{
 		POINT point;
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
-		if (CurCover == -1)ButtonGetNewInside(point);
-		if (CurCover >= 0)
+		if (CurCover == -1)ButtonGetNewInside(point);//原来不在按钮内 -> 看看现在是否移进按钮
+		else//原来在
 		{
-			if (!Button[CurCover].Enabled) { CurCover = -1; goto disabled; }
+			if (!Button[CurCover].Enabled) { CurCover = -1; goto disabled; }//这个按钮被禁用了
 			if (Button[CurCover].Page == CurWnd || Button[CurCover].Page == 0)
-			{
 				if (!InsideButton(CurCover, point))
-				{
+				{//现在不在
 					if (Obredraw)Readd(2, CurCover);
 					if (ButtonEffect)
-					{
+					{//curcover设为-1 , 重绘
 						Button[CurCover].Percent -= Delta;
 						if (Button[CurCover].Percent < 0)Button[CurCover].Percent = 0;
 					}
@@ -955,51 +956,53 @@ public:
 					CurCover = -1;
 					Redraw(&rc);
 
-					ButtonGetNewInside(point);
-				}
-			}
-			else CurCover = -1;
+					ButtonGetNewInside(point);//有可能从一个按钮直接移进另一个按钮内
+				}//再次检测
+				else CurCover = -1;//curcover都不在同一页面
 		}
 	disabled:
-		if (CoverCheck == 0)CheckGetNewInside(point);//在外面
-
-		if (CoverCheck > 0)
-		{
+		if (CoverCheck == 0)CheckGetNewInside(point);//在外面 -> 寻找新check
+		else
+		{//同理
 			if (Check[CoverCheck].Page == CurWnd || Check[CoverCheck].Page == 0)
-			{
 				if (InsideCheck(CoverCheck, point) == 0)
 				{
 					if (Obredraw)Readd(3, CoverCheck);
 					RECT rc = GetRECTc(CoverCheck);
 					CoverCheck = 0;
 					Redraw(&rc);
-
 				}
-			}
+				else CoverCheck = 0;
 		}
+		if (CoverEdit == 0)EditGetNewInside(point);
+		else
+			if (Edit[CoverEdit].Press == true)
+			{//如果Edit被按下 (拖动选择条)
+				int t = Edit[CoverEdit].Pos2;
+				Edit[CoverEdit].Pos2 = GetNearestChar(CoverEdit, point);//寻找和鼠标指针最近的字符
+				RefreshCaretByPos(CoverEdit);//移动Caret(闪烁的光标)
+				if (Edit[CoverEdit].Pos2 == Edit[CoverEdit].Pos1) { Edit[CoverEdit].Pos2 = -1; goto end; }//只选择了一个字符
+				if (Edit[CoverEdit].Pos2 != t && Edit[CoverEdit].Width < Edit[CoverEdit].strWidth && !InsideEdit(CoverEdit, point))RefreshXOffset(CoverEdit);//Edit中文本过长，移动到了框外面
+				if (Edit[CoverEdit].Pos2 != t)EditRedraw(CoverEdit);//只要和原来有任何不同就重绘
+			}
+			else
+				if (!InsideEdit(CoverEdit, point))CoverEdit = 0;//Edit没被按下 同理
+	end:
+		if (CoverArea == 0)
+			AreaGetNewInside(point);
+		else
+			if (InsideArea(CoverArea, point))CoverArea = 0;
+
 		if (Msv == 0)
-		{
+		{//检测鼠标移进移出的代码
 			TRACKMOUSEEVENT tme;
 			tme.cbSize = sizeof(tme);
 			tme.hwndTrack = hWnd;
 			tme.dwFlags = TME_LEAVE;
 			TrackMouseEvent(&tme);
-			Msv = 1;
+			Msv = 1;//移出
 		}
-		else {
-			Msv = 0;
-		}
-		if (CoverEdit != 0 && Edit[CoverEdit].Press == true)
-		{
-			int t = Edit[CoverEdit].Pos2;
-			Edit[CoverEdit].Pos2 = GetNearestChar(CoverEdit, point);
-			//if (Edit[CoverEdit].Pos2 == 0)
-			RefreshCaretByPos(CoverEdit);
-			if (Edit[CoverEdit].Pos2 == Edit[CoverEdit].Pos1) { Edit[CoverEdit].Pos2 = -1; goto end; }
-			if (Edit[CoverEdit].Pos2 != t && Edit[CoverEdit].Width < Edit[CoverEdit].strWidth && !InsideEdit(CoverEdit, point))RefreshXOffset(CoverEdit);
-			if (Edit[CoverEdit].Pos2 != t)EditRedraw(CoverEdit);
-		}
-	end:
+		else Msv = 0;//移进
 		if (point.x != ExpPoint2.x || point.y != ExpPoint2.y)
 		{
 			ExpPoint2 = point;
@@ -1205,12 +1208,10 @@ public:
 	int Msv;//鼠标移出检测变量
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;
 	double DPI = 1;
-	int CurCover;
+	int CurCover, CoverCheck, CoverEdit, CoverArea;
 	bool Obredraw = false;
 	bool ButtonEffect = false;
-	int CoverCheck;
 	int CurWnd;
-	int CoverEdit;
 	int Press;
 	std::stack<std::pair<int, int>>rs;
 	std::stack<RECT>es;
@@ -1351,13 +1352,13 @@ BOOL KillProcess(LPCWSTR ProcessName)
 {
 	if (Main.Check[14].Value)
 	{
-		wchar_t tmp[1001];
+		wchar_t tmp[501];
 		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
 		wcscat(tmp, ProcessName);
-		RunEXE(tmp);
+		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 		wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
 		wcscat(tmp, ProcessName);
-		RunEXE(tmp);
+		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;
@@ -1553,7 +1554,6 @@ void DispatchLanguage(LPWSTR ReadTmp, int type, CathyClass*a)
 		*pos = '\0'; gl.begin = pos + 1;
 		wchar_t *space = wcsstr(ReadTmp, L" ");
 		if (space != 0)space[0] = '\0';
-
 		if (type == 1)//button
 		{
 			int cur = a->GetNumbyID(ReadTmp);
@@ -1639,15 +1639,11 @@ void DispatchLanguage(LPWSTR ReadTmp, int type, CathyClass*a)
 			return;
 		}
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		s(L"error");
-	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { s(L"error"); }
 }
 void SwitchLanguage(LPWSTR name)
 {
-	__try
-	{
+	__try {
 		bool Mainf = false, Catchf = false, Upf = false;
 		int type = 0;
 		wchar_t ReadTmp[1001];
@@ -1679,39 +1675,37 @@ void SwitchLanguage(LPWSTR name)
 		}
 		fclose(fp);
 		UpdateInfo();
+		SetWindowText(Main.hWnd, Main.GetStr(L"Title"));
+		SetWindowText(CatchWnd.hWnd, CatchWnd.GetStr(L"Title"));
+		SetWindowText(UpWnd.hWnd, UpWnd.GetStr(L"Title"));
 		haveInfo = true;
 		SetFrame();
 		InvalidateRect(CatchWnd.hWnd, 0, 0);
 		InvalidateRect(UpWnd.hWnd, 0, 0);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER) {
-		s(L"error");
-	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { s(L"error"); }
 }
-int SetupSethc()
+int SetupSethc()//安装sethc
 {
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"sethc.exe");
-	if (GetFileAttributes(tmp) == -1)return 2;
-	if (Bit != 34)
-		return CopyFile(tmp, L"C:\\Windows\\System32\\sethc.exe", false);
-	else
-		return CopyFile(tmp, L"C:\\Windows\\SysNative\\sethc.exe", false);
+	if (GetFileAttributes(tmp) == -1)return 2;//文件不存在
+	return CopyFile(tmp, SethcPath, false);//复制成功 \ 失败
 }
 
-bool AutoSetupSethc()
+bool AutoSetupSethc()//安装sethc的外壳函数
 {
 	int flag = SetupSethc();
 	if (flag == 0) { Main.InfoBox(Main.GetStr(L"CSFail")); return false; }
 	if (flag == 2) { Main.InfoBox(Main.GetStr(L"NoSethc")); return false; }
 	return true;
 }
-bool DeleteSethc()
+bool DeleteSethc()//删除sethc
 {
-	if (GetFileAttributes(SethcPath) == -1)return true;
+	if (GetFileAttributes(SethcPath) == -1)return true;//sethc已经没了 -> 成功
 	TakeOwner(SethcPath);
-	wchar_t tmp[] = L"C:\\Windows\\system32\\dllcache\\sethc.exe";
+	wchar_t tmp[] = L"C:\\Windows\\system32\\dllcache\\sethc.exe";//删除xp中sethc备份文件
 	TakeOwner(tmp);
 	DeleteFile(tmp);
 	return DeleteFile(SethcPath);
@@ -1719,6 +1713,7 @@ bool DeleteSethc()
 
 bool DeleteDirectory(wchar_t *DirName) //新加删除某个不为空的文件夹 
 {
+	TakeOwner(DirName);//先takeown一下
 	wchar_t szCurPath[2550];       //用于定义搜索格式  
 	wcscpy_s(szCurPath, DirName);
 	wcscat_s(szCurPath, L"\\*.*");
@@ -1744,29 +1739,27 @@ bool DeleteDirectory(wchar_t *DirName) //新加删除某个不为空的文件夹
 	}
 	FindClose(hFile);
 
-	BOOL bRet = RemoveDirectory(DirName);
-	if (bRet == 0) //删除目录  
-		return FALSE;
+	BOOL bRet = RemoveDirectory(DirName); //删除目录
+	if (bRet == 0)return FALSE;//删除目录失败 -> 目录内有文件 -> false
 	return TRUE;
 }
 
-bool DeleteSethcS()
+bool DeleteSethcS()//用驱动删除sethc.exe
 {
 	bool flag1 = false, flag2 = false;
-	if (DeleteSethc())return true;
-	UnloadNTDriver(L"deletefile");
+	wchar_t p1[34], p2[34];
+	if (DeleteSethc())return true;//先尝试应用层删除
 	if (Bit == 32)
-	{
-		flag1 = LoadNTDriver(L"deletefile", L"x32\\deletefile.sys");
-		UnloadNTDriver(L"kill");
-		flag2 = LoadNTDriver(L"kill", L"x32\\kill.sys");
-	}
+		wcscpy_s(p1, L"x32\\deletefile.sys"),
+		wcscpy_s(p2, L"x32\\kill.sys");
 	else
-	{
-		flag1 = LoadNTDriver(L"deletefile", L"x64\\deletefile.sys");
-		UnloadNTDriver(L"kill");
-		flag2 = LoadNTDriver(L"kill", L"x64\\kill.sys");
-	}
+		wcscpy_s(p1, L"x64\\deletefile.sys"),
+		wcscpy_s(p2, L"x64\\kill.sys");
+	UnloadNTDriver(L"deletefile");
+
+	flag1 = LoadNTDriver(L"deletefile", p1);
+	UnloadNTDriver(L"kill");
+	flag2 = LoadNTDriver(L"kill", p2);
 	WinExec("net stop kill", SW_HIDE);
 	UnloadNTDriver(L"deletefile");
 	return flag1 & flag2;
@@ -1908,7 +1901,6 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 	bool f;
 	const wchar_t t[5][10] = { L"fly.exe",L"2048.exe",L"block.exe",L"1.exe",L"chess.exe" },
 		g[5][6] = { L"Game2",L"Game3" ,L"Game4" ,L"Game5" ,L"Game6" };
-	//int *tp = (int *)pM;
 	int cur = *(int *)pM;
 	DownloadProgress progress;
 	if (cur == 1) {
@@ -2243,7 +2235,6 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
 	while (TRUE)
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
 			if (FindFileData.cFileName[0] != '.')
 			{
 				wcscpy_s(szFile, lpPath);
@@ -2251,43 +2242,37 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
 				wcscat_s(szFile, FindFileData.cFileName);
 				SearchTool(szFile, type);
 			}
-		}
-		else
-		{
-			//s(FindFileData.cFileName);
-			_wcslwr_s(FindFileData.cFileName);
-			if (type == 1)
-			{
-				if (wcsstr(FindFileData.cFileName, L"studentmain.exe") != NULL)
-				{
-					wcscpy_s(szFile, lpPath);
-					wcscat_s(szFile, L"\\");
-					wcscat_s(szFile, FindFileData.cFileName);
-					RunEXE(szFile);
-				}
-			}
 			else
 			{
-				if (wcsstr(FindFileData.cFileName, L"shutdown.exe") != NULL)
-				{
-					wcscpy_s(szFile, lpPath);
-					wcscat_s(szFile, L"\\");
-					wcscat_s(szFile, FindFileData.cFileName);
-					TakeOwner(szFile);
-					DeleteFile(szFile);
-				}
+				_wcslwr_s(FindFileData.cFileName);
+				if (type == 1)
+					if (wcsstr(FindFileData.cFileName, L"studentmain.exe") != NULL)
+					{
+						wcscpy_s(szFile, lpPath);
+						wcscat_s(szFile, L"\\");
+						wcscat_s(szFile, FindFileData.cFileName);
+						RunEXE(szFile, NULL, nullptr);
+					}
+					else
+						if (wcsstr(FindFileData.cFileName, L"shutdown.exe") != NULL)
+						{
+							wcscpy_s(szFile, lpPath);
+							wcscat_s(szFile, L"\\");
+							wcscat_s(szFile, FindFileData.cFileName);
+							TakeOwner(szFile);
+							DeleteFile(szFile);
+						}
 			}
-		}
-		if (!FindNextFile(hFind, &FindFileData))    break;
+		if (!FindNextFile(hFind, &FindFileData))break;
 	}
 	FindClose(hFind);
 }
 void ReopenTD()
 {
-	SearchTool(L"C:\\Program Files\\Mythware", 1),
-		SearchTool(L"C:\\Program Files\\TopDomain", 1);
-	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1),
-		SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
+	SearchTool(L"C:\\Program Files\\Mythware", 1);
+	SearchTool(L"C:\\Program Files\\TopDomain", 1);
+	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);
+	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
 }
 void DeleteShutdown()
 {
@@ -2298,16 +2283,14 @@ void DeleteShutdown()
 	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 2);
 	SearchTool(L"C:\\Windows\\SysNative", 2);
 }
-bool RunHOOK()
+bool RunHOOK()//运行hook.exe
 {
 	wchar_t tmp[501];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"hook.exe");
 
 	if (GetFileAttributes(tmp) == -1)return false;
-	STARTUPINFO si = { 0 };
-	PROCESS_INFORMATION pi = { 0 };
-	return CreateProcessW(tmp, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+	return RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 }
 void BSOD()
 {
@@ -2510,11 +2493,7 @@ bool RunCmdLine(LPWSTR str)
 	if (wcsstr(str, L"-hook") != NULL)
 	{
 		KillProcess(L"hoo");
-		AutoCopyNTSD();
-		wchar_t tmp[1001];
-		wcscpy_s(tmp, Path);
-		wcscat_s(tmp, L"hook.exe");
-		if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"OneFail"));
+		if (!RunHOOK())Main.InfoBox(Main.GetStr(L"OneFail"));
 		ExitProcess(0);
 	}
 	if (wcsstr(str, L"-auto") != NULL) { CurrentProcessId = GetCurrentProcessId(); KillTop(); ExitProcess(0); }
@@ -2619,14 +2598,16 @@ void SearchLanguageFiles()
 }
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-	InitBrushs;
+	InitBrushs;//创建画笔 & 画刷
+	CreateStrs; //创建字符串
+	//放在TestFunctions.h里以减少GUI.cpp长度
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	Main.InitClass(hInst);
 	if (!Main.RegisterClassW(hInst, WndProc, szWindowClass))return FALSE;
 
 	Main.Obredraw = true;
-	Main.hWnd = CreateWindowW(szWindowClass, L"极域破解v1.9", NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, NULL, nullptr, hInstance, nullptr);
+	Main.hWnd = CreateWindowW(szWindowClass, Main.GetStr(L"Title"), NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, NULL, nullptr, hInstance, nullptr);
 	Main.Timer = GetTickCount();
 	SetTimer(Main.hWnd, 4, 100, (TIMERPROC)TimerProc);
 	CreateCaret(Main.hWnd, NULL, 1, 20);
@@ -2660,9 +2641,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载zxf头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-
-	CreateStrs; //创建字符串
-	//放在TestFunctions.h里以减少GUI.cpp长度
 
 	Main.CreateEditEx(325 + 5, 420, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0, true);
 	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh", 0, false);
@@ -2813,8 +2791,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	if (Admin == 0)Main.CreateText(60, 17, 0, L"Tmain", RGB(255, 255, 255));//关闭 按钮
 	else Main.CreateText(60, 17, 0, L"Tmain2", RGB(255, 255, 255));
 	Main.CreateButtonEx(Main.CurButton, 530, 10, 60, 30, 0, L"×", \
-		CreateSolidBrush(RGB(255, 106, 106)), CreateSolidBrush(RGB(250, 102, 102)), CreateSolidBrush(RGB(238, 99, 99)), \
-		CreatePen(PS_SOLID, 1, RGB(255, 106, 106)), CreatePen(PS_SOLID, 1, RGB(250, 102, 102)), CreatePen(PS_SOLID, 1, RGB(238, 99, 99)), \
+		CreateSolidBrush(RGB(255, 109, 109)), CreateSolidBrush(RGB(250, 100, 100)), CreateSolidBrush(RGB(232, 95, 95)), \
+		CreatePen(PS_SOLID, 1, RGB(255, 109, 109)), CreatePen(PS_SOLID, 1, RGB(250, 100, 100)), CreatePen(PS_SOLID, 1, RGB(232, 95, 95)), \
 		Main.DefFont, 1, 1, RGB(255, 255, 255), L"Close");
 
 	CatchWnd.InitClass(hInst);
@@ -3091,43 +3069,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONDOWN:
-		POINT pt;
-		GetCursorPos(&pt);
-		::ScreenToClient(Main.hWnd, &pt);
-
-		BOOL f; f = FALSE;
-
-		for (int i = 0; i <= Main.CurButton; ++i)
-			if (Main.Button[i].Page == Main.CurWnd || Main.Button[i].Page == 0 || (GameMode&& Main.Button[i].Page == 6))
-				if (Main.InsideButton(i, pt) && Main.Button[i].DownTot == 0 && Main.Button[i].Enabled) {
-					f = TRUE; goto Finished;
-				}
-
-		for (int i = 1; i <= Main.CurEdit; ++i)
-			if (Main.Edit[i].Page == Main.CurWnd || Main.Edit[i].Page == 0)
-				if (Main.InsideEdit(i, pt) != 0) {
-					Main.EditDown(i); f = TRUE; goto Finished;
-				}
-
-		for (int i = 1; i <= Main.CurArea; ++i)
-			if (Main.Area[i].Page == Main.CurWnd || Main.Area[i].Page == 0)
-				if (Main.InsideArea(i, pt) == TRUE) { f = TRUE; goto Finished; }
-
-		if (f == FALSE)
-		{
-			for (int i = 1; i <= Main.CurCheck; ++i)
-				if (Main.Check[i].Page == Main.CurWnd || Main.Check[i].Page == 0)
-					if (Main.InsideCheck(i, pt) != 0) {
-						f = TRUE; goto Finished;
-					}
-
-			if (f == FALSE)
-				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-		}
-	Finished:
-		Main.LeftButtonDown();
+	{
+		POINT point; GetCursorPos(&point); ScreenToClient(Main.hWnd, &point);
+		Main.EditGetNewInside(point);
+		Main.ButtonGetNewInside(point);
+		Main.CheckGetNewInside(point);
+		Main.AreaGetNewInside(point);
+		if (Main.CurCover != -1 || Main.CoverCheck != 0 || Main.CoverEdit != 0 || Main.CoverArea != 0)Main.LeftButtonDown();
+		else PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
 		break;
-
+	}
 	case WM_LBUTTONUP:
 		if (Main.CurCover != -1)
 		{
@@ -3257,11 +3208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		BUTTON_IN(x, L"hookS")
 		{
 			KillProcess(L"hoo");
-
-			wchar_t tmp[501];
-			wcscpy_s(tmp, Path);
-			wcscat_s(tmp, L"hook.exe");
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"OneFail"));
+			if (!RunHOOK())Main.InfoBox(Main.GetStr(L"OneFail"));
 			else
 			{
 				wcscpy_s(Main.Button[Main.GetNumbyID(L"hookS")].Name, Main.GetStr(L"Installed"));
@@ -3332,7 +3279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FC = FALSE;//First start CatchWnd
 
 			if (CatchWnd.hWnd != 0)ShowWindow(CatchWnd.hWnd, SW_HIDE);
-			CatchWnd.hWnd = CreateWindowW(CatchWindow, L"捕捉窗口", WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
+			CatchWnd.hWnd = CreateWindowW(CatchWindow, CatchWnd.GetStr(L"Title"), WS_OVERLAPPEDWINDOW, 200, 200, 625, 550, nullptr, nullptr, hInst, nullptr);
 			CreateCaret(CatchWnd.hWnd, NULL, 1, 20);
 			ShowWindow(CatchWnd.hWnd, SW_SHOW);
 			UpdateWindow(CatchWnd.hWnd);
@@ -3349,7 +3296,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DWORD word = 1; HKEY hKey; LONG ret;
 			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
 			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"auto-5")
@@ -3405,7 +3352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\System32\\drivers\\npf.sys", FALSE);
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysNative\\drivers\\npf.sys", FALSE);
 			CopyFile(L"arp\\npf.sys", L"C:\\Windows\\SysWOW64\\drivers\\npf.sys", FALSE);
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 
 		}
@@ -3417,7 +3364,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			LONG ret;
 			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
 			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)&word, sizeof(DWORD));
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"Killer")
@@ -3435,18 +3382,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"more.txt")
 		{
-			wchar_t tmp[301];
-			wcscpy_s(tmp, L"Notepad ");
+			wchar_t tmp[301] = L"Notepad ";
 			wcscat_s(tmp, Path);
 			wcscat_s(tmp, L"关于&帮助.txt");
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"sysinfo")
 		{
-			wchar_t tmp[34];
-			wcscpy_s(tmp, L"C:\\Windows\\System32\\Msinfo32.exe");
-			if (!RunEXE(tmp))Main.InfoBox(Main.GetStr(L"StartFail"));
+			wchar_t tmp[] = L"C:\\Windows\\System32\\Msinfo32.exe";
+			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(Main.GetStr(L"StartFail"));
 			break;
 		}
 		BUTTON_IN(x, L"hidest") { HideState = 5; ShowWindow(Main.hWnd, SW_HIDE);	break; }
@@ -3465,41 +3410,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
 				UpWnd.Check[i + 1].Value = FileExist[i];
 			}
-			UpWnd.hWnd = CreateWindowW(UpWindow, L"下载文件", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 210, 440, nullptr, nullptr, hInst, nullptr);
+			UpWnd.hWnd = CreateWindowW(UpWindow, UpWnd.GetStr(L"Title"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, 210, 440, nullptr, nullptr, hInst, nullptr);
 			ShowWindow(UpWnd.hWnd, SW_SHOW);
 			UpdateWindow(UpWnd.hWnd);
 			break;
 		}
 
 		BUTTON_IN(x, L"Game1") {
-			if (GameExist[0])RunEXEs(GameName[0]);
-			else { int typ = 1; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[0])RunEXE(GameName[0], NULL, nullptr);
+			else { int typ = 1; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 		BUTTON_IN(x, L"Game2") {
-			if (GameExist[1])RunEXEs(GameName[1]);
-			else { int typ = 2; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[1])RunEXE(GameName[1], NULL, nullptr);
+			else { int typ = 2; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 		BUTTON_IN(x, L"Game3") {
-			if (GameExist[2])RunEXEs(GameName[2]);
-			else { int typ = 3; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[2])RunEXE(GameName[2], NULL, nullptr);
+			else { int typ = 3; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 		BUTTON_IN(x, L"Game4") {
-			if (GameExist[3])RunEXEs(GameName[3]);
-			else { int typ = 4; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[3])RunEXE(GameName[3], NULL, nullptr);
+			else { int typ = 4; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 		BUTTON_IN(x, L"Game5") {
-			if (GameExist[4])RunEXEs(GameName[4]);
-			else { int typ = 5; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[4])RunEXE(GameName[4], NULL, nullptr);
+			else { int typ = 5; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 		BUTTON_IN(x, L"Game6") {
-			if (GameExist[5])RunEXEs(GameName[5]);
-			else { int typ = 6; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }
-			break;
+			if (GameExist[5])RunEXE(GameName[5], NULL, nullptr);
+			else { int typ = 6; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
 		}
 
 		BUTTON_IN(x, L"Close") { PostQuitMessage(0); break; }
@@ -3522,7 +3461,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							wchar_t tmp[301];
 							wcscpy_s(tmp, Path);
 							if (i == 1)wcscat_s(tmp, L"cheat\\old.exe"); else wcscat_s(tmp, L"cheat\\new.exe");
-							if (RunEXEs(tmp) == 0)Main.InfoBox(Main.GetStr(L"StartFail")), Main.Check[i].Value = true;
+							if (!RunEXE(tmp, NULL, NULL))Main.InfoBox(Main.GetStr(L"StartFail")), Main.Check[i].Value = true;
 							break;
 						}
 						case 3:

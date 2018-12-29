@@ -297,8 +297,12 @@ Main.CreateString(L"2010或之前", L"TTDold");\
 	Main.CreateString(L"极域状态: ", L"_TDState");\
 	Main.CreateString(L"PID: ", L"_TDPID");\
 	Main.CreateString(L"下载失败", L"DownFail");\
+Main.CreateString(L"极域破解1.9", L"Title");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
-	CatchWnd.CreateString(L" 个窗口", L"Eat2")
+	CatchWnd.CreateString(L" 个窗口", L"Eat2");\
+CatchWnd.CreateString(L"捕捉窗口", L"Title");\
+UpWnd.CreateString(L"下载文件", L"Title")
+
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])
 {
