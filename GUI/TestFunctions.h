@@ -241,7 +241,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"复制文件", L"Tcopy");\
 	Main.CreateString(L"按快捷键Ctrl+B切换", L"Tctrl+b");\
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
-	Main.CreateString(L"并不一定能修改成功", L"Tcp2");\
+	Main.CreateString(L"不保证修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：zouxiaofei1 cxy villager", L"Tcoder");\
 	Main.CreateString(L"版本：C++ v1.9 正式版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
@@ -274,6 +274,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"- 不可用 ", L"Useless");\
 	Main.CreateString(L"- 可用 ", L"Usable");\
 	Main.CreateString(L"- 推荐 ", L"Rec");\
+	Main.CreateString(L"- 不推荐 ", L"nRec");\
 	Main.CreateString(L"按 Ctrl+P 组合键可显示/隐藏此窗口", L"Ttip1");\
 	Main.CreateString(L"一般情况下建议使用“一键安装”或“虚拟桌面”", L"Ttip2");\
 	Main.CreateString(L"系统位数:", L"Tbit");\
