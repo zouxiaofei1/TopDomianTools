@@ -261,7 +261,7 @@ unsigned int Hash(const wchar_t *str)
 	CatchWnd.CreateString(NULL, L"back");\
 	CatchWnd.CreateString(L"进程名称:", L"Processnam");\
 	CatchWnd.CreateString(L"延迟:", L"Delay");\
-CatchWnd.CreateString(L" 秒", L"second");\
+	CatchWnd.CreateString(L" 秒", L"second");\
 	Main.CreateString(L"explorer.exe", L"E_runinVD");\
 	Main.CreateString(L"输入端口", L"E_ApplyCh");\
 	Main.CreateString(L"输入密码", L"E_CP");\
@@ -280,9 +280,9 @@ CatchWnd.CreateString(L" 秒", L"second");\
 	Main.CreateString(L"系统版本:", L"Twinver");\
 	Main.CreateString(L"cmd状态:", L"Tcmd");\
 	Main.CreateString(L"", L"TTDv");\
-Main.CreateString(L"极域版本: ", L"_TTDv");\
-Main.CreateString(L"未知或不存在", L"TTDunk");\
-Main.CreateString(L"2010或之前", L"TTDold");\
+	Main.CreateString(L"极域版本: ", L"_TTDv");\
+	Main.CreateString(L"未知或不存在", L"TTDunk");\
+	Main.CreateString(L"2010或之前", L"TTDold");\
 	Main.CreateString(L"IP地址:", L"TIP");\
 	Main.CreateString(L"存在", L"TcmdOK");\
 	Main.CreateString(L"不存在", L"TcmdNO");\
@@ -299,15 +299,14 @@ Main.CreateString(L"2010或之前", L"TTDold");\
 	Main.CreateString(L"极域状态: ", L"_TDState");\
 	Main.CreateString(L"PID: ", L"_TDPID");\
 	Main.CreateString(L"下载失败", L"DownFail");\
-Main.CreateString(L"极域破解1.9", L"Title");\
-Main.CreateString(L"打开文件夹",L"OpenFolder");\
+	Main.CreateString(L"极域破解1.9", L"Title");\
+	Main.CreateString(L"打开文件夹",L"OpenFolder");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
 	CatchWnd.CreateString(L" 个窗口", L"Eat2");\
-CatchWnd.CreateString(L"捕捉窗口", L"Title");\
-UpWnd.CreateString(L"下载文件", L"Title")
+	CatchWnd.CreateString(L"捕捉窗口", L"Title");\
+	UpWnd.CreateString(L"下载文件", L"Title")
 
-
-bool Findquotations(wchar_t* zxf, wchar_t zxf2[])
+bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
 	wchar_t tmp0;
 	wchar_t *tmp1 = wcsstr(zxf, L"\"");
