@@ -928,7 +928,7 @@ public:
 		else//原来在
 		{
 			if (!Button[CurCover].Enabled) { CurCover = -1; goto disabled; }//这个按钮被禁用了
-			if (Button[CurCover].Page == CurWnd || Button[CurCover].Page == 0 || !InsideButton(CurCover, point))
+			if ((Button[CurCover].Page != CurWnd && Button[CurCover].Page != 0) || !InsideButton(CurCover, point))
 			{//现在不在
 				if (Obredraw)Readd(2, CurCover);
 				if (ButtonEffect)
@@ -939,7 +939,7 @@ public:
 				RECT rc = GetRECT(CurCover);
 				CurCover = -1;
 				Redraw(&rc);
-
+				//s(1);
 				ButtonGetNewInside(point);//有可能从一个按钮直接移进另一个按钮内
 			}
 		}
@@ -947,7 +947,7 @@ public:
 		if (CoverCheck == 0)CheckGetNewInside(point);//在外面 -> 寻找新check
 		else
 		{//同理
-			if (Check[CoverCheck].Page == CurWnd || Check[CoverCheck].Page == 0 || InsideCheck(CoverCheck, point) == 0)
+			if ((Check[CoverCheck].Page != CurWnd && Check[CoverCheck].Page != 0) || InsideCheck(CoverCheck, point) == 0)
 			{
 				if (Obredraw)Readd(3, CoverCheck);
 				RECT rc = GetRECTc(CoverCheck);
@@ -1205,7 +1205,6 @@ public:
 	bool ExpExist = false;
 private://没有任何private变量或函数= =
 }Main, CatchWnd, UpWnd;
-wchar_t xx[] = { L"virtual HRESULT STDMETHODCALL	int CurStr	if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);//取消置顶ing, CurBufor (unsigned int i = 1; i <= tdpid[0]; ++i)if (tdpid[i] == nProcessID) { tdh[++tdhcur] = hwnd; }tton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;TYPE GetPpublic://这些函数有些参数没有用到，会导致大量警告.r::GetWindowThreadProcessId(hwnd, &nProcessID);//如果pid正确，把hwnd记录下来iority(LONG *pnPriority) { return E_NOTIMPL; }STDMETHODCALLTYPE OnStopBinding(HRESULT hresult, LPCWSTR szE//ulProgressMax：总字节数rror) { return E_NOTIMPL; }" };
 #pragma warning(disable:4100)//禁用警告
 class DownloadProgress : public IBindStatusCallback {
 public://这些函数有些参数没有用到，会导致大量警告.
@@ -1671,39 +1670,6 @@ bool DeleteSethc()//删除sethc
 	return DeleteFile(SethcPath);
 }
 
-bool DeleteDirectory(wchar_t *DirName) //新加删除某个不为空的文件夹 
-{
-	TakeOwner(DirName);//先takeown一下
-	wchar_t szCurPath[2550];       //用于定义搜索格式  
-	wcscpy_s(szCurPath, DirName);
-	wcscat_s(szCurPath, L"\\*.*");
-	WIN32_FIND_DATA FindFileData;
-	ZeroMemory(&FindFileData, sizeof(WIN32_FIND_DATA));
-	HANDLE hFile = FindFirstFile(szCurPath, &FindFileData);
-	BOOL IsFinded = TRUE;
-	while (IsFinded)
-	{
-		IsFinded = FindNextFile(hFile, &FindFileData); //递归搜索其他的文件  
-		if (wcslen(FindFileData.cFileName) != 0 && wcscmp(FindFileData.cFileName, L".") && wcscmp(FindFileData.cFileName, L"..")) //如果不是"." ".."目录  
-		{
-			wchar_t strFileName[2550] = { 0 }, temp[2550] = { 0 };
-			wcscpy_s(strFileName, DirName);
-			wcscat_s(strFileName, L"\\");
-			wcscat_s(strFileName, FindFileData.cFileName);
-			wcscpy_s(temp, strFileName);
-			if (GetFileAttributes(temp) & 16) //如果是目录，则递归地调用  
-				DeleteDirectory(temp);
-			else
-				DeleteFile(strFileName);
-		}
-	}
-	FindClose(hFile);
-
-	BOOL bRet = RemoveDirectory(DirName); //删除目录
-	if (bRet == 0)return FALSE;//删除目录失败 -> 目录内有文件 -> false
-	return TRUE;
-}
-
 bool DeleteSethcS()//用驱动删除sethc.exe
 {
 	bool flag1 = false, flag2 = false;
@@ -1758,15 +1724,70 @@ bool AutoCopyNTSD()
 	return true;
 }
 
-void AutoDelete(wchar_t *tmp)
+void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删除文件夹
+{
+	wchar_t szFind[255], szFile[255];
+	WIN32_FIND_DATA FindFileData;
+	wcscpy_s(szFind, lpPath);
+	wcscat_s(szFind, L"\\*.*");
+	HANDLE hFind = ::FindFirstFile(szFind, &FindFileData);
+	if (INVALID_HANDLE_VALUE == hFind) return;
+	while (TRUE)
+	{
+		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			if (FindFileData.cFileName[0] != '.')
+			{
+				wcscpy_s(szFile, lpPath);
+				wcscat_s(szFile, L"\\");
+				wcscat_s(szFile, FindFileData.cFileName);
+				SearchTool(szFile, type);
+			}
+		}
+		else
+		{
+			_wcslwr_s(FindFileData.cFileName);
+			if (type == 1)
+				if (wcsstr(FindFileData.cFileName, L"studentmain.exe") != NULL)
+				{
+					wcscpy_s(szFile, lpPath);
+					wcscat_s(szFile, L"\\");
+					wcscat_s(szFile, FindFileData.cFileName);
+					RunEXE(szFile, NULL, nullptr);
+				}
+			if (type == 2)
+				if (wcsstr(FindFileData.cFileName, L"shutdown.exe") != NULL)
+				{
+					wcscpy_s(szFile, lpPath);
+					wcscat_s(szFile, L"\\");
+					wcscat_s(szFile, FindFileData.cFileName);
+					TakeOwner(szFile);
+					DeleteFile(szFile);
+				}
+			if (type == 3)
+			{
+				wcscpy_s(szFile, lpPath);
+				wcscat_s(szFile, L"\\");
+				wcscat_s(szFile, FindFileData.cFileName);
+				TakeOwner(szFile);
+				DeleteFile(szFile);
+				RemoveDirectory(lpPath);
+			}
+		}
+		if (!FindNextFile(hFind, &FindFileData))break;
+	}
+	FindClose(hFind);
+}
+
+void AutoDelete(wchar_t *tmp)//自动删除文件
 {
 	int FileType;
 	FileType = GetFileAttributes(tmp);
-	if (FileType == -1) { Main.InfoBox(L"TINotF"); return; }
+	if (FileType == -1) { Main.InfoBox(L"TINotF"); return; }//不是文件也不是文件夹
 	TakeOwner(tmp);
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
-		DeleteDirectory(tmp);
+		SearchTool(tmp, 3);
 	else
 		DeleteFile(tmp);
 }
@@ -1853,7 +1874,7 @@ bool DownloadGames(const wchar_t *url, const wchar_t *file, DownloadProgress *p,
 	}
 	if (URLDownloadToFileW(NULL, URL, Fp, 0, p) == S_OK)return true; else return false;
 }
-DWORD WINAPI DownloadThread(LPVOID pM)
+DWORD WINAPI DownloadThread(LPVOID pM)//下载游戏
 {
 	bool f;
 	const wchar_t t[5][10] = { L"fly.exe",L"2048.exe",L"block.exe",L"1.exe",L"chess.exe" },
@@ -1871,7 +1892,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)
 }
 BOOL DownFail = false;
 wchar_t Git[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/";
-void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)
+void Updownload(wchar_t *a, wchar_t *b, const wchar_t *c)//下载文件的三个函数
 {
 	wcscpy(a, Git);//b tpath
 	wcscat(a, c); //a tUrl
@@ -1895,8 +1916,6 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 {
 	int *tp = (int *)pM;
 	int cur = *tp;
-	//DownloadProgress progress;
-
 	wchar_t tURL[501], tPath[501];
 	const wchar_t name[][34] = { L"deleter\\DrvDelFile.exe",L"deleter\\DeleteFile.sys",L"deleter\\DeleteFile_x64.sys" };
 	const wchar_t name2[][34] = { L"arp\\wpcap.dll" ,L"arp\\npf.sys",L"arp\\npptools.dll",L"arp\\Packet.dll",L"arp\\WanPacket.dll" , L"arp\\arp.exe" };
@@ -1951,24 +1970,18 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)
 	if (GetFileAttributes(tPath) != -1)FileExist[cur - 1] = true;
 	return 0;
 }
-COLORREF DoSelectColour()
+COLORREF DoSelectColour()//选择颜色
 {
-	static CHOOSECOLOR cc;
+	static CHOOSECOLOR cc = { 0 };
 	static COLORREF crCustColors[16];
 	cc.lStructSize = sizeof(cc);
 	cc.lpCustColors = crCustColors;
 	cc.Flags = CC_ANYCOLOR;
-	cc.hInstance = 0;
-	cc.lpTemplateName = 0;
-	cc.lpfnHook = 0;
-	cc.rgbResult = RGB(1, 1, 1);
-
 	ChooseColor(&cc);
-	int sum = (byte)cc.rgbResult + (byte)(cc.rgbResult >> 8) + (byte)(cc.rgbResult >> 16);
-	if (sum <= 384)Main.Text[18].rgb = RGB(255, 255, 255); else Main.Text[18].rgb = 0;
+	if (((byte)cc.rgbResult + (byte)(cc.rgbResult >> 8) + (byte)(cc.rgbResult >> 16)) <= 384)Main.Text[18].rgb = RGB(255, 255, 255); else Main.Text[18].rgb = 0;
 	return cc.rgbResult;
 }
-BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)//捕捉窗口
 {
 	UNREFERENCED_PARAMETER(lParam);
 	ULONG nProcessID;
@@ -1981,7 +1994,7 @@ BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)
 	}
 	return 1;
 }
-void ReturnWindows()
+void ReturnWindows()//归还窗口
 {
 	while (!EatList.empty())
 	{
@@ -1991,7 +2004,7 @@ void ReturnWindows()
 	InvalidateRect(CatchWnd.hWnd, NULL, FALSE);
 }
 
-void RefreshTDstate()
+void RefreshTDstate()//刷新极域的状态
 {
 	RECT rc = { (LONG)(165 * Main.DPI), (LONG)(390 * Main.DPI),(LONG)(320 * Main.DPI),(LONG)(505 * Main.DPI) };
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -2069,11 +2082,11 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 	UNREFERENCED_PARAMETER(hWnd); UNREFERENCED_PARAMETER(nMsg); UNREFERENCED_PARAMETER(dwTime);
 	switch (nTimerid)
 	{
-	case 1:
+	case 1://连续结束进程
 		if (Main.Check[8].Value == 1)
 			KillProcess(Main.Edit[Main.GetNumByIDe(L"E_TDname")].str);
 		break;
-	case 2:
+	case 2://延时捕捉窗口
 		timerleft--;
 		if (timerleft >= 0)
 		{
@@ -2088,7 +2101,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		}
 		if (timerleft == -1)wcscpy_s(CatchWnd.Button[1].Name, CatchWnd.GetStr(L"back")), InvalidateRect(CatchWnd.hWnd, NULL, FALSE);
 		break;
-	case 3:
+	case 3://copyleft
 		EasterEggState = (EasterEggState + 1) % 11;
 		wchar_t tmp[101];
 		wcscpy_s(tmp, L"Copy");
@@ -2097,10 +2110,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		Main.SetStr(tmp, L"_Tleft");
 		InvalidateRect(Main.hWnd, 0, false);
 		break;
-	case 4:
+	case 4://定时创建exp
 		if (GetTickCount() - Main.Timer >= 1000 && Main.ExpExist == false)Main.Try2CreateExp();
 		break;
-	case 5:
+	case 5://按钮特效
 		for (int i = 1; i <= Main.CurButton; ++i)
 		{
 			if (Main.CurCover != i && Main.Button[i].Percent > 0)
@@ -2122,24 +2135,18 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		}
 		break;
 	case 6:
-		InvalidateRect(CatchWnd.hWnd, NULL, FALSE);
-		UpdateWindow(CatchWnd.hWnd);
-	case 7:
+		CatchWnd.Redraw(NULL);
+		break;
+	case 7://刷新HOOK
 		if (Main.Check[9].Value == 1)KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
 		if (Main.Check[10].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
 		break;
-	case 8:
+	case 8://刷新极域状态
 		RefreshTDstate();
 		break;
 	}
-
 }
-
-void s(LPCWSTR cathy)
-{
-	MessageBox(NULL, cathy, L"", NULL);
-}
-void SDesktop()
+void SDesktop()//切换桌面
 {
 	if (hCurrentDesk == defaultDesk)
 	{
@@ -2154,7 +2161,7 @@ void SDesktop()
 		hCurrentDesk = defaultDesk;
 	}
 }
-void openfile()
+void openfile()//打开文件
 {
 	OPENFILENAMEW ofn = { 0 };
 	wchar_t strFile[MAX_PATH] = { 0 };
@@ -2165,11 +2172,11 @@ void openfile()
 	if (GetOpenFileNameW(&ofn) == TRUE)Main.SetEditStrOrFont(strFile, 0, Main.GetNumByIDe(L"E_View"));
 	Main.EditRedraw(Main.GetNumByIDe(L"E_View"));
 }
-void BrowseFolder()
+void BrowseFolder()//打开文件夹
 {
 	wchar_t path[MAX_PATH];
 	BROWSEINFO bi = { 0 };
-	bi.lpszTitle = L"打开文件夹";
+	bi.lpszTitle = Main.GetStr(L"OpenFolder");
 	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
 	if (pidl != 0)
 	{
@@ -2179,57 +2186,15 @@ void BrowseFolder()
 		Main.EditRedraw(Main.GetNumByIDe(L"E_View"));
 	}
 }
-void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown
-{
-	wchar_t szFind[255], szFile[255];
-	WIN32_FIND_DATA FindFileData;
-	wcscpy_s(szFind, lpPath);
-	wcscat_s(szFind, L"\\*.*");
-	HANDLE hFind = ::FindFirstFile(szFind, &FindFileData);
-	if (INVALID_HANDLE_VALUE == hFind) return;
-	while (TRUE)
-	{
-		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			if (FindFileData.cFileName[0] != '.')
-			{
-				wcscpy_s(szFile, lpPath);
-				wcscat_s(szFile, L"\\");
-				wcscat_s(szFile, FindFileData.cFileName);
-				SearchTool(szFile, type);
-			}
-			else
-			{
-				_wcslwr_s(FindFileData.cFileName);
-				if (type == 1)
-					if (wcsstr(FindFileData.cFileName, L"studentmain.exe") != NULL)
-					{
-						wcscpy_s(szFile, lpPath);
-						wcscat_s(szFile, L"\\");
-						wcscat_s(szFile, FindFileData.cFileName);
-						RunEXE(szFile, NULL, nullptr);
-					}
-					else
-						if (wcsstr(FindFileData.cFileName, L"shutdown.exe") != NULL)
-						{
-							wcscpy_s(szFile, lpPath);
-							wcscat_s(szFile, L"\\");
-							wcscat_s(szFile, FindFileData.cFileName);
-							TakeOwner(szFile);
-							DeleteFile(szFile);
-						}
-			}
-		if (!FindNextFile(hFind, &FindFileData))break;
-	}
-	FindClose(hFind);
-}
-void ReopenTD()
+
+void ReopenTD()//尝试打开极域
 {
 	SearchTool(L"C:\\Program Files\\Mythware", 1);
 	SearchTool(L"C:\\Program Files\\TopDomain", 1);
 	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);
 	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
 }
-void DeleteShutdown()
+void DeleteShutdown()//尝试删除shutdown.exe
 {
 	SearchTool(L"C:\\Program Files\\Mythware", 2);
 	SearchTool(L"C:\\Program Files\\TopDomain", 2);
@@ -2243,32 +2208,23 @@ bool RunHOOK()//运行hook.exe
 	wchar_t tmp[501];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"hook.exe");
-
 	if (GetFileAttributes(tmp) == -1)return false;
 	return RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 }
-void BSOD()
+void BSOD()//尝试蓝屏
 {
 	UnloadNTDriver(L"BSOD");
-
-	if (Bit == 32)
-		LoadNTDriver(L"BSOD", L"x32\\BSOD.sys");
-	else
-		LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
-
+	if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
+	Main.Check[14].Value = true;
 	KillProcess(L"svc");
+	KillProcess(L"sys");
 }
-void EasterEgg(bool flag)
+void EasterEgg(bool flag)//开关easteregg
 {
-	if (flag)
-		SetTimer(Main.hWnd, 3, 100, (TIMERPROC)TimerProc), EasterEggFlag = true;
-	else
-		KillTimer(Main.hWnd, 3), EasterEggFlag = false;
+	if (flag)SetTimer(Main.hWnd, 3, 100, (TIMERPROC)TimerProc), EasterEggFlag = true; else KillTimer(Main.hWnd, 3), EasterEggFlag = false;
 }
-
-
-void AutoViewPass()
-{
+void AutoViewPass()//读取密码并显示
+{//不支持加密过的(因为懒得写)
 	HKEY hKey;
 	LONG ret;
 	wchar_t szLocation[300];
@@ -2297,7 +2253,7 @@ void AutoViewPass()
 finish:
 	RegCloseKey(hKey);
 }
-void AutoClearPassWd()
+void AutoClearPassWd()//自动清空密码
 {
 	const BYTE key[] = { 0x37,0x6A,0x12,0x11,0xDB,0x6E,0xE4,0x1A,0x20,0x18,0xE6,0x43,0xDE,0x38,0x17,0x06,0x92,\
 		0x22,0xA4,0x33,0x82,0x36,0xB9,0x2B,0xCA,0x05,0x49,0x01,0x34,0x62,0x5F,0x12,0xA1,0x71,0x0F,0x15,0xAB,0x07,0x22,\
@@ -2309,94 +2265,53 @@ void AutoClearPassWd()
 	wchar_t tmp = 0;
 	HKEY hKey;
 	LONG ret, ret2;
-
 	if (Bit != 64)
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class\\Student", 0, KEY_SET_VALUE, &hKey);
 	else
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class\\Student", 0, KEY_SET_VALUE, &hKey);
-
 	if (ret != 0)
 	{
 		Main.InfoBox(L"ACFail");
 		RegCloseKey(hKey);
 		return;
 	}
-
 	ret = RegSetValueEx(hKey, L"Knock", 0, REG_BINARY, (const BYTE*)&key, sizeof(key));
 	ret2 = RegSetValueEx(hKey, L"Knock1", 0, REG_BINARY, (const BYTE*)&key, sizeof(key));
-
 	if (ret != 0 || ret2 != 0)
 	{
 		Main.InfoBox(L"ACUKE");
 		RegCloseKey(hKey);
 		return;
 	}
-
 	if (Bit != 64)
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
 	else
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-
-	if (ret != 0)
-	{
-		Main.InfoBox(L"ACFail");
-		RegCloseKey(hKey);
-		return;
-	}
-
+	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(tmp));
-
-	if (ret != 0)
-	{
-		Main.InfoBox(L"ACUKE");
-		RegCloseKey(hKey);
-		return;
-	}
-
+	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }
 	Main.InfoBox(L"ACOK");
 	RegCloseKey(hKey);
 }
-void ChangePasswordEx(int type)
+void ChangePasswordEx(wchar_t *a,int type)//自动更改密码
 {
 	wchar_t tmp[1001] = { 0 };
-	if (wcscmp(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, Main.GetStr(L"E_CP")) == 0)
-	{
-		wchar_t tmp2[501];
-		wcscpy_s(tmp2, Main.GetStr(L"CPAsk1"));
-		wcscat_s(tmp2, L"\"");
-		wcscat_s(tmp2, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
-		wcscat_s(tmp2, L"\"");
-		wcscat_s(tmp2, Main.GetStr(L"CPAsk2"));
-		if (MessageBox(Main.hWnd, tmp2, Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_YESNO) != IDYES)return;
-	}
-	HKEY hKey;
-	LONG ret;
+	HKEY hKey; LONG ret;
 	if (Bit != 64)
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-	else
+	else//打开键值
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-
-	if (ret != 0)
-	{
-		Main.InfoBox(L"ACFail");
-		RegCloseKey(hKey);
-		return;
-	}
-	if (type == 2)wcscpy_s(tmp, L"Passwd"), wcscat_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
-	else wcscpy_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }//打开失败
+	if (type == 2)wcscpy_s(tmp, L"Passwd"), wcscat_s(tmp, a);//是否在之前加上Passwd
+	else wcscpy_s(tmp, a);
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t)*wcslen(tmp));
-	if (ret != 0)
-	{
-		Main.InfoBox(L"ACUKE");
-		RegCloseKey(hKey);
-		return;
-	}
+	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }//失败
 	RegCloseKey(hKey);
-	if (type == 1)
+	if (type == 1)//额外修改knock和异或加密
 	{
 		wcscpy_s(tmp, L"Passwd");
 		BYTE data[2000];
-		wcscat(tmp, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+		wcscat(tmp, a);
 		int len = wcslen(tmp) * 2;
 		for (int i = 0; i < len; ++i)tmp[i] ^= 0x4350u;
 		for (int i = 0; i < len; ++i)
@@ -2408,27 +2323,25 @@ void ChangePasswordEx(int type)
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
 		else
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-
 		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char)*len);
 
-		if (Bit != 64)change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, false);
-		else change(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, true);
+		if (Bit != 64)change(a, false);else change(a, true);
 	}
 	Main.InfoBox(L"ACOK");
 	return;
 }
-
 bool RunCmdLine(LPWSTR str)
 {
-	if (wcsstr(str, L"-top") != NULL)
+	_wcslwr(str);
+	if (wcsstr(str, L"-top") != NULL)//显示在安全桌面上用
 	{
 		Main.Check[4].Value = 1;
 		TOP = TRUE;
 		CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
-		return false;
+		return false;//false表示继续运行
 	}
 	DWORD pid = GetParentProcessID(GetCurrentProcessId());
-	AttachConsole(pid);
+	AttachConsole(pid);//附加到父进程命令行上
 	freopen("CONOUT$", "w+t", stdout);
 	freopen("CONIN$", "r+t", stdin);
 	setlocale(LC_ALL, "chs");
@@ -2440,38 +2353,52 @@ bool RunCmdLine(LPWSTR str)
 		if (!DeleteSethc())Main.InfoBox(L"DSR3Fail");
 		AutoSetupSethc();
 		AutoCopyNTSD();
-		ExitProcess(0);
+		return true;
 	}
 	if (wcsstr(str, L"-hook") != NULL)
 	{
 		KillProcess(L"hoo");
 		if (!RunHOOK())Main.InfoBox(L"OneFail");
-		ExitProcess(0);
+		return true;
 	}
-	if (wcsstr(str, L"-auto") != NULL) { KillTop(); ExitProcess(0); }
+	if (wcsstr(str, L"-auto") != NULL) { KillTop(); return true;}
 	if (wcsstr(str, L"-unsethc") != NULL) {
 		DeleteFile(SethcPath);
-		CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE); ExitProcess(0);
+		CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE); return true;
 	}
-	if (wcsstr(str, L"-unhook") != NULL) { KillProcess(L"hoo"); ExitProcess(0); }
-	if (wcsstr(str, L"-viewpass") != NULL) { AutoViewPass(); ExitProcess(0); }
-	if (wcsstr(str, L"-antishutdown") != NULL) { DeleteShutdown(); ExitProcess(0); }
-	if (wcsstr(str, L"-reopen") != NULL) { ReopenTD(); ExitProcess(0); }
-	if (wcsstr(str, L"-BSOD") != NULL) { BSOD(); ExitProcess(0); }
-	if (wcsstr(str, L"-restart") != NULL) { Restart(); ExitProcess(0); }
-	if (wcsstr(str, L"-clear") != NULL) { AutoClearPassWd(); ExitProcess(0); }
+	if (wcsstr(str, L"-unhook") != NULL) { KillProcess(L"hoo"); return true;}
+	if (wcsstr(str, L"-viewpass") != NULL) { AutoViewPass(); return true;}
+	if (wcsstr(str, L"-antishutdown") != NULL) { DeleteShutdown(); return true;}
+	if (wcsstr(str, L"-reopen") != NULL) { ReopenTD(); return true;}
+	if (wcsstr(str, L"-bsod") != NULL) { BSOD(); return true; }
+	if (wcsstr(str, L"-restart") != NULL) { Restart(); return true; }
+	if (wcsstr(str, L"-clear") != NULL) { AutoClearPassWd(); return true; }
 	if (wcsstr(str, L"-rekill") != NULL)
 	{
 		wchar_t tmp[1001], *tmp1 = wcsstr(str, L"-rekill");
-		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		if (!Findquotations(tmp1, tmp))return true;
 		while (1) { KillProcess(tmp); Sleep(50); }
 	}
 	if (wcsstr(str, L"-delete") != NULL)
 	{
 		wchar_t tmp[1001], *tmp1 = wcsstr(str, L"-delete");
-		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		if (!Findquotations(tmp1, tmp))return true;
 		AutoDelete(tmp);
-		ExitProcess(0);
+		return true;
+	}
+	if (wcsstr(str, L"-changewithpasswd") != NULL)//二者顺序不能调换
+	{
+		wchar_t tmp[1001], *tmp1 = wcsstr(str, L"-changewithpasswd");
+		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		ChangePasswordEx(tmp, 2);
+		return true;
+	}
+	if (wcsstr(str, L"-change") != NULL)
+	{
+		wchar_t tmp[1001], *tmp1 = wcsstr(str, L"-change");
+		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		ChangePasswordEx(tmp,1);
+		return true;
 	}
 	return false;
 }
@@ -2496,7 +2423,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		wcscpy_s(ntsdPath, L"C:\\Windows\\SysNative\\ntsd.exe");
 
 	BOOL Flag = Backup();
-	if (wcslen(lpCmdLine) != 0) { if (RunCmdLine(lpCmdLine) == true)goto cosl; }
+
+	CreateStrs; //创建字符串
+
+	if (wcslen(lpCmdLine) != 0) { if (RunCmdLine(lpCmdLine) == true)return 0; }
 
 	defaultDesk = GetThreadDesktop(GetCurrentThreadId());//创建虚拟桌面
 	hVirtualDesk = CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
@@ -2509,17 +2439,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	hCurrentDesk = defaultDesk;
 
-
-	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
-	SEtProcessDPIAware SetProcessDPIAware;
-	HMODULE huser;
-	huser = LoadLibrary(L"user32.dll");
-	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
-	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
-
 	if (!InitInstance(hInstance, nCmdShow))return FALSE;
-
-cosl:
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GUI));
 
 	MSG msg;
@@ -2558,7 +2478,6 @@ void SearchLanguageFiles()
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	InitBrushs;//创建画笔 & 画刷
-	CreateStrs; //创建字符串
 	//放在TestFunctions.h里以减少GUI.cpp长度
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
@@ -2756,13 +2675,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	CatchWnd.CreateText(18, 10, 0, L"Processnam", NULL);
 	CatchWnd.CreateText(303, 10, 0, L"Delay", NULL);
-	CatchWnd.CreateText(355, 50, 0, L"Timer2", NULL);
+	CatchWnd.CreateText(355, 50, 0, L"second", NULL);
 	CatchWnd.CreateEditEx(15 + 5, 35, 260 - 10, 45, 0, L"StudentMain.exe", L"E_Pname", CatchWnd.DefFont, true);
 	CatchWnd.CreateEditEx(295 + 5, 35, 50 - 10, 45, 0, L"5", L"E_Delay", CatchWnd.DefFont, true);
 	CatchWnd.CreateButton(15, 100, 100, 50, 0, L"捕捉窗口", L"CatchW");
 	CatchWnd.CreateButton(130, 100, 100, 50, 0, L"监视窗口", L"CopyW");
 	CatchWnd.CreateButton(245, 100, 100, 50, 0, L"释放窗口", L"ReturnW");
-
 
 	UpWnd.InitClass(hInst);
 
@@ -2778,7 +2696,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	UpWnd.CreateCheck(15, 280, 0, 100, L" 32位驱动");
 	UpWnd.CreateCheck(15, 310, 0, 100, L" 64位驱动");
 	UpWnd.CreateCheck(15, 340, 0, 100, L" 语言文件");
-	*xx = 0;
 	if (!Main.hWnd)return FALSE;
 
 	if (Admin == FALSE)SetFrame();
@@ -2786,6 +2703,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetWindowPos(Main.hWnd, 0, 0, 0, 621, 550, SWP_NOMOVE);
 	Main.Width = 621;
 	Main.Height = 550;
+
+	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
+	SEtProcessDPIAware SetProcessDPIAware;
+	HMODULE huser;
+	huser = LoadLibrary(L"user32.dll");
+	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
+	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 
 	ShowWindow(Main.hWnd, nCmdShow);
 	Main.Redraw(NULL);//第一次创建窗口时全部重绘
@@ -2955,11 +2879,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetBkMode(hdc, TRANSPARENT);
 
 		SelectObject(hdc, WhiteBrush);//白色背景
-		Rectangle(hdc, 0, 0, (int)(1230 * Main.DPI), (int)(Main.Height*Main.DPI + 1));//1230 -> 8xx
+		Rectangle(hdc, 0, 0, (int)(900 * Main.DPI), (int)(Main.Height*Main.DPI + 1));
 
 		SelectObject(hdc, GREEN);//绿色顶部
 		SelectObject(hdc, green);
-		Rectangle(hdc, 0, 0, (int)(1230 * Main.DPI), (int)(50 * Main.DPI));
+		Rectangle(hdc, 0, 0, (int)(900 * Main.DPI), (int)(50 * Main.DPI));
 
 		SetTextColor(hdc, RGB(0, 0, 0));
 		SelectObject(hdc, BLACK);
@@ -3231,8 +3155,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		BUTTON_IN(x, L"ClearPass") { AutoClearPassWd(); break; }
 		BUTTON_IN(x, L"ViewPass") { AutoViewPass(); break; }
-		BUTTON_IN(x, L"CP1") { ChangePasswordEx(1); break; }
-		BUTTON_IN(x, L"CP2") { ChangePasswordEx(2); break; }
+		BUTTON_IN(x, L"CP1") { ChangePasswordEx(Main.Edit[Main.GetNumByIDe(L"E_CP")].str,1); break; }
+		BUTTON_IN(x, L"CP2") { ChangePasswordEx(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, 2); break; }
 		BUTTON_IN(x, L"kill-TD") { KillProcess(L"stu"); break; }
 		BUTTON_IN(x, L"re-TD") { ReopenTD(); break; }
 		BUTTON_IN(x, L"windows.ex")
@@ -3448,8 +3372,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case 12:
 						{
 							Effect = false;
-							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | ~WS_EX_LAYERED);
-							SetLayeredWindowAttributes(Main.hWnd, NULL, 255, LWA_ALPHA);//半透明特效
+							//SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | ~WS_EX_LAYERED);
+							//SetLayeredWindowAttributes(Main.hWnd, NULL, 255, LWA_ALPHA);//半透明特效
 							ShowWindow(Cshadow.m_hWnd, SW_HIDE);
 							Main.ButtonEffect = false;
 							KillTimer(Main.hWnd, 5);
@@ -3483,8 +3407,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case 11: {UnMouseKey(); break; }
 						case 12: {
 							Effect = true;
-							SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-							SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);
+							//SetWindowLong(Main.hWnd, GWL_EXSTYLE, GetWindowLong(Main.hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+							//SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);
 							Main.ButtonEffect = true;
 							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
 							ShowWindow(Cshadow.m_hWnd, SW_SHOW); }
@@ -3821,7 +3745,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						if (wcsstr(tmp, L"\\") != 0 && i != 4 && i != 5)(_tcsrchr(tmp, _T('\\')))[1] = 0;
 						wcscpy_s(tmp2, Path);
 						wcscat_s(tmp2, tmp);
-						DeleteDirectory(tmp2);
+						SearchTool(tmp2, 3);
 						DeleteFile(tmp2);
 					}
 					UpWnd.Check[i].Value = 1 - UpWnd.Check[i].Value;

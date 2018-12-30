@@ -7,16 +7,15 @@ constexpr auto Bitstr = L"64Bit Update 199";
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
+void s(LPCWSTR cathy)
+{
+	MessageBox(NULL, cathy, L"", NULL);
+}
 void s(int cathy)
 {
 	wchar_t Cathytmp[34];
 	_itow_s(cathy, Cathytmp, 10);
 	MessageBox(NULL, Cathytmp, L"", NULL);
-}
-
-void s(LPCSTR cathy)
-{
-	MessageBoxA(NULL, cathy, "", NULL);
 }
 
 void charTowchar(const char *chr, wchar_t *wchar, int size)
@@ -262,6 +261,7 @@ unsigned int Hash(const wchar_t *str)
 	CatchWnd.CreateString(NULL, L"back");\
 	CatchWnd.CreateString(L"进程名称:", L"Processnam");\
 	CatchWnd.CreateString(L"延迟:", L"Delay");\
+CatchWnd.CreateString(L" 秒", L"second");\
 	Main.CreateString(L"explorer.exe", L"E_runinVD");\
 	Main.CreateString(L"输入端口", L"E_ApplyCh");\
 	Main.CreateString(L"输入密码", L"E_CP");\
@@ -300,6 +300,7 @@ Main.CreateString(L"2010或之前", L"TTDold");\
 	Main.CreateString(L"PID: ", L"_TDPID");\
 	Main.CreateString(L"下载失败", L"DownFail");\
 Main.CreateString(L"极域破解1.9", L"Title");\
+Main.CreateString(L"打开文件夹",L"OpenFolder");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
 	CatchWnd.CreateString(L" 个窗口", L"Eat2");\
 CatchWnd.CreateString(L"捕捉窗口", L"Title");\
