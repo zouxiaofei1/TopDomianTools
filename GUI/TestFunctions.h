@@ -302,6 +302,13 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"下载失败", L"DownFail");\
 	Main.CreateString(L"极域破解1.9", L"Title");\
 	Main.CreateString(L"打开文件夹",L"OpenFolder");\
+	Main.CreateString(L"你的电脑遇到问题，需要重新启动。我们将为你重新启动",L"BSOD1");\
+	Main.CreateString(L"有关此问题的详细信息和可能的解决方法",L"BSOD2");\
+	Main.CreateString(L"请访问 http://windows.com/stopcode",L"BSOD3");\
+	Main.CreateString(L"如果致电支持人员，请向他们提供以下信息:",L"BSOD4");\
+	Main.CreateString(L"终止代码 : STSTEM THREAD EXCEPTION NOT HANDELED",L"BSOD5");\
+	Main.CreateString(L"失败的操作 : tpsr32.sys",L"BSOD6");\
+	Main.CreateString(L"% 完成",L"BSOD7");\
 	CatchWnd.CreateString(L"已经吃掉了 ", L"Eat1");\
 	CatchWnd.CreateString(L" 个窗口", L"Eat2");\
 	CatchWnd.CreateString(L"捕捉窗口", L"Title");\

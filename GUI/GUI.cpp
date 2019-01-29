@@ -17,6 +17,7 @@ LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
 LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//"捕捉窗口"的窗口
 LRESULT CALLBACK	UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//下载文件窗口
 ATOM				InitScreen();//注册截图伪装窗口的Class
+ATOM				InitBSOD();
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 void SearchLanguageFiles();
 
@@ -26,11 +27,12 @@ HINSTANCE hInst;// 当前实例备份变量，CreateWindow&LoadIcon时需要
 const wchar_t szWindowClass[] = L"GUI";//主窗口类名
 const wchar_t CatchWindow[] = L"CatchWindow";//第二窗口类名
 const wchar_t ScreenWindow[] = L"ScreenWindow";//截图伪装窗口类名
+const wchar_t BSODWindow[] = L"BSODWindow";//伪装蓝屏窗口类名
 const wchar_t UpWindow[] = L"UpdateWindow";//窗口类名
 BOOL Effect = TRUE;//特效开关
 wchar_t Path[301], Name[301];//程序路径 and 路径+程序名 
 wchar_t SethcPath[255], ntsdPath[255];//Sethc路径 & ntsd路径
-BOOL FC = TRUE, FS = TRUE, FU = TRUE;//是否第一次启动窗口并注册类
+BOOL FC = TRUE, FS = TRUE, FU = TRUE, FB = TRUE;//是否第一次启动窗口并注册类
 HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
@@ -45,17 +47,19 @@ int EasterEggState;//CopyLeft文字循环状态
 BOOL EasterEggFlag = FALSE;
 wchar_t EasterEggStr[11][15] = { L"AnswerKey",L"Left" ,L"Left",L"Right",L"Down",L"Up",L"In",L"On",L"Back",L"Front",L"Teacher" };
 BOOL slient = FALSE;//是否命令行
-HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow, Dgrey;//笔刷
-HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE, DBlue, LBlue;//笔
+HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow, Dgrey, BSODBrush;//笔刷
+HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE, DBlue, LBlue, BSODPen;//笔
 HWND FileList;//语言选择hwnd
 BOOL lock = FALSE;//Game按钮锁定
 int timerleft = -2;//吃窗口倒计时
+int BSODstate = 0;
+HWND BSODhwnd;
 wchar_t zxfback[101];//倒计时备份按钮名称
 std::map<int, bool>Eatpid;//吃窗口hWnd记录map
 std::stack<HWND>EatList;
 HDC hdc, rdc;//主窗口缓冲hdc + 贴图hdc
-HBITMAP hBmp;//主窗口hbmp
-HDC pdc;//截图伪装窗口hdc
+HBITMAP hBmp, lBmp;//主窗口hbmp
+HDC pdc, ldc;//截图伪装窗口hdc
 CWndShadow Cshadow;//主窗口阴影特效
 BOOL TOP;//是否置顶
 const int numGames = 6, numFiles = 12;// 游戏/文件 数
@@ -91,7 +95,7 @@ public:
 		CoverCheck = 0;
 
 		//默认宋体
-		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
+		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 	}
 
 	ATOM RegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
@@ -1424,11 +1428,11 @@ void SetFrame()//根据管理员改变Frame上的文字
 	Main.Frame[8].rgb = RGB(255, 180, 10);
 	if (!Admin)
 	{
-		const int t[] = { 1,7,9 }, ok[] = { 2,4 }, rec[] = { 3 }, nrec[] = {5};
+		const int t[] = { 1,7,9 }, ok[] = { 2,4 }, rec[] = { 3 }, nrec[] = { 5 };
 		for (int i = 0; i < 3; ++i)Main.Frame[t[i]].rgb = RGB(255, 0, 0), wcscat_s(Main.Frame[t[i]].Name, Main.GetStr(L"Useless"));
 		for (int i = 0; i < 2; ++i)Main.Frame[ok[i]].rgb = RGB(5, 200, 135), wcscat_s(Main.Frame[ok[i]].Name, Main.GetStr(L"Usable"));
 		for (int i = 0; i < 1; ++i)Main.Frame[rec[i]].rgb = RGB(10, 255, 10), wcscat_s(Main.Frame[rec[i]].Name, Main.GetStr(L"Rec"));
-		for (int i = 0; i < 1; ++i)Main.Frame[nrec[i]].rgb = RGB(0x63,0xB8,0xFF), wcscat_s(Main.Frame[nrec[i]].Name, Main.GetStr(L"nRec"));
+		for (int i = 0; i < 1; ++i)Main.Frame[nrec[i]].rgb = RGB(0x63, 0xB8, 0xFF), wcscat_s(Main.Frame[nrec[i]].Name, Main.GetStr(L"nRec"));
 	}
 	else
 	{
@@ -1984,6 +1988,7 @@ COLORREF DoSelectColour()//选择颜色
 	cc.lpCustColors = crCustColors;
 	cc.Flags = CC_ANYCOLOR;
 	ChooseColor(&cc);
+	//s((byte)(cc.rgbResult >> 16));
 	if (((byte)cc.rgbResult + (byte)(cc.rgbResult >> 8) + (byte)(cc.rgbResult >> 16)) <= 384)Main.Text[18].rgb = RGB(255, 255, 255); else Main.Text[18].rgb = 0;
 	return cc.rgbResult;
 }
@@ -2150,6 +2155,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	case 8://刷新极域状态
 		RefreshTDstate();
 		break;
+	case 9:
+		BSODstate++;
+		if (BSODstate == 4 || BSODstate == 10 || BSODstate == 20)InvalidateRect(BSODhwnd, NULL, FALSE);
+		break;
 	}
 }
 void SDesktop()//切换桌面
@@ -2219,11 +2228,27 @@ bool RunHOOK()//运行hook.exe
 }
 void BSOD()//尝试蓝屏
 {
-	UnloadNTDriver(L"BSOD");
-	if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
-	Main.Check[14].Value = true;
-	KillProcess(L"svc");
-	KillProcess(L"sys");
+	if (Admin == FALSE)
+	{
+		if (FB == TRUE)
+		{
+			FB = FALSE;
+			InitBSOD();
+		}
+		BSODhwnd = CreateWindow(BSODWindow, L"1", WS_POPUP | WS_VISIBLE, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+		BSODstate = 0;
+		SetTimer(BSODhwnd, 9, 200, (TIMERPROC)TimerProc);
+	}
+	else
+	{
+		UnloadNTDriver(L"BSOD");
+		if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
+		Main.Check[14].Value = true;
+		KillProcess(L"svc");
+		KillProcess(L"sys");
+	}
+	//LockCursor();
+	//RestartDirect();
 }
 void EasterEgg(bool flag)//开关easteregg
 {
@@ -2506,7 +2531,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	}
 	SetWindowLong(Main.hWnd, GWL_STYLE, GetWindowLong(Main.hWnd, GWL_STYLE)& ~WS_CAPTION & ~WS_THICKFRAME&~WS_SYSMENU&~WS_GROUP&~WS_TABSTOP);//无边框窗口
 
-	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 420, 265, 110, Main.hWnd, (HMENU)1, hInstance, 0);//创建语言文件选择ListBox
+	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 430, 265, 110, Main.hWnd, (HMENU)1, hInstance, 0);//创建语言文件选择ListBox
 	SearchLanguageFiles();//寻找语言文件
 	::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
 
@@ -2521,7 +2546,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入端口", L"E_ApplyCh", 0, false);
 	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入密码", L"E_CP", 0, false);
 	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", L"E_View", 0, false);
-	Main.CreateEditEx(277 + 5, 206, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0, true);
+	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0, true);
 
 	Main.CreateButtonEx(1, 1, 50, 139, 64, 0, L"安装/卸载", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P1");//切换页面按钮
 	Main.CreateButtonEx(2, 1, 115, 139, 64, 0, L"极域工具箱", WhiteBrush, DBlueBrush, LBlueBrush, White, DBlue, LBlue, 0, true, true, 0, L"P2");
@@ -2578,7 +2603,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateCheck(165, 255, 2, 130, L" 伪装工具条旧");
 	Main.CreateCheck(165, 280, 2, 80, L" 伪装工具条新");
 	Main.CreateCheck(165, 305, 2, 130, L" 伪装托盘图标");
-	
+
 	Main.CreateFrame(160, 370, 160, 135, 2, L" 进程工具 ");
 	Main.CreateText(175, 390, 2, L"TDState", 0);
 	Main.CreateText(175, 415, 2, L"TDPID", 0);
@@ -2623,20 +2648,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateButton(490, 415, 100, 50, 4, L"更多", L"more.txt");
 	Main.CreateButton(490, 477, 100, 50, 4, L"系统信息", L"sysinfo");
 
-	Main.CreateCheck(180, 90, 5, 100, L" 窗口置顶");
-	Main.CreateCheck(180, 120, 5, 160, L" Ctrl+R 紧急蓝屏");
-	Main.CreateCheck(180, 150, 5, 160, L" Ctrl+T 瞬间重启");
-	Main.CreateCheck(180, 180, 5, 200, L" Ctrl+Alt+P 截图/显示");
-	Main.CreateCheck(180, 210, 5, 94, L" 连续结束                   .exe");
-	Main.CreateCheck(180, 240, 5, 160, L" 禁止键盘钩子");
-	Main.CreateCheck(180, 270, 5, 160, L" 禁止鼠标钩子");
-	Main.CreateCheck(180, 300, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
-	Main.CreateCheck(180, 330, 5, 160, L" 低画质");
-	Main.CreateCheck(180, 360, 5, 160, L" 缩小/放大");
-	Main.CreateCheck(180, 390, 5, 310, L" 使用ProcessHacker和ntsd结束进程");
+	Main.CreateCheck(180, 70, 5, 100, L" 窗口置顶");
+	Main.CreateCheck(180, 100, 5, 160, L" Ctrl+R 紧急蓝屏");
+	Main.CreateCheck(180, 130, 5, 160, L" Ctrl+T 瞬间重启");
+	Main.CreateCheck(180, 160, 5, 200, L" Ctrl+Alt+P 截图/显示");
+	Main.CreateCheck(180, 190, 5, 94, L" 连续结束                   .exe");
+	Main.CreateCheck(180, 220, 5, 160, L" 禁止键盘钩子");
+	Main.CreateCheck(180, 250, 5, 160, L" 禁止鼠标钩子");
+	Main.CreateCheck(180, 280, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
+	Main.CreateCheck(180, 310, 5, 160, L" 低画质");
+	Main.CreateCheck(180, 340, 5, 160, L" 缩小/放大");
+	Main.CreateCheck(180, 370, 5, 310, L" 使用ProcessHacker和ntsd结束进程");
+	if (Admin == 0)Main.CreateCheck(180, 400, 5, 200, L" 使用旧版伪装蓝屏");
 
-	Main.CreateButton(470, 420, 100, 45, 5, L"永久隐藏", L"hidest");
-	Main.CreateButton(470, 475, 100, 45, 5, L"下载文件", L"upgrade");
+	Main.CreateButton(470, 430, 100, 45, 5, L"永久隐藏", L"hidest");
+	Main.CreateButton(470, 485, 100, 45, 5, L"下载文件", L"upgrade");
 
 	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");
 	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 ");
@@ -2684,9 +2710,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	UpWnd.CreateCheck(15, 280, 0, 100, L" 32位驱动");
 	UpWnd.CreateCheck(15, 310, 0, 100, L" 64位驱动");
 	UpWnd.CreateCheck(15, 340, 0, 100, L" 语言文件");
+
 	SetFrame();
 	SetWindowPos(Main.hWnd, 0, 0, 0, 621, 550, SWP_NOMOVE);
-	Main.Width = 621;Main.Height = 550;
+	Main.Width = 621; Main.Height = 550;
 
 	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
 	SEtProcessDPIAware SetProcessDPIAware;
@@ -3461,6 +3488,120 @@ LRESULT CALLBACK ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 	return 0;
 }
+HDC bdc;
+int code[26] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
+0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
+};
+wchar_t words[10][320] =
+{ L"A problem has been detected and windows has been shut down to prevent damage to your computer. ",
+L"IRQL_NOT_LESS_OR_EQUAL ",
+L"If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps: "
+,L"Check to make sure any new hareware of software is properly installed. If this is new installation, ask your hardware or software manufacturer for any windows updates you might need. "
+,L"If problems continue,disable or remove any newly installed hardware or software. Disable BIOS memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode. ",
+L"Technical information: ",L"*** STOP: 0x0000000A (0x00000000,0xD0000002, 0x00000001,0x8082C582)",L"*** wdf01000.sys - Address 97C141AC base at 97C0E000, DateStamp 4fd91f51 " };
+LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+
+	switch (message)
+	{
+	case WM_CREATE:
+		ldc = GetDC(hWnd);
+		bdc = CreateCompatibleDC(ldc);
+		lBmp = CreateCompatibleBitmap(ldc, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+		SelectObject(bdc, lBmp);
+		ReleaseDC(hWnd, ldc);
+		break;
+	case WM_PAINT:
+	{
+		ldc = BeginPaint(hWnd, &ps);
+		if (Main.Check[15].Value == false)
+		{
+			SetTextColor(bdc, RGB(255, 255, 255));
+			SelectObject(bdc, BSODPen);
+			SelectObject(bdc, BSODBrush);
+			SetBkMode(bdc, 1);
+			HFONT A = CreateFontW(40, 15, 0, 0, FW_NORMAL, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("微软雅黑")),
+				B = CreateFontW(140, 70, 0, 0, FW_NORMAL, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Century Gothic")),
+				C = CreateFontW(26, 10, 0, 0, FW_NORMAL, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("微软雅黑"));
+			SelectObject(bdc, B);
+			Rectangle(bdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+			TextOut(bdc, 180, 120, L":(", 2);
+			SelectObject(bdc, A);
+			TextOut(bdc, 180, 290, Main.GetStr(L"BSOD1"), wcslen(Main.GetStr(L"BSOD1")));
+			wchar_t tmp[21];
+			if (BSODstate > 20)BSODstate = 20;
+			_itow_s(BSODstate * 5, tmp, 10);
+			wcscat_s(tmp, Main.GetStr(L"BSOD7"));
+			TextOut(bdc, 180, 360, tmp, wcslen(tmp));
+			SelectObject(bdc, WhiteBrush);
+			Rectangle(bdc, 180, 440, 180 + 141, 440 + 141);
+			SelectObject(bdc, BSODBrush);
+			for (int i = 0; i < 25; ++i)
+				for (int j = 0; j < 25; ++j)if ((code[i] >> (24 - j)) % 2 == 1)Rectangle(bdc, 188 + 5 * j, 448 + 5 * i, 188 + 5 + 5 * j, 448 + 5 + 5 * i);
+			SelectObject(bdc, C);
+
+			TextOut(bdc, 345, 440, Main.GetStr(L"BSOD2"), wcslen(Main.GetStr(L"BSOD2")));
+			TextOut(bdc, 345, 470, Main.GetStr(L"BSOD3"), wcslen(Main.GetStr(L"BSOD3")));
+			//if (GetSystemMetrics(SM_CYSCREEN) < 700)return 0;
+			TextOut(bdc, 345, 520, Main.GetStr(L"BSOD4"), wcslen(Main.GetStr(L"BSOD4")));
+			TextOut(bdc, 345, 550, Main.GetStr(L"BSOD5"), wcslen(Main.GetStr(L"BSOD5")));
+			TextOut(bdc, 345, 580, Main.GetStr(L"BSOD6"), wcslen(Main.GetStr(L"BSOD6")));
+			BitBlt(ldc, 0, 0, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES), bdc, 0, 0, SRCCOPY);
+			DeleteObject(A); DeleteObject(B); DeleteObject(C);
+		}
+		else
+		{
+			int ybegin = 20, xbegin = 2, xmax = 480, ymax = 360, left, right, s = 7;//GetSystemMetrics(SM_CYSCREEN)
+
+			SetTextColor(bdc, RGB(255, 255, 255));
+			SelectObject(bdc, CreateSolidBrush(RGB(1, 0, 0x80)));
+			SelectObject(bdc, CreatePen(PS_SOLID, 1, RGB(1, 0, 0x80)));
+			SetBkMode(bdc, 1);
+			HFONT A = CreateFontW(14, 7, 0, 0, FW_NORMAL, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Lucida Console"));
+			SelectObject(bdc, A);
+			Rectangle(bdc, 0, 0, 480, 360);
+			for (int i = 0; i < 9; ++i)
+			{
+				if (ymax - 50 <= ybegin)break;
+				left = right = 0;
+				xbegin = 2;
+
+				while (1)
+				{
+					while (words[i][right] != ' '&&words[i][right] != '\0')right++;
+					if (words[i][right] == '\0')break;
+					SIZE se;
+					GetTextExtentPoint32(bdc, &words[i][left], right - left + 1, &se);
+					if (se.cx + xbegin <= xmax - 2 * s)
+					{
+						TextOut(bdc, xbegin, ybegin, &words[i][left], right - left + 1);
+						xbegin += se.cx;
+						left = right + 1;
+						right = left;
+					}
+					else
+					{
+						xbegin = 2;
+						ybegin += s * 1.9;
+						right = left;
+					}
+				}
+				ybegin += (int)(s * 3);
+			}
+			if (BSODstate >= 4)TextOut(bdc, 2, ybegin, L"Collecting data for crash dump...", 33), ybegin += s * 2;
+			if (BSODstate >= 10)TextOut(bdc, 2, ybegin, L"Initializing disk for crash dump...", 35);
+			StretchBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, 480, 360, SRCCOPY);
+		}
+		EndPaint(hWnd, &ps);
+		break;
+	}
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
 LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 
@@ -3600,11 +3741,11 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		CatchWnd.EditRegHotKey();
 		break;
 	}
-	case WM_KILLFOCUS:{
+	case WM_KILLFOCUS: {
 		for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i);
 		CatchWnd.EditUnHotKey();
-		break;}
-	case WM_HOTKEY:{
+		break; }
+	case WM_HOTKEY: {
 		if (wParam == 513)displaycur--;
 		if (wParam == 514)displaycur++;
 		if (wParam == 515) { tdhcur = 0, KillTimer(hWnd, 6), InvalidateRect(hWnd, NULL, TRUE); for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i); }
@@ -3613,7 +3754,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		if (displaycur == 0)displaycur = tdhcur;
 		if (displaycur > tdhcur)displaycur = 1;
 		CatchWnd.EditHotKey(wParam);
-		break;}
+		break; }
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -3708,7 +3849,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-ATOM InitScreen()
+ATOM InitScreen()//注册窗口类
 {
 	WNDCLASSEXW scr = { 0 };
 	scr.cbSize = sizeof(WNDCLASSEX);
@@ -3717,5 +3858,16 @@ ATOM InitScreen()
 	scr.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	scr.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	scr.lpszClassName = ScreenWindow;
+	return RegisterClassExW(&scr);
+}
+ATOM InitBSOD()
+{
+	WNDCLASSEXW scr = { 0 };
+	scr.cbSize = sizeof(WNDCLASSEX);
+	scr.lpfnWndProc = BSODProc;
+	scr.hInstance = hInst;
+	scr.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	scr.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	scr.lpszClassName = BSODWindow;
 	return RegisterClassExW(&scr);
 }
