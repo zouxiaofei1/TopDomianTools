@@ -1330,7 +1330,7 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 		wcscat(tmp, ProcessName);
 		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 		if (Bit != 32 && GetFileAttributes(L"ProcessHacker\\ProcessHackerx64.exe") != INVALID_FILE_ATTRIBUTES)
-			wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
+			wcscpy_s(tmp, L"ProcessHacker\\ProcessHackerx64.exe -n ");
 		else
 			wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
 		wcscat(tmp, ProcessName);
@@ -2759,8 +2759,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
 	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 
-	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
+	
 	Main.Redraw(NULL);//第一次创建窗口时全部重绘
+	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
 
 	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
 		DWORD cbSize;
