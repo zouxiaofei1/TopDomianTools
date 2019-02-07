@@ -36,7 +36,7 @@ BOOL FC = TRUE, FS = TRUE, FU = TRUE, FB = TRUE;//是否第一次启动窗口并
 HBITMAP hZXFBitmap, hZXFsign;//两个图片句柄
 int ScreenState;//截图伪装状态 1 = 截图 2 = 显示
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
-wchar_t szVDesk[] = L"GUIdesk",fBSODdesk[]=L"GUIBSOD";//虚拟桌面名称
+wchar_t szVDesk[] = L"GUIdesk", fBSODdesk[] = L"GUIBSOD";//虚拟桌面名称
 BOOL Admin; //是否管理员
 int Bit;//系统位数 32 34 64
 HHOOK KeyboardHook, MouseHook;//键盘/鼠标钩子
@@ -47,7 +47,7 @@ int EasterEggState;//CopyLeft文字循环状态
 BOOL EasterEggFlag = FALSE;
 wchar_t EasterEggStr[11][15] = { L"AnswerKey",L"Left" ,L"Left",L"Right",L"Down",L"Up",L"In",L"On",L"Back",L"Front",L"Teacher" };
 BOOL slient = FALSE;//是否命令行
-HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow, Dgrey, BSODBrush;//笔刷
+HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, BlueBrush, green, grey, yellow, Dgrey, BSODBrush, BlackBrush;//笔刷
 HPEN YELLOW, RED, BLACK, White, GREEN, LGREY, BLUE, DBlue, LBlue, BSODPen;//笔
 HWND FileList;//语言选择hwnd
 BOOL lock = FALSE;//Game按钮锁定
@@ -62,6 +62,7 @@ HBITMAP hBmp, lBmp;//主窗口hbmp
 HDC pdc, ldc;//截图伪装窗口hdc
 CWndShadow Cshadow;//主窗口阴影特效
 BOOL TOP;//是否置顶
+BOOL BlackBoard = false;
 const int numGames = 6, numFiles = 12;// 游戏/文件 数
 BOOL GameExist[numGames + 1], FileExist[numFiles + 1];
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
@@ -2160,7 +2161,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		break;
 	case 9:
 		BSODstate++;
-		if (BSODstate == 1)ShowWindow(BSODhwnd, SW_SHOW);
+		//if (BSODstate == 1)ShowWindow(BSODhwnd, SW_SHOW);
 		if (BSODstate == 8 || BSODstate == 20 || BSODstate == 40)InvalidateRect(BSODhwnd, NULL, FALSE);
 		break;
 	}
@@ -2240,14 +2241,18 @@ void FakeBSOD()
 	BSODhwnd = CreateWindow(BSODWindow, L"fake BSOD window", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
 	BSODstate = 0;
 	SetTimer(BSODhwnd, 9, 100, (TIMERPROC)TimerProc);
+	InvalidateRect(BSODhwnd, NULL, FALSE);
+	UpdateWindow(BSODhwnd);
+	ShowWindow(BSODhwnd, SW_SHOW);
 }
 void BSOD()//尝试蓝屏
 {
+	LockCursor();
 	if (Admin == FALSE)
 	{
 		wchar_t tmp[34];
 		HDESK VirtualDesk = CreateDesktop(fBSODdesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
-		SwitchDesktop(VirtualDesk);
+
 		STARTUPINFO si = { 0 };
 		si.cb = sizeof(si);
 		si.lpDesktop = fBSODdesk;
@@ -2257,7 +2262,14 @@ void BSOD()//尝试蓝屏
 			wcscpy_s(tmp, L"d -showbsod \"new\"");
 		PROCESS_INFORMATION pi = { 0 };
 
-		CreateProcess(Name,tmp, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+		CreateProcess(Name, tmp, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+		BlackBoard = true;
+		InitScreen();
+		HWND t = CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+		ShowWindow(t, SW_SHOW);
+		for (int i = 0; i < 10; ++i)InvalidateRect(t, NULL, false), UpdateWindow(t);
+
+		SwitchDesktop(VirtualDesk);
 		//Sleep(4000);
 		//SwitchDesktop(defaultDesk);
 	}
@@ -2269,7 +2281,6 @@ void BSOD()//尝试蓝屏
 		KillProcess(L"svc");
 		KillProcess(L"sys");
 	}
-	LockCursor();
 	RestartDirect();
 }
 void EasterEgg(bool flag)//开关easteregg
@@ -2440,7 +2451,7 @@ bool RunCmdLine(LPWSTR str)
 	if (wcsstr(str, L"-reopen") != NULL) { ReopenTD(); return true; }
 	if (wcsstr(str, L"-bsod") != NULL) { BSOD(); return true; }
 	//s(1);
-	
+
 	if (wcsstr(str, L"-restart") != NULL) { Restart(); return true; }
 	if (wcsstr(str, L"-clear") != NULL) { AutoClearPassWd(); return true; }
 	if (wcsstr(str, L"-rekill") != NULL)
@@ -2759,7 +2770,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
 	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 
-	
+
 	Main.Redraw(NULL);//第一次创建窗口时全部重绘
 	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
 
@@ -3507,18 +3518,33 @@ LRESULT CALLBACK ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		SendMessage(hWnd, WM_CLOSE, 0, 0);
 		break;
 	case WM_PAINT:
-		HBITMAP bitmap;
-		bitmap = (HBITMAP)LoadImage(hInst, L"C:\\SAtemp\\ScreenShot.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-
-		SelectObject(pdc, bitmap);
-
 		sdc = BeginPaint(hWnd, &ps);
-
 		DEVMODE curDevMode;
 		curDevMode.dmSize = sizeof(DEVMODE);
 		EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &curDevMode);
-		SetStretchBltMode(sdc, HALFTONE);
-		StretchBlt(sdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), pdc, 0, 0, curDevMode.dmPelsWidth, curDevMode.dmPelsHeight, SRCCOPY);
+		if (!BlackBoard)
+		{
+			HBITMAP bitmap;
+			bitmap = (HBITMAP)LoadImage(hInst, L"C:\\SAtemp\\ScreenShot.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+
+			SelectObject(pdc, bitmap);
+
+			SetStretchBltMode(sdc, HALFTONE);
+			StretchBlt(sdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), pdc, 0, 0, curDevMode.dmPelsWidth, curDevMode.dmPelsHeight, SRCCOPY);
+			DeleteObject(bitmap);
+		}
+		else
+		{
+			//s(0);
+			HBITMAP tb = CreateCompatibleBitmap(sdc, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+			SelectObject(pdc, tb);
+			SelectObject(pdc, BLACK);
+			SelectObject(pdc, BlackBrush);
+			Rectangle(pdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+			SetStretchBltMode(sdc, HALFTONE);
+			StretchBlt(sdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), pdc, 0, 0, curDevMode.dmPelsWidth, curDevMode.dmPelsHeight, SRCCOPY);
+			DeleteObject(tb);
+		}
 		EndPaint(hWnd, &ps);
 		break;
 	default:
