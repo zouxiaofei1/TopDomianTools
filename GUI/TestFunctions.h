@@ -326,3 +326,27 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引�
 	*tmp2 = tmp0;
 	return true;
 }
+
+BOOL ReleaseRes(const wchar_t *strFileName, WORD wResID, const wchar_t *strFileType)
+{
+	// 资源大小  
+	DWORD   dwWrite = 0;
+
+	// 创建文件  
+	HANDLE  hFile = CreateFile(strFileName, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		return FALSE;
+	}
+
+	// 查找资源文件中、加载资源到内存、得到资源大小  
+	HRSRC   hrsc = FindResource(NULL, MAKEINTRESOURCE(wResID), strFileType);
+	HGLOBAL hG = LoadResource(NULL, hrsc);
+	DWORD   dwSize = SizeofResource(NULL, hrsc);
+
+	// 写入文件  
+	WriteFile(hFile, hG, dwSize, &dwWrite, NULL);
+	CloseHandle(hFile);
+	return TRUE;
+}

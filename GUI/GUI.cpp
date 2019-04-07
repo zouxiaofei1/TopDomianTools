@@ -6,6 +6,7 @@
 #include "WndShadow.h"
 #include "Actions.h"
 #include "TestFunctions.h"
+#include <atlimage.h>
 
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib
 #pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
@@ -2889,7 +2890,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_PAINT://绘图
 	{
-		HBRUSH BitmapBrush; HICON hicon;
+		HBRUSH BitmapBrush=NULL; HICON hicon;
 		RECT rc; bool f = false;
 		GetUpdateRect(hWnd, &rc, false);
 		if (rc.top != 0)f = true;
@@ -2939,9 +2940,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		DeleteObject(hicon);
 		if (Main.CurWnd == 4)
 		{
-			BitmapBrush = CreatePatternBrush(hZXFBitmap);
-			SelectObject(hdc, BitmapBrush);
-			Rectangle(hdc, 0, 170 * 5, 135, 170 * 6);
+			CImage img;
+			img.Load(L"C:\\SAtemp\\1.JPG");
+			RECT rc = { 0, 170 * 5, 135, 170 * 6 };
+			img.Draw(hdc, rc);
 			StretchBlt(hdc, (int)(170 * Main.DPI), (int)(75 * Main.DPI), (int)(135 * Main.DPI), (int)(170 * Main.DPI), hdc, 0, 170 * 5, 135, 170, SRCCOPY);
 			if (EasterEggFlag)
 			{
@@ -2951,6 +2953,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				Rectangle(hdc, 105 * 2, 75 * 12, 105 * 3, 75 * 13);
 				StretchBlt(hdc, (int)(165 * Main.DPI), (int)(465 * Main.DPI), (int)(105 * Main.DPI), (int)(75 * Main.DPI), hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
 			}
+			
 			DeleteObject(BitmapBrush);
 		}
 	finish:
@@ -3043,7 +3046,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		BUTTON_IN(x, L"P1") { Main.SetPage(1); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); RefreshTDstate(); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc);  break; }
 		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
-		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), ReleaseRes(L"C:\\SAtemp\\1.JPG", IDR_JPG2, L"JPG"), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"QuickSetup")
 		{
