@@ -2942,9 +2942,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			CImage img;
 			img.Load(L"C:\\SAtemp\\1.JPG");
-			RECT rc = { 0, 170 * 5, 135, 170 * 6 };
-			img.Draw(hdc, rc);
-			StretchBlt(hdc, (int)(170 * Main.DPI), (int)(75 * Main.DPI), (int)(135 * Main.DPI), (int)(170 * Main.DPI), hdc, 0, 170 * 5, 135, 170, SRCCOPY);
+			RECT rc1{ (int)(170 * Main.DPI), (int)(75 * Main.DPI), (int)((135+170) * Main.DPI), (int)((170+75) * Main.DPI) };
+			img.Draw(hdc, rc1);
 			if (EasterEggFlag)
 			{
 				BitmapBrush = CreatePatternBrush(hZXFsign);
@@ -2953,7 +2952,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				Rectangle(hdc, 105 * 2, 75 * 12, 105 * 3, 75 * 13);
 				StretchBlt(hdc, (int)(165 * Main.DPI), (int)(465 * Main.DPI), (int)(105 * Main.DPI), (int)(75 * Main.DPI), hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
 			}
-			
 			DeleteObject(BitmapBrush);
 		}
 	finish:

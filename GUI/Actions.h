@@ -33,6 +33,7 @@ inline VOID RestartDirect()
 }
 DWORD WINAPI RestartThread(LPVOID pM)
 {
+	(pM);
 	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
 	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
 	typedef int(__stdcall *PFN_ZwShutdownSystem)(int);
