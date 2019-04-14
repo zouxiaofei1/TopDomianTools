@@ -875,6 +875,7 @@ public:
 			if (Obredraw)Readd(2, CurCover);
 			Redraw(&rc);
 		}
+		if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1)CoverEdit = 0, EditUnHotKey();//Edit没被按下 同理
 		if (CoverEdit != 0)//停留在Edit上时
 			EditDown(CoverEdit);
 		else
@@ -966,6 +967,7 @@ public:
 		}
 		if (CoverEdit == 0)EditGetNewInside(point);
 		else
+		{
 			if (Edit[CoverEdit].Press == true)
 			{//如果Edit被按下 (拖动选择条)
 				int t = Edit[CoverEdit].Pos2;
@@ -975,8 +977,8 @@ public:
 				if (Edit[CoverEdit].Pos2 != t && Edit[CoverEdit].Width < Edit[CoverEdit].strWidth && !InsideEdit(CoverEdit, point))RefreshXOffset(CoverEdit);//Edit中文本过长，移动到了框外面
 				if (Edit[CoverEdit].Pos2 != t)EditRedraw(CoverEdit);//只要和原来有任何不同就重绘
 			}
-		//else
-			//if (!InsideEdit(CoverEdit, point))CoverEdit = 0, EditUnHotKey();//Edit没被按下 同理
+			if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1)CoverEdit = 0, EditUnHotKey();//Edit没被按下 同理
+		}
 	end:
 		if (CoverArea == 0)
 			AreaGetNewInside(point);
@@ -1476,7 +1478,7 @@ void GetBit()//系统位数
 BOOL Backup()//备份sethc.exe
 {
 	if (GetFileAttributes(SethcPath) == INVALID_FILE_ATTRIBUTES) { SethcState = false; return false; }//如果sethc本来就不存在 -> 退出
-	if (GetFileAttributes(L"C:\\SAtemp") != -1)return FALSE;
+	if (GetFileAttributes(L"C:\\SAtemp") == FILE_ATTRIBUTE_DIRECTORY)return FALSE;//SAtemp目录已经存在 -> sethc可能已经备份过 -> 退出
 	CreateDirectory(L"C:\\SAtemp", NULL);
 	CopyFile(SethcPath, L"C:\\SAtemp\\sethc.exe", TRUE);
 	return TRUE;
