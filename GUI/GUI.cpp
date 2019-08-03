@@ -2036,21 +2036,25 @@ void RefreshTDstate()//刷新极域的状态
 		_wcslwr_s(pe.szExeFile);
 		if (wcscmp(L"stu", pe.szExeFile) == 0)
 		{
-			if (TDPID != 0)return;
-			TDPID = pe.th32ProcessID;
+			wchar_t tmp[101] = { 0 }, tmp2[11] = { 0 };
+			if (TDPID != 0)return;//如果已经知道studentmain.exe的pid则退出
+			TDPID = pe.th32ProcessID;//否则设置stu的pid
 			TDProcess = true;
-			wchar_t tmp[101], tmp2[11];
+			
 			wcscpy_s(tmp, Main.GetStr(L"_TDPID"));
+			//s(tmp);
 			_itow_s(TDPID, tmp2, 10);
 			wcscat_s(tmp, tmp2);
 			Main.SetStr(tmp, L"TDPID");
-			wcscpy_s(Main.Text[6].Name, L"TcmdOK");
-			Main.Text[6].rgb = RGB(0, 255, 0);
+			wcscpy_s(Main.Text[8].Name, L"TcmdOK");
+			Main.Text[8].rgb = RGB(0, 255, 0);
 			Main.Button[Main.GetNumbyID(L"kill-TD")].Enabled = true;
 			Main.Button[Main.GetNumbyID(L"re-TD")].Enabled = false;
-			Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
+			//s(Main.Text[6].Name);
+			Main.Readd(4, 6); Main.Readd(4, 7); Main.Readd(4, 8);
 			Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 			Main.Readd(2, Main.GetNumbyID(L"re-TD"));
+			//draw:
 			Main.Erase(rc);
 			Main.Redraw(&rc);
 			return;
@@ -2064,11 +2068,11 @@ void RefreshTDstate()//刷新极域的状态
 	_itow_s(TDPID, tmp2, 10);
 	wcscat_s(tmp, L"\\");
 	Main.SetStr(tmp, L"TDPID");
-	wcscpy_s(Main.Text[6].Name, L"TcmdNO");
-	Main.Text[6].rgb = RGB(255, 0, 0);
+	wcscpy_s(Main.Text[8].Name, L"TcmdNO");
+	Main.Text[8].rgb = RGB(255, 0, 0);
 	Main.Button[Main.GetNumbyID(L"re-TD")].Enabled = true;
 	Main.Button[Main.GetNumbyID(L"kill-TD")].Enabled = false;
-	Main.Readd(4, 4); Main.Readd(4, 5); Main.Readd(4, 6);
+	Main.Readd(4, 6); Main.Readd(4, 7); Main.Readd(4, 8);
 	Main.Readd(2, Main.GetNumbyID(L"kill-TD"));
 	Main.Readd(2, Main.GetNumbyID(L"re-TD"));
 	Main.Erase(rc);
@@ -2160,7 +2164,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		if (Main.Check[10].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
 		break;
 	case 8://刷新极域状态
-		RefreshTDstate();
+		if(Main.CurWnd==2)RefreshTDstate();
 		break;
 	case 9:
 		BSODstate++;
@@ -3044,7 +3048,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		unsigned int x;
 		x = Hash(Main.GetCurInsideID());
 		BUTTON_IN(x, L"P1") { Main.SetPage(1); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
-		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); RefreshTDstate(); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc);  break; }
+		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc); RefreshTDstate();   break; }
 		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), ReleaseRes(L"C:\\SAtemp\\1.JPG", IDR_JPG2, L"JPG"), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); break; }
