@@ -204,8 +204,31 @@
   <ItemGroup>
     <Image Include="GUI.ico" />
     <Image Include="studentmain.ico" />
-    <Image Include="zxf.bmp" />
     <Image Include="zxf2.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="360x32.zxf" />
+    <None Include="360x64.zxf" />
+    <None Include="BSODx32.zxf" />
+    <None Include="BSODx64.zxf" />
+    <None Include="cheat_new.zxf" />
+    <None Include="cheat_old.zxf" />
+    <None Include="DeleteFilex32.zxf" />
+    <None Include="DeleteFilex64.zxf" />
+    <None Include="DeleteFile_x32.zxf" />
+    <None Include="DeleteFile_x64.zxf" />
+    <None Include="DrvDelFile.zxf" />
+    <None Include="hook.zxf" />
+    <None Include="jpg1.bin" />
+    <None Include="jpg3.bin" />
+    <None Include="Killx32.zxf" />
+    <None Include="Killx64.zxf" />
+    <None Include="ntsd.zxf" />
+    <None Include="PsExec.zxf" />
+    <None Include="sethc.zxf" />
+    <None Include="sethcdrv.zxf" />
+    <None Include="zxf1.zxf" />
+    <None Include="关于&amp;帮助.zxf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

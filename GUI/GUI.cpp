@@ -1329,16 +1329,18 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 {
 	if (Main.Check[14].Value)//如果开启ntsd & processhacker 结束进程
 	{
+		bool fileexist = false;
 		wchar_t tmp[501];
 		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
 		wcscat(tmp, ProcessName);
-		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
+		if(RunEXE(tmp, CREATE_NO_WINDOW, nullptr))fileexist=true;
 		if (Bit != 32 && GetFileAttributes(L"ProcessHacker\\ProcessHackerx64.exe") != INVALID_FILE_ATTRIBUTES)
 			wcscpy_s(tmp, L"ProcessHacker\\ProcessHackerx64.exe -n ");
 		else
 			wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
 		wcscat(tmp, ProcessName);
-		RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
+		if (RunEXE(tmp, CREATE_NO_WINDOW, nullptr))fileexist = true;
+		if (fileexist == false)Main.Check[14].Value = false,Main.InfoBox(L"NPFail"),Main.Redraw(NULL);
 	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;//创建进程快照
@@ -1672,6 +1674,7 @@ int SetupSethc()//安装sethc
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"sethc.exe");
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp,IDR_JPG5,L"JPG");
 	if (GetFileAttributes(tmp) == -1)return 2;//文件不存在
 	return CopyFile(tmp, SethcPath, false);//复制成功 \ 失败
 }
@@ -1723,7 +1726,7 @@ int SetupSethcS()
 }
 int CopyNTSD()
 {
-	int f;
+	int f=0;
 	if (Bit != 34)
 		f = GetFileAttributes(L"C:\\Windows\\System32\\ntsd.exe");
 	else
@@ -1732,7 +1735,9 @@ int CopyNTSD()
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"ntsd.exe");
-	if (GetFileAttributes(tmp) == -1)return 2;
+	s(tmp);
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, IDR_JPG4, L"JPG");
+	if (GetFileAttributes(tmp) == -1)return 2;//文件不存在
 
 	if (Bit != 34)
 		return CopyFile(tmp, L"C:\\Windows\\System32\\ntsd.exe", false);
@@ -2173,6 +2178,36 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		break;
 	}
 }
+void ReleaseDrvFiles()
+{
+	const wchar_t Filename[5][16] = { L"360.sys",L"BSOD.sys",L"DeleteFile.sys",L"Kill.sys",L"sethc.exe" };
+	wchar_t tmp[301] = { 0 };
+	if (Bit == 32)
+	{
+		for (int i = 0; i <= 4; ++i)
+		{
+			wcscpy_s(tmp, Path);
+			wcscat_s(tmp, L"x32\\");
+			if (i == 0)CreateDirectory(tmp, NULL);
+			wcscat_s(tmp, Filename[i]);
+			if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, i + 152, L"JPG");
+		}
+
+	}
+	else
+	{
+		for (int i = 0; i <= 3; ++i)
+		{
+			wcscpy_s(tmp, Path);
+			wcscat_s(tmp, L"x64\\");
+			if(i==0)CreateDirectory(tmp,NULL);
+			wcscat_s(tmp, Filename[i]);
+			//s(tmp);
+			if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, 157+i, L"JPG");
+		}
+
+	}
+}
 void SDesktop()//切换桌面
 {
 	if (hCurrentDesk == defaultDesk)
@@ -2190,6 +2225,7 @@ void SDesktop()//切换桌面
 }
 void openfile()//打开文件
 {
+	//ReleaseDrvFiles();
 	OPENFILENAMEW ofn = { 0 };
 	wchar_t strFile[MAX_PATH] = { 0 };
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -2235,7 +2271,7 @@ bool RunHOOK()//运行hook.exe
 	wchar_t tmp[501];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"hook.exe");
-	if (GetFileAttributes(tmp) == -1)return false;
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, IDR_JPG3, L"JPG");
 	return RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 }
 void FakeBSOD()
@@ -2282,6 +2318,7 @@ void BSOD()//尝试蓝屏
 	}
 	else
 	{
+		ReleaseDrvFiles();
 		UnloadNTDriver(L"BSOD");
 		if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
 		Main.Check[14].Value = true;
@@ -2655,9 +2692,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	Main.CreateText(365, 317, 2, L"Tcp2", RGB(255, 100, 0));
 	Main.CreateLine(360, 160, 583, 160, 2, 0);
 
-	Main.CreateCheck(165, 255, 2, 130, L" 伪装工具条旧");
-	Main.CreateCheck(165, 280, 2, 80, L" 伪装工具条新");
-	Main.CreateCheck(165, 305, 2, 130, L" 伪装托盘图标");
+	Main.CreateCheck(165, 255, 2, 150, L" 伪装工具条旧");
+	Main.CreateCheck(165, 280, 2, 150, L" 伪装工具条新");
+	Main.CreateCheck(165, 305, 2, 150, L" 伪装托盘图标");
 
 	Main.CreateFrame(160, 370, 160, 135, 2, L" 进程工具 ");
 	Main.CreateText(175, 390, 2, L"TDState", 0);
@@ -3092,6 +3129,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (SethcInstallState == false)
 			{
+				ReleaseDrvFiles();
 				int flag = SetupSethcS();
 				if (flag == 0)Main.InfoBox(L"CSFail");//安装失败
 				if (flag == 2)Main.InfoBox(L"NoSethc");//没有文件
@@ -3224,7 +3262,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		BUTTON_IN(x, L"ANTI-") { DeleteShutdown(); break; }
 		BUTTON_IN(x, L"desktop")
 		{
-			wchar_t tmp[351] = { L"psexec.exe -x -i -s -d \"" };
+			wchar_t tmp[351] = { L"psexec.exe -x -i -s -d \"" },tmp2[301];
+			wcscpy_s(tmp2, Path);
+			wcscat_s(tmp2, L"psexec.exe");
+			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, IDR_JPG6, L"JPG");
 			wcscat_s(tmp, Name);
 			wcscat_s(tmp, L"\" -top");
 			DWORD word = 1; HKEY hKey; LONG ret;
@@ -3243,7 +3284,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			AutoDelete(tmp);
 			break;
 		}
-		BUTTON_IN(x, L"TA") { WinExec("deleter\\DrvDelFile.exe", SW_SHOW); break; }
+		BUTTON_IN(x, L"TA") \
+		{
+			wchar_t tmp[301], tmp2[321];
+			wcscpy_s(tmp, Path);
+			wcscat_s(tmp, L"deleter\\");
+			CreateDirectory(tmp, NULL);
+			wcscpy_s(tmp2, tmp);
+			wcscat_s(tmp2, L"DeleteFile.sys");
+			ReleaseRes(tmp2, IDR_JPG16, L"JPG");
+			wcscpy_s(tmp2, tmp);
+			wcscat_s(tmp2, L"DeleteFile_x64.sys");
+			ReleaseRes(tmp2, IDR_JPG17, L"JPG");
+			wcscpy_s(tmp2, tmp);
+			wcscat_s(tmp2, L"DrvDelFile.exe");
+			ReleaseRes(tmp2, IDR_JPG18, L"JPG");
+			WinExec("deleter\\DrvDelFile.exe", SW_SHOW); 
+			break; 
+		}
 		BUTTON_IN(x, L"BSOD") { BSOD(); break; }
 		BUTTON_IN(x, L"NtShutdown") { Restart(); break; }
 
@@ -3287,7 +3345,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"SuperCMD")
 		{
-			wchar_t tmp[] = L"psexec.exe -i -s -d cmd.exe";
+			wchar_t tmp[] = L"psexec.exe -i -s -d cmd.exe",tmp2[301];
+			wcscpy_s(tmp2, Path);
+			wcscat_s(tmp2, L"psexec.exe");
+			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, IDR_JPG6, L"JPG");
 			DWORD word = 1;
 			HKEY hKey;
 			LONG ret;
@@ -3298,6 +3359,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"Killer")
 		{
+			ReleaseDrvFiles();
 			UnloadNTDriver(L"360");
 			bool flag;
 			Main.InfoBox(L"360Start");
@@ -3311,9 +3373,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"more.txt")
 		{
-			wchar_t tmp[301] = L"Notepad ";
-			wcscat_s(tmp, Path);
-			wcscat_s(tmp, L"关于&帮助.txt");
+			wchar_t tmp[321] = L"Notepad ",tmp2[301];
+			wcscpy_s(tmp2, Path);
+			wcscat_s(tmp2, L"关于&帮助.txt");
+			ReleaseRes(tmp2, IDR_JPG1, L"JPG");
+			wcscat_s(tmp, tmp2);
 			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
@@ -3387,7 +3451,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 						case 1:case 2: {//伪装工具条
 							wchar_t tmp[301];
 							wcscpy_s(tmp, Path);
-							if (i == 1)wcscat_s(tmp, L"cheat\\old.exe"); else wcscat_s(tmp, L"cheat\\new.exe");
+							wcscat_s(tmp, L"cheat\\");
+							CreateDirectory(tmp, NULL);
+							
+							
+							if (i == 1)wcscat_s(tmp, L"old.exe"), ReleaseRes(tmp, IDR_JPG19, L"JPG"); else wcscat_s(tmp, L"new.exe"), ReleaseRes(tmp, IDR_JPG20, L"JPG");
+							
 							if (!RunEXE(tmp, NULL, NULL))Main.InfoBox(L"StartFail"), Main.Check[i].Value = true;
 							break; }
 						case 3: {

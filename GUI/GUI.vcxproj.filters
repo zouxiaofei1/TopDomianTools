@@ -63,8 +63,33 @@
     <Image Include="zxf2.bmp">
       <Filter>资源文件</Filter>
     </Image>
-    <Image Include="zxf.bmp">
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jpg1.bin">
       <Filter>资源文件</Filter>
-    </Image>
+    </None>
+    <None Include="zxf1.zxf" />
+    <None Include="关于&amp;帮助.zxf" />
+    <None Include="jpg3.bin">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="hook.zxf" />
+    <None Include="ntsd.zxf" />
+    <None Include="sethc.zxf" />
+    <None Include="PsExec.zxf" />
+    <None Include="360x32.zxf" />
+    <None Include="BSODx32.zxf" />
+    <None Include="DeleteFilex32.zxf" />
+    <None Include="Killx32.zxf" />
+    <None Include="sethcdrv.zxf" />
+    <None Include="360x64.zxf" />
+    <None Include="BSODx64.zxf" />
+    <None Include="DeleteFilex64.zxf" />
+    <None Include="Killx64.zxf" />
+    <None Include="DeleteFile_x32.zxf" />
+    <None Include="DeleteFile_x64.zxf" />
+    <None Include="DrvDelFile.zxf" />
+    <None Include="cheat_old.zxf" />
+    <None Include="cheat_new.zxf" />
   </ItemGroup>
 </Project>
