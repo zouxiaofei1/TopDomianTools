@@ -875,7 +875,22 @@ public:
 			if (Obredraw)Readd(2, CurCover);
 			Redraw(&rc);
 		}
-		if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1)CoverEdit = 0, EditUnHotKey();//Edit没被按下 同理
+		if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1&&CoverEdit!=0)
+		{
+			int tmp0 = CoverEdit;//原来一个Edit被激活
+			CoverEdit = 0;//现在鼠标点在那个Edit外面时
+			if (Obredraw)Readd(5, tmp0);//自动重绘原来的Edit
+			RECT rc = GetRECTe(tmp0);
+			Redraw(&rc);
+			EditUnHotKey();
+		}
+		if (EditPrv != 0)
+		{//鼠标点在另一个Edit上时同样重绘Edit(好吧有点啰嗦= =)
+			if (Obredraw)Readd(5, EditPrv);
+			RECT rc = GetRECTe(EditPrv);
+			Redraw(&rc);
+			EditPrv = 0;
+		}
 		if (CoverEdit != 0)//停留在Edit上时
 			EditDown(CoverEdit);
 		else
@@ -927,7 +942,13 @@ public:
 	{
 		for (int i = 1; i <= CurEdit; ++i)//Edit 同理
 			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
-				if (InsideEdit(i, point))CoverEdit = i, EditRegHotKey();
+				if (InsideEdit(i, point))
+				{
+					EditPrv = CoverEdit;
+					CoverEdit = i;
+					EditRegHotKey();
+					return;
+				}
 	}
 	void MouseMove()//鼠标移动
 	{
@@ -977,7 +998,7 @@ public:
 				if (Edit[CoverEdit].Pos2 != t && Edit[CoverEdit].Width < Edit[CoverEdit].strWidth && !InsideEdit(CoverEdit, point))RefreshXOffset(CoverEdit);//Edit中文本过长，移动到了框外面
 				if (Edit[CoverEdit].Pos2 != t)EditRedraw(CoverEdit);//只要和原来有任何不同就重绘
 			}
-			if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1)CoverEdit = 0, EditUnHotKey();//Edit没被按下 同理
+			
 		}
 	end:
 		if (CoverArea == 0)
@@ -1213,6 +1234,7 @@ public:
 	BOOL ShowExp = FALSE;
 	int CurButtonBack;
 	bool ExpExist = false;
+	int EditPrv = 0;//之前被激活的edit序号
 private://没有任何private变量或函数= =
 }Main, CatchWnd, UpWnd;
 #pragma warning(disable:4100)//禁用警告
@@ -2013,8 +2035,13 @@ BOOL CALLBACK CathyThread(HWND hwnd, LPARAM lParam)//捕捉窗口
 		::GetWindowThreadProcessId(hwnd, &nProcessID);
 		if (Eatpid[nProcessID] == true)
 			if (SetParent(hwnd, CatchWnd.hWnd) != NULL)
+			{
 				EatList.push(hwnd);
+				SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) |~WS_EX_TOPMOST);
+				SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) | ~WS_POPUP);
+			}
 	}
+
 	return 1;
 }
 void ReturnWindows()//归还窗口
@@ -2580,11 +2607,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 void SearchLanguageFiles()
 {
-	wchar_t lpPath[301] = { 0 }, szFind[301] = { 0 };
+	wchar_t tmp[321];
+	wcscpy_s(tmp, Path);
+	wcscat_s(tmp, L"language\\");
+	CreateDirectory(tmp, NULL);
+	wcscat_s(tmp, L"Chinese.ini");
+	ReleaseRes(tmp, IDR_JPG21, L"JPG");
+	wcscpy_s(tmp, Path);
+	wcscat_s(tmp, L"language\\English.ini");
+	ReleaseRes(tmp, IDR_JPG22, L"JPG");
+	wchar_t szFind[301] = { 0 };
 	WIN32_FIND_DATA FindFileData;
-	GetModuleFileName(NULL, lpPath, MAX_PATH);
-	(_tcsrchr(lpPath, _T('\\')))[1] = 0;
-	wcscpy_s(szFind, lpPath);
+	wcscpy_s(szFind, Path);
 	wcscat_s(szFind, L"language\\*.ini");
 	HANDLE hFind = ::FindFirstFile((LPCWSTR)szFind, &FindFileData);
 	if (INVALID_HANDLE_VALUE == hFind)return;
@@ -2624,7 +2658,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetWindowLong(Main.hWnd, GWL_STYLE, GetWindowLong(Main.hWnd, GWL_STYLE) & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_SYSMENU & ~WS_GROUP & ~WS_TABSTOP);//无边框窗口
 
 	FileList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, 180, 430, 265, 110, Main.hWnd, (HMENU)1, hInstance, 0);//创建语言文件选择ListBox
-	SearchLanguageFiles();//寻找语言文件
+	
 	::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
 
 	RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');//显示 隐藏
@@ -3088,7 +3122,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc); RefreshTDstate();   break; }
 		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), ReleaseRes(L"C:\\SAtemp\\1.JPG", IDR_JPG2, L"JPG"), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
-		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); SearchLanguageFiles();break; }
 		BUTTON_IN(x, L"QuickSetup")
 		{
 			oneclick = 1 - oneclick;

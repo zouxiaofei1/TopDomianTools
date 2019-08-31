@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "stdafx.h"
 #ifndef _WIN64
-constexpr auto Bitstr = L"32Bit Update 201";
+constexpr auto Bitstr = L"32Bit Update 209";
 #else
-constexpr auto Bitstr = L"64Bit Update 201";
+constexpr auto Bitstr = L"64Bit Update 209";
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -243,13 +243,13 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"极域不同版本密码格式不一样", L"Tcp1");\
 	Main.CreateString(L"不保证修改成功", L"Tcp2");\
 	Main.CreateString(L"作者：zouxiaofei1 cxy villager", L"Tcoder");\
-	Main.CreateString(L"版本：C++ v1.9 正式版", L"Tver");\
+	Main.CreateString(L"版本：C++ v1.9.1 正式版", L"Tver");\
 	Main.CreateString(Bitstr, L"Tver2");\
 	Main.CreateString(L"CopyLeft© SA软件 2015 - 2019", L"_Tleft");\
 	Main.CreateString(L"© SA软件 2015 - 2019", L"Tleft");\
 	Main.CreateString(L"版权 - 不存在的", L"Tleft2");\
-	Main.CreateString(L"极域破解v1.9 不是管理员", L"Tmain");\
-	Main.CreateString(L"极域破解v1.9", L"Tmain2");\
+	Main.CreateString(L"极域破解v1.9.1 不是管理员", L"Tmain");\
+	Main.CreateString(L"极域破解v1.9.1", L"Tmain2");\
 	Main.CreateString(L"这不是文件 / 文件夹！", L"TINotF");\
 	Main.CreateString(L"请启动360！360可能会报加载驱动，请放行！\n如果执行后蓝屏，请把dump送至作者邮箱", L"360Start");\
 	Main.CreateString(L"加载驱动失败!\n可能是因为权限不足/操作被360拦截/文件不存在", L"360Fail");\
@@ -300,7 +300,7 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"极域状态: ", L"_TDState");\
 	Main.CreateString(L"PID: ", L"_TDPID");\
 	Main.CreateString(L"下载失败", L"DownFail");\
-	Main.CreateString(L"极域破解1.9", L"Title");\
+	Main.CreateString(L"极域破解1.9.1", L"Title");\
 	Main.CreateString(L"打开文件夹",L"OpenFolder");\
 	Main.CreateString(L"使用ntsd & processhacker结束进程失败！文件不存在",L"NPFail");\
 	Main.CreateString(L"你的电脑遇到问题，需要重新启动。我们将为你重新启动",L"BSOD1");\

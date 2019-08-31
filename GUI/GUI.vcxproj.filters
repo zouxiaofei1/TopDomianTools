@@ -91,5 +91,10 @@
     <None Include="DrvDelFile.zxf" />
     <None Include="cheat_old.zxf" />
     <None Include="cheat_new.zxf" />
+    <None Include="jpg21.bin">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="Chinese.zxf" />
+    <None Include="English.zxf" />
   </ItemGroup>
 </Project>
