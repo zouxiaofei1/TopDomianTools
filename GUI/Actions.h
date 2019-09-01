@@ -70,49 +70,6 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 	return FALSE;
 }
 
-BOOL GetOSDisplayString(wchar_t *pszOS)
-{
-	OSVERSIONINFOEX osvi;
-	BOOL bOsVersionInfoEx;
-
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);
-
-	if (!bOsVersionInfoEx) return FALSE;
-
-	wchar_t tmp[101];
-	_itow_s(osvi.dwMajorVersion, tmp, 10);
-	wcscpy(pszOS, tmp);
-	wcscat(pszOS, L".");
-	_itow_s(osvi.dwMinorVersion, tmp, 10);
-	wcscat(pszOS, tmp);
-	wcscat(pszOS, L".");
-	_itow_s(osvi.dwBuildNumber, tmp, 10);
-	wcscat(pszOS, tmp);
-	//GetInfo(&si);
-
-	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId&&osvi.dwMajorVersion >= 6)
-	{
-		OSVERSIONINFOEXW ovi;
-		ZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
-		if (!GetVersionEx2((LPOSVERSIONINFOW)&ovi)) return FALSE;
-		osvi.dwMajorVersion = ovi.dwMajorVersion;
-		osvi.dwMinorVersion = ovi.dwMinorVersion;
-		osvi.dwBuildNumber = ovi.dwBuildNumber;
-		_itow_s(osvi.dwMajorVersion, tmp, 10);
-		wcscpy(pszOS, tmp);
-		wcscat(pszOS, L".");
-		_itow_s(osvi.dwMinorVersion, tmp, 10);
-		wcscat(pszOS, tmp);
-		wcscat(pszOS, L".");
-		_itow_s(osvi.dwBuildNumber, tmp, 10);
-		wcscat(pszOS, tmp);
-	}
-	return true;
-}
-
 BOOL AdjustPrivileges(const wchar_t *lpName)
 {
 	HANDLE hToken = NULL;

@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "stdafx.h"
 #ifndef _WIN64
-constexpr auto Bitstr = L"32Bit Update 210";
+constexpr auto Bitstr = L"32Bit Update 211";
 #else
-constexpr auto Bitstr = L"64Bit Update 210";
+constexpr auto Bitstr = L"64Bit Update 211";
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
