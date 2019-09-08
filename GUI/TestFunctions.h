@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "stdafx.h"
 #ifndef _WIN64
-constexpr auto Bitstr = L"32Bit Update 211";
+constexpr auto Bitstr = L"32Bit Update 224";
 #else
-constexpr auto Bitstr = L"64Bit Update 211";
+constexpr auto Bitstr = L"64Bit Update 224";
 #endif
 
 void charTowchar(const char *chr, wchar_t *wchar, int size);
@@ -253,7 +253,6 @@ unsigned int Hash(const wchar_t *str)
 	Main.CreateString(L"这不是文件 / 文件夹！", L"TINotF");\
 	Main.CreateString(L"请启动360！360可能会报加载驱动，请放行！\n如果执行后蓝屏，请把dump送至作者邮箱", L"360Start");\
 	Main.CreateString(L"加载驱动失败!\n可能是因为权限不足/操作被360拦截/文件不存在", L"360Fail");\
-	Main.CreateString(L"当前非管理员模式，蓝屏可能无效", L"BSODAsk");\
 	Main.CreateString(L"密码为:", L"pswdis");\
 	Main.CreateString(L"极域电子教室 - 已连接至教师端", L"tnd");\
 	CatchWnd.CreateString(L"剩余 ", L"Timer1");\
@@ -330,6 +329,7 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引�
 
 BOOL ReleaseRes(const wchar_t *strFileName, WORD wResID, const wchar_t *strFileType)
 {
+	if (GetFileAttributes(strFileName) != INVALID_FILE_ATTRIBUTES) { return TRUE; }
 	// 资源大小  
 	DWORD   dwWrite = 0;
 
