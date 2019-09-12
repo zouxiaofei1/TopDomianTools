@@ -22,6 +22,7 @@ LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//"捕捉窗口"的窗口
 LRESULT CALLBACK	UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//文件下载窗口
 LRESULT CALLBACK	ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//截图伪装窗口
 LRESULT CALLBACK	BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//蓝屏伪装窗口
+LRESULT CALLBACK FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 void SearchLanguageFiles();//寻找语言文件
 
@@ -33,8 +34,8 @@ void SearchLanguageFiles();//寻找语言文件
 HINSTANCE hInst;// 当前实例备份变量，CreateWindow&LoadIcon时需要
 const wchar_t szWindowClass[] = L"GUI",			/*主窗口类名*/		CatchWindow[] = L"CatchWindow";/*第二窗口类名*/
 const wchar_t ScreenWindow[] = L"ScreenWindow",	/*截图伪装窗口类名*/BSODWindow[] = L"BSODWindow";/*伪装蓝屏窗口类名*/
-const wchar_t UpWindow[] = L"UpdateWindow";		/*文件下载窗口类名*/
-BOOL FC = TRUE, FS = TRUE, FU = TRUE, FB = TRUE;//是否第一次启动窗口并注册类 C=catch S=screen U=update B=BSOD
+const wchar_t UpWindow[] = L"UpdateWindow",		/*文件下载窗口类名*/FakeWindow[] = L"FakeToolBar";
+BOOL FC = TRUE, FS = TRUE, FU = TRUE, FB = TRUE, FF = TRUE;//是否第一次启动窗口并注册类 C=catch S=screen U=update B=BSOD F=FakeToolBar
 
 BOOL Admin;//是否拥有管理员权限
 int Bit;//系统位数 32 34 64
@@ -63,6 +64,10 @@ int GameMode;//游戏模式是否打开?
 BOOL lock = FALSE;//Game按钮锁定
 DWORD TDPID;//记录极域程序PID
 bool TDProcess;//极域是否在运行
+bool FakeNew;//
+bool FakeoldDown = false;
+DWORD FakeTimer;
+bool FakenewUp = false;
 
 //第四页的全局变量
 HBITMAP hZXFBitmap, hZXFsign;//头像 & 签名两个图片句柄
@@ -93,11 +98,11 @@ int BSODstate;//蓝屏文字显示的标记
 HWND BSODhwnd;//蓝屏窗体的hwnd
 
 //文件下载窗口的全局变量
-const int numGames = 6, numFiles = 12;// 游戏/文件 数
+const int numGames = 6, numFiles = 10;// 游戏/文件 数
 BOOL GameExist[numGames + 1], FileExist[numFiles + 1];//标记的文件是否存在?
 wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
 L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
-const wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"sethc.exe",L"ntsd.exe" ,L"PsExec.exe",L"cheat\\old.exe", L"cheat\\new.exe" ,L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
+const wchar_t FileName[numFiles + 1][34] = { L"hook.exe" ,L"sethc.exe",L"ntsd.exe" ,L"PsExec.exe",L"deleter\\DrvDelFile.exe", L"arp\\arp.exe",\
 L"ProcessHacker\\ProcessHacker.exe",L"x32\\sethc.exe",L"x64\\Kill.sys",L"language\\English.ini" };
 int FDcur, FDtot;//UpWnd中 已下载的文件 \ 总文件数
 
@@ -1250,7 +1255,7 @@ public:
 	int CurButtonBack;
 	int EditPrv = 0;//之前被激活的edit序号
 private://没有任何private变量或函数= =
-}Main, CatchWnd, UpWnd;
+}Main, CatchWnd, UpWnd, FakeWnd;
 
 //Class的声明结束
 //下面是各种函数
@@ -1862,7 +1867,7 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 		{//发现是一个文件夹
-			if (FindFileData.cFileName[0] != '.')
+			if (!(FindFileData.cFileName[0] == '.' && (wcslen(FindFileData.cFileName) == 1 || (wcslen(FindFileData.cFileName) == 2 && FindFileData.cFileName[1] == '.'))))
 			{//不是开头带"."的回退文件夹
 				wcscpy_s(szFile, lpPath);
 				wcscat_s(szFile, L"\\");
@@ -2050,8 +2055,8 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)//下载缺失文件的函数
 	const wchar_t name6[][34] = { L"language\\English.ini" ,L"language\\Chinese.ini" };
 	switch (cur)
 	{
-	case 1:case 2:case 3:case 4:case 5:case 6:
-		if (cur == 5 || cur == 6) { Create_tPath(tPath, L"cheat"); }
+	case 1:case 2:case 3:case 4:
+		//if (cur == 5 || cur == 6) { Create_tPath(tPath, L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
@@ -2065,27 +2070,27 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)//下载缺失文件的函数
 		}
 		InvalidateRect(UpWnd.hWnd, NULL, FALSE);
 		break;
-	case 7:
+	case 5:
 		Create_tPath(tPath, L"deleter"); FDtot += 3;
 		for (int i = 0; i < 3; ++i) { if (!Updownload(tPath, tURL, name[i]))DownFail = true; }
 		break;
-	case 8://仍然不想说什么，这段代码当天写的好累
+	case 6://仍然不想说什么，这段代码当天写的好累
 		Create_tPath(tPath, L"arp"); FDtot += 6;
 		for (int i = 0; i < 6; ++i) { if (!Updownload(tPath, tURL, name2[i]))DownFail = true; }
 		break;//缺点是不能多线程下载
-	case 9://比如arp有6个文件，就必须一个接着一个的下载这6个文件
+	case 7://比如arp有6个文件，就必须一个接着一个的下载这6个文件
 		Create_tPath(tPath, L"ProcessHacker"); FDtot += 4;
 		for (int i = 0; i < 4; ++i) { if (!Updownload(tPath, tURL, name3[i]))DownFail = true; }
 		break;//不过不同项目之间可以多线程下载
-	case 10://总体上速度比较慢
+	case 8://总体上速度比较慢
 		Create_tPath(tPath, L"x32"); FDtot += 5;
 		for (int i = 0; i < 5; ++i) { if (!Updownload(tPath, tURL, name4[i]))DownFail = true; }
 		break;
-	case 11:
+	case 9:
 		Create_tPath(tPath, L"x64"); FDtot += 4;
 		for (int i = 0; i < 4; ++i) { if (!Updownload(tPath, tURL, name5[i]))DownFail = true; }
 		break;
-	case 12:
+	case 10:
 		Create_tPath(tPath, L"language"); FDtot += 2;
 		for (int i = 0; i < 2; ++i) { if (!Updownload(tPath, tURL, name6[i]))DownFail = true; }
 		SearchLanguageFiles();
@@ -2099,6 +2104,28 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)//下载缺失文件的函数
 		return 0;
 	}
 	if (GetFileAttributes(tPath) != -1)FileExist[cur - 1] = true;
+	return 0;
+}
+bool FakeLock = false;
+DWORD WINAPI FakeNewThread(LPVOID pM)//
+{
+	if (FakeLock == true) { s(0); return 0; }
+
+	FakeLock = true;
+	int cur = *(int*)pM;
+	//s(cur);
+	RECT rc;
+	GetWindowRect(FakeWnd.hWnd, &rc);
+	for (int i = 1; i <= 42; ++i)
+	{
+		Sleep(5);
+		SetWindowPos(FakeWnd.hWnd, 0, rc.left, rc.top + i * cur * 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
+	}
+	if (cur == -1)
+		SetWindowPos(FakeWnd.hWnd, 0, rc.left, -87, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+	else
+		SetWindowPos(FakeWnd.hWnd, 0, rc.left, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+	FakeLock = false;
 	return 0;
 }
 COLORREF DoSelectColour()//选择颜色
@@ -2287,6 +2314,21 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	case 10://循环置顶(低画质时启用)
 		SetWindowPos(Main.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
+		break;
+	case 11:
+		if (GetTickCount() - FakeTimer > 2000)
+		{
+			RECT rc;
+			GetWindowRect(FakeWnd.hWnd, &rc);
+			if (rc.bottom == 95 && FakeLock == false && FakenewUp == false)
+			{
+				FakeTimer = GetTickCount();
+				FakenewUp = true;
+				int typ = -1;
+				CreateThread(NULL, 0, FakeNewThread, &typ, 0, NULL);
+				Sleep(1);
+			}
+		}
 		break;
 	}
 }
@@ -2915,16 +2957,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	UpWnd.CreateCheck(15, 40, 0, 100, L" sethc.exe");
 	UpWnd.CreateCheck(15, 70, 0, 100, L" ntsd.exe");
 	UpWnd.CreateCheck(15, 100, 0, 100, L" PsExec.exe");
-	UpWnd.CreateCheck(15, 130, 0, 100, L" 伪装工具条旧");
-	UpWnd.CreateCheck(15, 160, 0, 100, L" 伪装工具条新");
-	UpWnd.CreateCheck(15, 190, 0, 100, L" 驱动删除文件");
-	UpWnd.CreateCheck(15, 220, 0, 100, L" ARP攻击");
-	UpWnd.CreateCheck(15, 250, 0, 100, L" ProcessHacker");
-	UpWnd.CreateCheck(15, 280, 0, 100, L" 32位驱动");
-	UpWnd.CreateCheck(15, 310, 0, 100, L" 64位驱动");
-	UpWnd.CreateCheck(15, 340, 0, 100, L" 语言文件");
-	UpWnd.CreateButton(15, 400, 85, 50, 0, L"下载全部", L"Downall");
-	UpWnd.CreateButton(115, 400, 85, 50, 0, L"删除全部", L"Delall");
+	//UpWnd.CreateCheck(15, 130, 0, 100, L" 伪装工具条旧");
+	//UpWnd.CreateCheck(15, 160, 0, 100, L" 伪装工具条新");
+	UpWnd.CreateCheck(15, 130, 0, 100, L" 驱动删除文件");
+	UpWnd.CreateCheck(15, 160, 0, 100, L" ARP攻击");
+	UpWnd.CreateCheck(15, 190, 0, 100, L" ProcessHacker");
+	UpWnd.CreateCheck(15, 220, 0, 100, L" 32位驱动");
+	UpWnd.CreateCheck(15,250, 0, 100, L" 64位驱动");
+	UpWnd.CreateCheck(15, 280, 0, 100, L" 语言文件");
+	UpWnd.CreateButton(15, 340, 85, 50, 0, L"下载全部", L"Downall");
+	UpWnd.CreateButton(115, 340, 85, 50, 0, L"删除全部", L"Delall");
 
 	SetFrame();//改变Frame颜色
 	SetWindowPos(Main.hWnd, 0, 0, 0, 621, 550, SWP_NOMOVE);
@@ -3525,8 +3567,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				if (GetFileAttributes(tmp) != -1)FileExist[i] = TRUE; else FileExist[i] = FALSE;
 				UpWnd.Check[i + 1].Value = FileExist[i];
 			}
-			UpWnd.hWnd = CreateWindowW(UpWindow, UpWnd.GetStr(L"Title"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, (int)(230 * UpWnd.DPI), (int)(515 * UpWnd.DPI), nullptr, nullptr, hInst, nullptr);
-			UpWnd.Width = 230; UpWnd.Height = 515;
+			UpWnd.hWnd = CreateWindowW(UpWindow, UpWnd.GetStr(L"Title"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 200, 200, (int)(230 * UpWnd.DPI), (int)(455 * UpWnd.DPI), nullptr, nullptr, hInst, nullptr);
+			UpWnd.Width = 230; UpWnd.Height = 455;
 			ShowWindow(UpWnd.hWnd, SW_SHOW);//创建窗口
 			UpdateWindow(UpWnd.hWnd);
 			break;
@@ -3534,27 +3576,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		BUTTON_IN(x, L"Game1") {//hangman
 			if (GameExist[0])RunEXE(GameName[0], NULL, nullptr);
-			else { int typ = 1; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else { int typ = 1; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1); }break;
 		}
 		BUTTON_IN(x, L"Game2") {//xiaofei
 			if (GameExist[1])RunEXE(GameName[1], NULL, nullptr);
-			else { int typ = 2; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else {
+				int typ = 2; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1);
+			}break;
 		}
 		BUTTON_IN(x, L"Game3") {//2048
 			if (GameExist[2])RunEXE(GameName[2], NULL, nullptr);
-			else { int typ = 3; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else {
+				int typ = 3; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1);
+			}break;
 		}
 		BUTTON_IN(x, L"Game4") {//block
 			if (GameExist[3])RunEXE(GameName[3], NULL, nullptr);
-			else { int typ = 4; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else {
+				int typ = 4; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1);
+			}break;
 		}
 		BUTTON_IN(x, L"Game5") {//???
 			if (GameExist[4])RunEXE(GameName[4], NULL, nullptr);
-			else { int typ = 5; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else {
+				int typ = 5; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1);
+			}break;
 		}
 		BUTTON_IN(x, L"Game6") {//chess
 			if (GameExist[5])RunEXE(GameName[5], NULL, nullptr);
-			else { int typ = 6; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); }break;
+			else {
+				int typ = 6; CreateThread(NULL, 0, DownloadThread, &typ, 0, NULL); Sleep(1);
+			}break;
 		}
 
 		BUTTON_IN(x, L"Close") { PostQuitMessage(0); }//"关闭"按钮
@@ -3572,13 +3624,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 						switch (i)
 						{
 						case 1:case 2: {//伪装工具条
-							wchar_t tmp[301];
-							wcscpy_s(tmp, Path);
-							wcscat_s(tmp, L"cheat\\");
-							CreateDirectory(tmp, NULL);
-							if (i == 1)wcscat_s(tmp, L"old.exe"), ReleaseRes(tmp, IDR_JPG19, L"JPG");//释放文件
-							else wcscat_s(tmp, L"new.exe"), ReleaseRes(tmp, IDR_JPG20, L"JPG");
-							if (!RunEXE(tmp, NULL, NULL))Main.InfoBox(L"StartFail"), Main.Check[i].Value = true;
+
+							if (FF == TRUE)//注册类
+							{
+								MyRegisterClass(hInst, FakeProc, FakeWindow);
+								FF = FALSE;
+								FakeWnd.InitClass(hInst);
+								//if(i==1)
+								FakeWnd.hWnd = CreateWindowW(FakeWindow, CatchWnd.GetStr(L"Title"), NULL, \
+									0, 0, 1, 1, nullptr, nullptr, hInst, nullptr);
+								SetWindowLong(FakeWnd.hWnd, GWL_STYLE, GetWindowLong(Main.hWnd, GWL_STYLE) & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_SYSMENU & ~WS_GROUP & ~WS_TABSTOP);//无边框窗口
+							}
+							if (i == 1)
+							{
+								ReleaseRes(L"C:\\SAtemp\\Fakeold.jpg", IDR_JPG19, L"JPG");
+								FakeNew = false;
+								FakenewUp = false;
+								Main.Check[2].Value = false;
+								SetWindowPos(FakeWnd.hWnd, 0, 200, 0, 123, 71, NULL);
+								KillTimer(FakeWnd.hWnd, 11);
+							}
+							else
+							{
+								ReleaseRes(L"C:\\SAtemp\\Fakenew.jpg", IDR_JPG20, L"JPG");
+								FakeNew = true;
+								FakenewUp = false;
+								Main.Check[1].Value = false;
+								SetWindowPos(FakeWnd.hWnd, 0, 200, 0, 513, 95, NULL);
+								FakeTimer = GetTickCount();
+								SetTimer(FakeWnd.hWnd, 11, 200, (TIMERPROC)TimerProc);
+							}
+							Main.Readd(3, 1); Main.Readd(3, 2); Main.Redraw(NULL);
+							ShowWindow(FakeWnd.hWnd, SW_SHOW);
+							FakeWnd.Redraw(NULL);
 							break; }
 						case 3: {
 							NOTIFYICONDATA tnd;//伪装图标
@@ -3628,8 +3706,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					{//选中 -> 未选中
 						switch (i)
 						{
-						case 1: {KillProcess(L"old"); break; }
-						case 2: {KillProcess(L"new"); break; }
+						case 1: case 2: {ShowWindow(FakeWnd.hWnd, SW_HIDE); KillTimer(FakeWnd.hWnd, 11); break; }
 						case 3: {
 							NOTIFYICONDATA tnd;
 							tnd.cbSize = sizeof(NOTIFYICONDATA);
@@ -4062,9 +4139,9 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			_itow_s(FDtot, tmp, 10);
 			wcscat_s(tmp2, tmp);
 		ok:
-			TextOut(UpWnd.hdc, 20, 370, tmp2, (int)wcslen(tmp2));
+			TextOut(UpWnd.hdc, (int)(20 * UpWnd.DPI),(int)(310*UpWnd.DPI), tmp2, (int)wcslen(tmp2));
 		}
-		BitBlt(UpWnd.tdc, 0, 0, 200, 500, UpWnd.hdc, 0, 0, SRCCOPY);
+		BitBlt(UpWnd.tdc, 0, 0, 300, 800, UpWnd.hdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
@@ -4095,12 +4172,13 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						int typ = i;
 						CreateThread(NULL, 0, DownloadThreadUp, &typ, 0, NULL);
 						InvalidateRect(UpWnd.hWnd, NULL, FALSE);
+						Sleep(1);
 					}
 					else
 					{
 						wchar_t tmp[34], tmp2[501];
 						wcscpy_s(tmp, FileName[i - 1]);
-						if (wcsstr(tmp, L"\\") != 0 && i != 4 && i != 5)(_tcsrchr(tmp, _T('\\')))[1] = 0;
+						if (wcsstr(tmp, L"\\") != 0 )(_tcsrchr(tmp, _T('\\')))[1] = 0;
 						wcscpy_s(tmp2, Path);
 						wcscat_s(tmp2, tmp);
 						AutoDelete(tmp2, true);
@@ -4146,6 +4224,76 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_MOUSEMOVE: {UpWnd.MouseMove(); break; }
 	case WM_CLOSE:UpWnd.hWnd = 0;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+LRESULT CALLBACK FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{//升级窗口的响应函数
+	PAINTSTRUCT ps;
+	switch (message)
+	{
+	case WM_CREATE:
+	{
+		FakeWnd.tdc = GetDC(hWnd);
+		HDC h = CreateCompatibleDC(FakeWnd.tdc);
+		FakeWnd.Bitmap = CreateCompatibleBitmap(FakeWnd.tdc, 600, 100);
+		SelectObject(h, FakeWnd.Bitmap);
+		FakeWnd.SetHDC(h);
+		ReleaseDC(FakeWnd.hWnd, FakeWnd.tdc);
+	}
+	case WM_PAINT:
+	{
+		if (FakeNew == true)
+		{
+			HRGN rgn1= CreateRoundRectRgn(0, 0, 513, 95, 16, 16), rgn2= CreateRectRgn(0, 0, 513, 10), rgn = CreateRectRgn(0, 0, 0, 0);
+			CombineRgn(rgn, rgn1, rgn2, RGN_OR);
+			SetWindowRgn(hWnd, rgn, false);
+		}
+		FakeWnd.tdc = BeginPaint(hWnd, &ps);
+		SelectObject(FakeWnd.hdc, WhiteBrush);//白色背景
+		SelectObject(FakeWnd.hdc, White);
+		Rectangle(FakeWnd.hdc, 0, 0, 600, 100);
+		CImage img;
+		if (FakeNew)
+		{
+			img.Load(L"C:\\SAtemp\\Fakenew.JPG");
+			RECT rc1{ 0, 0, 513, 95 };
+			img.Draw(FakeWnd.hdc, rc1);
+		}
+		else
+		{
+			img.Load(L"C:\\SAtemp\\Fakeold.JPG");
+			RECT rc1{ 0, 0, 123,71 };
+			img.Draw(FakeWnd.hdc, rc1);
+		}
+		BitBlt(FakeWnd.tdc, 0, 0, 600, 100, FakeWnd.hdc, 0, 0, SRCCOPY);
+		EndPaint(hWnd, &ps);
+		break;
+	}
+	case WM_LBUTTONDOWN:
+	{PostMessage(FakeWnd.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+	break; }
+	case WM_LBUTTONUP:
+		POINT point;
+		GetCursorPos(&point);
+		ScreenToClient(hWnd, &point);
+
+		break;
+	case WM_MOUSEMOVE:
+	{
+		FakeWnd.MouseMove();
+		FakeTimer = GetTickCount();
+		if (FakenewUp == true)
+		{
+			FakenewUp = false;
+			int typ = 1;
+			CreateThread(NULL, 0, FakeNewThread, &typ, 0, NULL);
+			Sleep(1);
+		}
+		break;
+	}
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
