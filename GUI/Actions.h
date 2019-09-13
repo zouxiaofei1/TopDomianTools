@@ -151,6 +151,52 @@ bool RunEXE(wchar_t *CmdLine,DWORD flag,STARTUPINFO *si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
+bool EnableDebugPrivilege(BOOL bEnableDebugPrivilege)
+{
+	HANDLE hToken;
+	TOKEN_PRIVILEGES tp;
+	LUID luid;
+
+	if (!::OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
+	{
+		//  ::MessageBox(this->GetSafeHwnd(), GET_TOKEN_ERROR, MSG_BOX_TITLE, MB_OK);
+		return FALSE;
+	}
+
+	if (!::LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid))
+	{
+		//  ::MessageBox(this->GetSafeHwnd(), GET_PRIVILEGE_VALUE_ERROR, MSG_BOX_TITLE, MB_OK);
+		::CloseHandle(hToken);
+		return FALSE;
+	}
+
+	tp.PrivilegeCount = 1;
+	tp.Privileges[0].Luid = luid;
+	if (bEnableDebugPrivilege)
+	{
+		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+	}
+	else
+	{
+		tp.Privileges[0].Attributes = 0;
+	}
+
+	if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL))
+	{
+		//::MessageBox(this->GetSafeHwnd(), ADJUST_PRIVILEGE_ERROR, MSG_BOX_TITLE, MB_OK);
+		::CloseHandle(hToken);
+		return FALSE;
+	}
+
+	::CloseHandle(hToken);
+
+	if (::GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+	{
+		//::MessageBox(this->GetSafeHwnd(), ENABLE_DEBUG_ERROR, MSG_BOX_TITLE, MB_OK);
+		return FALSE;
+	}
+	return TRUE;
+}
 
 #define ProcessBasicInformation 0  
 typedef struct

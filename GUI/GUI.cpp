@@ -1368,23 +1368,161 @@ void KillTop()//杀掉置顶窗口
 	EnumWindows(EnumTopWnd, NULL);
 }
 
+HANDLE PhKphHandle;
+typedef _Success_(return >= 0) LONG NTSTATUS;
+typedef struct _IO_STATUS_BLOCK
+{
+	union
+	{
+		NTSTATUS Status;
+		PVOID Pointer;
+	};
+	ULONG_PTR Information;
+} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
+
+typedef  DWORD(__stdcall* NTOPENFILE)(
+	_Out_ PHANDLE FileHandle,
+	_In_ ACCESS_MASK DesiredAccess,
+	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
+	_Out_ PIO_STATUS_BLOCK IoStatusBlock,
+	_In_ ULONG ShareAccess,
+	_In_ ULONG OpenOptions
+	);
+
+typedef struct _UNICODE_STRING
+{
+	USHORT Length;
+	USHORT MaximumLength;
+	_Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;
+} UNICODE_STRING, * PUNICODE_STRING;
+
+typedef const UNICODE_STRING* PCUNICODE_STRING;
+
+
+FORCEINLINE VOID RtlInitUnicodeString(
+	_Out_ PUNICODE_STRING DestinationString,
+	_In_opt_ const wchar_t* SourceString
+)
+{
+	if (SourceString)
+		DestinationString->MaximumLength = (DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR))) + sizeof(WCHAR);
+	else
+		DestinationString->MaximumLength = DestinationString->Length = 0;
+
+	DestinationString->Buffer = (PWCH)SourceString;
+}
+
+#define InitializeObjectAttributes(p, n, a, r, s) { \
+    (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
+    (p)->RootDirectory = r; \
+    (p)->Attributes = a; \
+    (p)->ObjectName = n; \
+    (p)->SecurityDescriptor = s; \
+    (p)->SecurityQualityOfService = NULL; \
+    }
+
+#define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
+    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
+)
+#define KPH_DEVICE_TYPE 0x9999
+#define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x,3,0)
+#define KPH_OPENPROCESS KPH_CTL_CODE(50)
+#define KPH_TERMINATEPROCESS KPH_CTL_CODE(55)
+NTSTATUS KphpDeviceIoControl(
+	_In_ ULONG KphControlCode,
+	_In_ PVOID InBuffer,
+	_In_ ULONG InBufferLength
+)
+{
+	DWORD a;
+	DeviceIoControl(PhKphHandle, KphControlCode, InBuffer, InBufferLength, nullptr, sizeof(DWORD), &a, nullptr);
+	return GetLastError();
+}
+NTSTATUS KphOpenProcess(
+	_Out_ PHANDLE ProcessHandle,
+	_In_ ACCESS_MASK DesiredAccess,
+	_In_ PCLIENT_ID ClientId
+)
+{
+	struct
+	{
+		PHANDLE ProcessHandle;
+		ACCESS_MASK DesiredAccess;
+		PCLIENT_ID ClientId;
+	} input = { ProcessHandle, DesiredAccess, ClientId };
+
+	return KphpDeviceIoControl(
+		KPH_OPENPROCESS,
+		&input,
+		sizeof(input)
+	);
+}
+NTSTATUS PhOpenProcess(
+	_Out_ PHANDLE ProcessHandle,
+	_In_ ACCESS_MASK DesiredAccess,
+	_In_ HANDLE ProcessId
+)
+{
+	OBJECT_ATTRIBUTES objectAttributes;
+	CLIENT_ID clientId;
+
+	clientId.UniqueProcess = ProcessId;
+	clientId.UniqueThread = NULL;
+	return KphOpenProcess(
+		ProcessHandle,
+		DesiredAccess,
+		&clientId
+	);
+}
+NTSTATUS PhTerminateProcess(
+	_In_ HANDLE ProcessHandle,
+	_In_ NTSTATUS ExitStatus
+)
+{
+	NTSTATUS status;
+	struct
+	{
+		HANDLE ProcessHandle;
+		NTSTATUS ExitStatus;
+	} input = { ProcessHandle, ExitStatus };
+
+	status = KphpDeviceIoControl(
+		KPH_TERMINATEPROCESS,
+		&input,
+		sizeof(input)
+	);
+	return status;
+}
+
 BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 {
-	if (Main.Check[14].Value)//如果开启ntsd & processhacker 结束进程
-	{
-		bool fileexist = false;
-		wchar_t tmp[501];
-		wcscpy_s(tmp, L"ntsd.exe -c q -pn ");
-		wcscat(tmp, ProcessName);
-		if (RunEXE(tmp, CREATE_NO_WINDOW, nullptr))fileexist = true;
-		if (Bit != 32 && GetFileAttributes(L"ProcessHacker\\ProcessHackerx64.exe") != INVALID_FILE_ATTRIBUTES)
-			wcscpy_s(tmp, L"ProcessHacker\\ProcessHackerx64.exe -n ");
-		else
-			wcscpy_s(tmp, L"ProcessHacker\\ProcessHacker.exe -n ");
-		wcscat(tmp, ProcessName);
-		if (RunEXE(tmp, CREATE_NO_WINDOW, nullptr))fileexist = true;
-		if (fileexist == false)Main.Check[14].Value = false, Main.InfoBox(L"NPFail"), Main.Redraw(NULL);
-	}
+	DWORD A;
+	OBJECT_ATTRIBUTES objectAttributes;
+	//s(A);
+	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
+	if (hModule == NULL)
+		return FALSE;
+	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
+	UNICODE_STRING on;
+	RtlInitUnicodeString(&on, L"\\Device\\KProcessHacker2");
+	InitializeObjectAttributes(
+		&objectAttributes,
+		&on,
+		0x00000040,
+		NULL,
+		NULL
+	);
+	IO_STATUS_BLOCK isb;
+	A = myopen(
+		&PhKphHandle,
+		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+		&objectAttributes,
+		&isb,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		0x00000040
+	);
+	//s(A);
+	
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;//创建进程快照
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -1397,8 +1535,17 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 		{
 			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = 0;
-			MyOpenProcess(&hProcess, dwProcessID);//使用NtOpenProcess和NtTerminateProcess
+			if (Main.Check[14].Value)
+			{
+				PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID);
+				PhTerminateProcess(hProcess, 1);
+			}
+			else
+			{
+MyOpenProcess(&hProcess, dwProcessID);//使用NtOpenProcess和NtTerminateProcess
 			MyTerminateProcess(hProcess);
+			}
+				
 			CloseHandle(hProcess);
 		}
 	}
@@ -2009,10 +2156,12 @@ bool DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p,
 }
 DWORD WINAPI DownloadThread(LPVOID pM)//下载游戏
 {
+	int cur = *(int*)pM;
+	s(cur);
 	bool f;
 	const wchar_t t[5][10] = { L"fly.exe",L"2048.exe",L"block.exe",L"1.exe",L"chess.exe" },
 		g[5][6] = { L"Game2",L"Game3" ,L"Game4" ,L"Game5" ,L"Game6" };
-	int cur = *(int*)pM;
+
 	DownloadProgress progress;
 	if (cur == 1) {
 		f = DownloadGames(L"xiaofei.exe", GameName[0], &progress, L"Game1", 2, 1);//1号小游戏有2个文件要特殊处理
@@ -2056,7 +2205,6 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)//下载缺失文件的函数
 	switch (cur)
 	{
 	case 1:case 2:case 3:case 4:
-		//if (cur == 5 || cur == 6) { Create_tPath(tPath, L"cheat"); }
 		wcscpy_s(tURL, Git);
 		wcscat_s(tURL, FileName[cur - 1]);
 		wcscpy_s(tPath, Path);
@@ -2121,7 +2269,7 @@ DWORD WINAPI FakeNewThread(LPVOID pM)//
 		Sleep(5);
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, rc.top + i * cur * 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
 	}
-	if (cur == -1&&FakeNew)
+	if (cur == -1 && FakeNew)
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, -87, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 	else
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
@@ -2916,7 +3064,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateCheck(180, 280, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
 	Main.CreateCheck(180, 310, 5, 160, L" 低画质");
 	Main.CreateCheck(180, 340, 5, 160, L" 缩小/放大");
-	Main.CreateCheck(180, 370, 5, 310, L" 使用ProcessHacker和ntsd结束进程");
+	Main.CreateCheck(180, 370, 5, 250, L" 使用ProcessHacker结束进程");
 	if (Admin == 0)Main.CreateCheck(180, 400, 5, 200, L" 使用旧版伪装蓝屏");//伪装蓝屏选项只在没有管理员权限时出现
 
 	Main.CreateButton(470, 430, 100, 45, 5, L"永久隐藏", L"hidest");
@@ -2964,7 +3112,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	UpWnd.CreateCheck(15, 160, 0, 100, L" ARP攻击");
 	UpWnd.CreateCheck(15, 190, 0, 100, L" ProcessHacker");
 	UpWnd.CreateCheck(15, 220, 0, 100, L" 32位驱动");
-	UpWnd.CreateCheck(15,250, 0, 100, L" 64位驱动");
+	UpWnd.CreateCheck(15, 250, 0, 100, L" 64位驱动");
 	UpWnd.CreateCheck(15, 280, 0, 100, L" 语言文件");
 	UpWnd.CreateButton(15, 340, 85, 50, 0, L"下载全部", L"Downall");
 	UpWnd.CreateButton(115, 340, 85, 50, 0, L"删除全部", L"Delall");
@@ -3701,6 +3849,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(420 * Main.DPI), (int)(265 * Main.DPI), (int)(110 * Main.DPI), NULL);
 							SendMessage(FileList, WM_SETFONT, WPARAM(Main.DefFont), 0);
 							break; }
+						case 14:
+						{
+							wchar_t tmp[301];
+							wcscpy_s(tmp, Path);
+							wcscat_s(tmp, L"kprocesshacker");
+							if (Bit != 32)wcscat_s(tmp, L"64");
+							wcscat_s(tmp, L".sys");
+							if (Bit == 32)
+								ReleaseRes(tmp, IDR_JPG23, L"JPG");
+							else
+								ReleaseRes(tmp, IDR_JPG24, L"JPG");
+							UnloadNTDriver(L"KProcessHacker2");
+							LoadNTDriver(L"KProcessHacker2", tmp);
+							EnableDebugPrivilege(true);
+							break;
+						}
 						}
 					}
 					else
@@ -4140,7 +4304,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			_itow_s(FDtot, tmp, 10);
 			wcscat_s(tmp2, tmp);
 		ok:
-			TextOut(UpWnd.hdc, (int)(20 * UpWnd.DPI),(int)(310*UpWnd.DPI), tmp2, (int)wcslen(tmp2));
+			TextOut(UpWnd.hdc, (int)(20 * UpWnd.DPI), (int)(310 * UpWnd.DPI), tmp2, (int)wcslen(tmp2));
 		}
 		BitBlt(UpWnd.tdc, 0, 0, 300, 800, UpWnd.hdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
@@ -4179,7 +4343,7 @@ LRESULT CALLBACK UpGProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						wchar_t tmp[34], tmp2[501];
 						wcscpy_s(tmp, FileName[i - 1]);
-						if (wcsstr(tmp, L"\\") != 0 )(_tcsrchr(tmp, _T('\\')))[1] = 0;
+						if (wcsstr(tmp, L"\\") != 0)(_tcsrchr(tmp, _T('\\')))[1] = 0;
 						wcscpy_s(tmp2, Path);
 						wcscat_s(tmp2, tmp);
 						AutoDelete(tmp2, true);
@@ -4248,7 +4412,7 @@ LRESULT CALLBACK FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if (FakeNew == true)
 		{
-			HRGN rgn1= CreateRoundRectRgn(0, 0, 513, 95, 16, 16), rgn2= CreateRectRgn(0, 0, 513, 10), rgn = CreateRectRgn(0, 0, 0, 0);
+			HRGN rgn1 = CreateRoundRectRgn(0, 0, 513, 95, 16, 16), rgn2 = CreateRectRgn(0, 0, 513, 10), rgn = CreateRectRgn(0, 0, 0, 0);
 			CombineRgn(rgn, rgn1, rgn2, RGN_OR);
 			SetWindowRgn(hWnd, rgn, false);
 		}

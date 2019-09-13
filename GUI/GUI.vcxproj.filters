@@ -96,5 +96,9 @@
     </None>
     <None Include="Chinese.zxf" />
     <None Include="English.zxf" />
+    <None Include="fakeold.zxf" />
+    <None Include="fakenew.zxf" />
+    <None Include="kprocesshacker.zxf" />
+    <None Include="kprocesshacker64.zxf" />
   </ItemGroup>
 </Project>

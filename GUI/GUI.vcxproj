@@ -172,6 +172,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <StringPooling>true</StringPooling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -222,12 +223,16 @@
     <None Include="DeleteFile_x64.zxf" />
     <None Include="DrvDelFile.zxf" />
     <None Include="English.zxf" />
+    <None Include="fakenew.zxf" />
+    <None Include="fakeold.zxf" />
     <None Include="hook.zxf" />
     <None Include="jpg1.bin" />
     <None Include="jpg21.bin" />
     <None Include="jpg3.bin" />
     <None Include="Killx32.zxf" />
     <None Include="Killx64.zxf" />
+    <None Include="kprocesshacker.zxf" />
+    <None Include="kprocesshacker64.zxf" />
     <None Include="ntsd.zxf" />
     <None Include="PsExec.zxf" />
     <None Include="sethc.zxf" />
