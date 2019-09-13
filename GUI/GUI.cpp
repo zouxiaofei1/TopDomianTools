@@ -2109,7 +2109,7 @@ DWORD WINAPI DownloadThreadUp(LPVOID pM)//下载缺失文件的函数
 bool FakeLock = false;
 DWORD WINAPI FakeNewThread(LPVOID pM)//
 {
-	if (FakeLock == true) { s(0); return 0; }
+	if (FakeLock == true)  return 0;
 
 	FakeLock = true;
 	int cur = *(int*)pM;
@@ -2121,7 +2121,7 @@ DWORD WINAPI FakeNewThread(LPVOID pM)//
 		Sleep(5);
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, rc.top + i * cur * 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
 	}
-	if (cur == -1)
+	if (cur == -1&&FakeNew)
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, -87, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 	else
 		SetWindowPos(FakeWnd.hWnd, 0, rc.left, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
@@ -2274,6 +2274,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		InvalidateRect(Main.hWnd, 0, false);
 		break;
 	case 4://定时创建exp
+		if (GetFocus() != Main.hWnd)Main.EditUnHotKey();
 		if (GetTickCount() - Main.Timer >= 1000 && Main.ExpExist == false)Main.Try2CreateExp();
 		break;
 	case 5://按钮特效
@@ -2774,7 +2775,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.hWnd = CreateWindowW(szWindowClass, Main.GetStr(L"Title"), NULL, \
 		CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, NULL, nullptr, hInstance, nullptr);//创建主窗口
 	Main.Timer = GetTickCount();
-	SetTimer(Main.hWnd, 4, 100, (TIMERPROC)TimerProc);//开启Exp计时器
+	SetTimer(Main.hWnd, 4, 500, (TIMERPROC)TimerProc);//开启Exp计时器
 	CreateCaret(Main.hWnd, NULL, 1, 20);
 	SetCaretBlinkTime(500);//初始化闪烁光标
 	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
@@ -3093,7 +3094,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		break;
 	}
 	case WM_KILLFOCUS://这个事件在鼠标 选中 其他窗口时触发 
-	{//不代表鼠标 移出 窗口，因此(没什么用)
+	{//不代表鼠标 移出 窗口
 		Main.EditUnHotKey();
 		for (int i = 1; i <= Main.CurButton; ++i)Main.Button[i].Percent = 0;
 		break;
@@ -3641,7 +3642,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 								FakeNew = false;
 								FakenewUp = false;
 								Main.Check[2].Value = false;
-								SetWindowPos(FakeWnd.hWnd, 0, 200, 0, 123, 71, NULL);
+								SetWindowPos(FakeWnd.hWnd, HWND_TOPMOST, 200, 0, 123, 71, NULL);
 								KillTimer(FakeWnd.hWnd, 11);
 							}
 							else
@@ -3650,7 +3651,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 								FakeNew = true;
 								FakenewUp = false;
 								Main.Check[1].Value = false;
-								SetWindowPos(FakeWnd.hWnd, 0, 200, 0, 513, 95, NULL);
+								SetWindowPos(FakeWnd.hWnd, HWND_TOPMOST, 200, 0, 513, 95, NULL);
 								FakeTimer = GetTickCount();
 								SetTimer(FakeWnd.hWnd, 11, 200, (TIMERPROC)TimerProc);
 							}
