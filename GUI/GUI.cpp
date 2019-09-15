@@ -1346,8 +1346,8 @@ BOOL CALLBACK EnumTopWnd(HWND hwnd, LPARAM lParam)//杀掉置顶窗口的窗口�
 		::GetWindowThreadProcessId(hwnd, &nProcessID);
 		if (GetCurrentProcessId() == nProcessID)goto ok;//如果是被zi保ji护de的进程ID -> 跳过
 		for (unsigned int i = 1; i <= expid[0]; ++i)if (expid[i] == nProcessID)goto ok;//用unsigned int 以避免"有符号/无符号不匹配"
-		MyOpenProcess(&hProcessHandle, nProcessID);//现在结束进程全部改用带Nt的函数
-		MyTerminateProcess(hProcessHandle);//据说能避免一些进程保护吧(反正，，我是没遇到过NtTerminateProc起作用过)
+		hProcessHandle = OpenProcess(PROCESS_TERMINATE, FALSE, nProcessID);//现在结束进程全部改用不带Nt的函数
+		TerminateProcess(hProcessHandle, 1);//(反正，，我是没遇到NtTerminateProc起作用过,只见到他崩溃过)
 	}
 ok:
 	return 1;
@@ -1368,161 +1368,29 @@ void KillTop()//杀掉置顶窗口
 	EnumWindows(EnumTopWnd, NULL);
 }
 
-HANDLE PhKphHandle;
-typedef _Success_(return >= 0) LONG NTSTATUS;
-typedef struct _IO_STATUS_BLOCK
-{
-	union
-	{
-		NTSTATUS Status;
-		PVOID Pointer;
-	};
-	ULONG_PTR Information;
-} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
-
-typedef  DWORD(__stdcall* NTOPENFILE)(
-	_Out_ PHANDLE FileHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
-	_Out_ PIO_STATUS_BLOCK IoStatusBlock,
-	_In_ ULONG ShareAccess,
-	_In_ ULONG OpenOptions
-	);
-
-typedef struct _UNICODE_STRING
-{
-	USHORT Length;
-	USHORT MaximumLength;
-	_Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;
-} UNICODE_STRING, * PUNICODE_STRING;
-
-typedef const UNICODE_STRING* PCUNICODE_STRING;
-
-
-FORCEINLINE VOID RtlInitUnicodeString(
-	_Out_ PUNICODE_STRING DestinationString,
-	_In_opt_ const wchar_t* SourceString
-)
-{
-	if (SourceString)
-		DestinationString->MaximumLength = (DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR))) + sizeof(WCHAR);
-	else
-		DestinationString->MaximumLength = DestinationString->Length = 0;
-
-	DestinationString->Buffer = (PWCH)SourceString;
-}
-
-#define InitializeObjectAttributes(p, n, a, r, s) { \
-    (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
-    (p)->RootDirectory = r; \
-    (p)->Attributes = a; \
-    (p)->ObjectName = n; \
-    (p)->SecurityDescriptor = s; \
-    (p)->SecurityQualityOfService = NULL; \
-    }
-
-#define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
-    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
-)
-#define KPH_DEVICE_TYPE 0x9999
-#define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x,3,0)
-#define KPH_OPENPROCESS KPH_CTL_CODE(50)
-#define KPH_TERMINATEPROCESS KPH_CTL_CODE(55)
-NTSTATUS KphpDeviceIoControl(
-	_In_ ULONG KphControlCode,
-	_In_ PVOID InBuffer,
-	_In_ ULONG InBufferLength
-)
-{
-	DWORD a;
-	DeviceIoControl(PhKphHandle, KphControlCode, InBuffer, InBufferLength, nullptr, sizeof(DWORD), &a, nullptr);
-	return GetLastError();
-}
-NTSTATUS KphOpenProcess(
-	_Out_ PHANDLE ProcessHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ PCLIENT_ID ClientId
-)
-{
-	struct
-	{
-		PHANDLE ProcessHandle;
-		ACCESS_MASK DesiredAccess;
-		PCLIENT_ID ClientId;
-	} input = { ProcessHandle, DesiredAccess, ClientId };
-
-	return KphpDeviceIoControl(
-		KPH_OPENPROCESS,
-		&input,
-		sizeof(input)
-	);
-}
-NTSTATUS PhOpenProcess(
-	_Out_ PHANDLE ProcessHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ HANDLE ProcessId
-)
-{
-	OBJECT_ATTRIBUTES objectAttributes;
-	CLIENT_ID clientId;
-
-	clientId.UniqueProcess = ProcessId;
-	clientId.UniqueThread = NULL;
-	return KphOpenProcess(
-		ProcessHandle,
-		DesiredAccess,
-		&clientId
-	);
-}
-NTSTATUS PhTerminateProcess(
-	_In_ HANDLE ProcessHandle,
-	_In_ NTSTATUS ExitStatus
-)
-{
-	NTSTATUS status;
-	struct
-	{
-		HANDLE ProcessHandle;
-		NTSTATUS ExitStatus;
-	} input = { ProcessHandle, ExitStatus };
-
-	status = KphpDeviceIoControl(
-		KPH_TERMINATEPROCESS,
-		&input,
-		sizeof(input)
-	);
-	return status;
-}
 
 BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 {
-	DWORD A;
-	OBJECT_ATTRIBUTES objectAttributes;
-	//s(A);
-	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
-	if (hModule == NULL)
-		return FALSE;
-	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
-	UNICODE_STRING on;
-	RtlInitUnicodeString(&on, L"\\Device\\KProcessHacker2");
-	InitializeObjectAttributes(
-		&objectAttributes,
-		&on,
-		0x00000040,
-		NULL,
-		NULL
-	);
-	IO_STATUS_BLOCK isb;
-	A = myopen(
-		&PhKphHandle,
-		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-		&objectAttributes,
-		&isb,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		0x00000040
-	);
-	//s(A);
-	
+	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b;
+	wcscpy(tmp, ProcessName);
+	b = a = tmp;
+	while (wcsstr(a, L"/") != 0)
+	{
+		b = wcsstr(a, L"/");
+		*b = 0;
+		a[3] = 0;
+		wcscat_s(MyProcessName, a);
+		wcscat_s(MyProcessName, L"/");
+		a = b + 1;
+	}
+	a[3] = 0;
+	wcscat_s(MyProcessName, a);
+	_wcslwr_s(MyProcessName);
+
+	HANDLE PhKphHandle = 0;
+	BOOL ConnectSuccess = FALSE;
+	if (KphConnect(&PhKphHandle) >= 0)ConnectSuccess = TRUE;
+
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;//创建进程快照
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -1531,21 +1399,20 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 	{
 		pe.szExeFile[3] = 0;//根据进程名前三个字符标识
 		_wcslwr_s(pe.szExeFile);
-		if (wcscmp(ProcessName, pe.szExeFile) == 0 || ProcessName == NULL)
+		if (wcsstr(MyProcessName, pe.szExeFile) != 0 || ProcessName == NULL)
 		{
 			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = 0;
-			if (Main.Check[14].Value)
+			if (Main.Check[14].Value && ConnectSuccess)
 			{
-				PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID);
-				PhTerminateProcess(hProcess, 1);
+				PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID, PhKphHandle);
+				PhTerminateProcess(hProcess, 1, PhKphHandle);
 			}
 			else
 			{
-MyOpenProcess(&hProcess, dwProcessID);//使用NtOpenProcess和NtTerminateProcess
-			MyTerminateProcess(hProcess);
+				hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, dwProcessID);
+				TerminateProcess(hProcess, 1);//只使用普通的OpenProcess和TerminateProcess
 			}
-				
 			CloseHandle(hProcess);
 		}
 	}
@@ -1924,7 +1791,7 @@ int SetupSethc()//安装sethc
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"sethc.exe");
-	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, IDR_JPG5, L"JPG");//文件不存在的话从资源里释放
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, FILE_SETHC, L"JPG");//文件不存在的话从资源里释放
 	if (GetFileAttributes(tmp) == -1)return 2;//释放之后文件还是不存在?
 	return CopyFile(tmp, SethcPath, false);//复制成功 \ 失败
 }
@@ -1986,7 +1853,7 @@ int CopyNTSD()//复制ntsd
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"ntsd.exe");
 	s(tmp);
-	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, IDR_JPG4, L"JPG");//文件不存在的话从资源里释放
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, FILE_NTSD, L"JPG");//文件不存在的话从资源里释放
 	if (GetFileAttributes(tmp) == -1)return 2;//文件还是不存在
 
 	if (Bit != 34)
@@ -2566,7 +2433,7 @@ bool RunHOOK()//运行hook.exe
 	wchar_t tmp[501];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"hook.exe");
-	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, IDR_JPG3, L"JPG");//如果hook.exe不存在就从资源文件中释放
+	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, FILE_HOOK, L"JPG");//如果hook.exe不存在就从资源文件中释放
 	return RunEXE(tmp, CREATE_NO_WINDOW, nullptr);
 }
 void FakeBSOD()//召唤伪装蓝屏的窗口
@@ -2761,7 +2628,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	}
 	if (wcsstr(str, L"-top") != NULL)//显示在安全桌面上用
 	{
-		Main.Check[4].Value = 1;
+		Main.Check[4].Value = Main.Check[12].Value = 1;
 		TOP = TRUE;
 		CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
 		return false;//false表示继续运行
@@ -2781,18 +2648,11 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		AutoCopyNTSD();
 		return true;
 	}
-	if (wcsstr(str, L"-hook") != NULL)//安装hook
-	{
-		KillProcess(L"hoo");
-		if (!RunHOOK())Main.InfoBox(L"OneFail");
-		return true;
-	}
 	if (wcsstr(str, L"-auto") != NULL) { KillTop(); return true; }//自动结束置顶进程
 	if (wcsstr(str, L"-unsethc") != NULL) {
 		DeleteFile(SethcPath);
 		CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE); return true;
 	}
-	if (wcsstr(str, L"-unhook") != NULL) { KillProcess(L"hoo"); return true; }
 	if (wcsstr(str, L"-viewpass") != NULL) { AutoViewPass(); return true; }
 	if (wcsstr(str, L"-antishutdown") != NULL) { DeleteShutdown(); return true; }
 	if (wcsstr(str, L"-reopen") != NULL) { ReopenTD(); return true; }//这些功能不细说了
@@ -2886,10 +2746,10 @@ void SearchLanguageFiles()//在当前目录里寻找语言文件
 	wcscat_s(tmp, L"language\\");
 	CreateDirectory(tmp, NULL);
 	wcscat_s(tmp, L"Chinese.ini");
-	ReleaseRes(tmp, IDR_JPG21, L"JPG");
+	ReleaseRes(tmp, FILE_CHN, L"JPG");
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"language\\English.ini");
-	ReleaseRes(tmp, IDR_JPG22, L"JPG");
+	ReleaseRes(tmp, FILE_ENG, L"JPG");
 
 	SendMessage(FileList, LB_RESETCONTENT, 0, 0);//在寻找新文件前清空listbox
 	wchar_t szFind[301] = { 0 };
@@ -3402,7 +3262,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		BUTTON_IN(x, L"P1") { Main.SetPage(1); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }//切换页面
 		BUTTON_IN(x, L"P2") { Main.SetPage(2); EasterEgg(false); ShowWindow(FileList, SW_HIDE); SetTimer(Main.hWnd, 8, 200, (TIMERPROC)TimerProc); RefreshTDstate();   break; }
 		BUTTON_IN(x, L"P3") { Main.SetPage(3); EasterEgg(false); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
-		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), ReleaseRes(L"C:\\SAtemp\\1.JPG", IDR_JPG2, L"JPG"), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
+		BUTTON_IN(x, L"P4") { if (!haveInfo) UpdateInfo(), ReleaseRes(L"C:\\SAtemp\\1.JPG", IMG_ZXF, L"JPG"), haveInfo = true; Main.SetPage(4); ShowWindow(FileList, SW_HIDE); KillTimer(Main.hWnd, 8); break; }
 		BUTTON_IN(x, L"P5") { Main.SetPage(5); EasterEgg(false); ShowWindow(FileList, SW_SHOW); KillTimer(Main.hWnd, 8); SearchLanguageFiles(); break; }//切换到第五页时搜索语言文件
 		BUTTON_IN(x, L"QuickSetup")
 		{//一键安装
@@ -3573,16 +3433,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		BUTTON_IN(x, L"ANTI-") { DeleteShutdown(); break; }
 		BUTTON_IN(x, L"desktop")
-		{//用psexec把自己运行在安全桌面上
+		{//用paexec把自己运行在安全桌面上
 			wchar_t tmp[351] = { L"psexec.exe -x -i -s -d \"" }, tmp2[301];
 			wcscpy_s(tmp2, Path);
 			wcscat_s(tmp2, L"psexec.exe");
-			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, IDR_JPG6, L"JPG");
+			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, FILE_PSEXEC, L"JPG");
 			wcscat_s(tmp, Name);
 			wcscat_s(tmp, L"\" -top");
-			DWORD word = 1; HKEY hKey; LONG ret;
-			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
-			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)& word, sizeof(DWORD));
 			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
@@ -3604,13 +3461,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			CreateDirectory(tmp, NULL);
 			wcscpy_s(tmp2, tmp);
 			wcscat_s(tmp2, L"DeleteFile.sys");
-			ReleaseRes(tmp2, IDR_JPG16, L"JPG");
+			ReleaseRes(tmp2, FILE_TAX32, L"JPG");
 			wcscpy_s(tmp2, tmp);
 			wcscat_s(tmp2, L"DeleteFile_x64.sys");
-			ReleaseRes(tmp2, IDR_JPG17, L"JPG");
+			ReleaseRes(tmp2, FILE_TAX64, L"JPG");
 			wcscpy_s(tmp2, tmp);
 			wcscat_s(tmp2, L"DrvDelFile.exe");
-			ReleaseRes(tmp2, IDR_JPG18, L"JPG");//带JPG的基本上都不是JPG
+			ReleaseRes(tmp2, FILE_TAEXE, L"JPG");//带JPG的基本上都不是JPG
 			WinExec("deleter\\DrvDelFile.exe", SW_SHOW);
 			break;
 		}
@@ -3658,16 +3515,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		}
 		BUTTON_IN(x, L"SuperCMD")
-		{//依然是用psexec.exe
+		{//这次换用了paexec.exe
 			wchar_t tmp[] = L"psexec.exe -i -s -d cmd.exe", tmp2[301];
-			wcscpy_s(tmp2, Path);//这个300多k的玩意占了我的程序三分之一体积
-			wcscat_s(tmp2, L"psexec.exe");//要不是它有两个功能，或许我就会把它删了(`Δ `)~
-			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, IDR_JPG6, L"JPG");
-			DWORD word = 1;
-			HKEY hKey;
-			LONG ret;
-			ret = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Sysinternals\\PsExec", 0, KEY_SET_VALUE, &hKey);
-			ret = RegSetValueEx(hKey, L"EulaAccepted", 0, REG_DWORD, (const BYTE*)& word, sizeof(DWORD));
+			wcscpy_s(tmp2, Path);
+			wcscat_s(tmp2, L"psexec.exe");
+			if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, FILE_PSEXEC, L"JPG");
 			if (!RunEXE(tmp, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
@@ -3690,7 +3542,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			wchar_t tmp[321] = L"Notepad ", tmp2[301];
 			wcscpy_s(tmp2, Path);
 			wcscat_s(tmp2, L"关于&帮助.txt");
-			ReleaseRes(tmp2, IDR_JPG1, L"JPG");
+			ReleaseRes(tmp2, FILE_HELP, L"JPG");
 			wcscat_s(tmp, tmp2);
 			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
@@ -3786,7 +3638,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							}
 							if (i == 1)
 							{
-								ReleaseRes(L"C:\\SAtemp\\Fakeold.jpg", IDR_JPG19, L"JPG");
+								ReleaseRes(L"C:\\SAtemp\\Fakeold.jpg", IMG_FAKEOLD, L"JPG");
 								FakeNew = false;
 								FakenewUp = false;
 								Main.Check[2].Value = false;
@@ -3795,7 +3647,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							}
 							else
 							{
-								ReleaseRes(L"C:\\SAtemp\\Fakenew.jpg", IDR_JPG20, L"JPG");
+								ReleaseRes(L"C:\\SAtemp\\Fakenew.jpg", IMG_FAKENEW, L"JPG");
 								FakeNew = true;
 								FakenewUp = false;
 								Main.Check[1].Value = false;
@@ -3857,12 +3709,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							if (Bit != 32)wcscat_s(tmp, L"64");
 							wcscat_s(tmp, L".sys");
 							if (Bit == 32)
-								ReleaseRes(tmp, IDR_JPG23, L"JPG");
+								ReleaseRes(tmp, FILE_KPH32, L"JPG");
 							else
-								ReleaseRes(tmp, IDR_JPG24, L"JPG");
+								ReleaseRes(tmp, FILE_KPH64, L"JPG");
 							UnloadNTDriver(L"KProcessHacker2");
 							LoadNTDriver(L"KProcessHacker2", tmp);
-							EnableDebugPrivilege(true);
+							AdjustPrivileges(SE_DEBUG_NAME);
 							break;
 						}
 						}
