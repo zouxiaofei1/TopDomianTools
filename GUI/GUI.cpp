@@ -1387,7 +1387,7 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 	HANDLE PhKphHandle = 0;
 	BOOL ConnectSuccess = FALSE;
 	if (KphConnect(&PhKphHandle) >= 0)ConnectSuccess = TRUE;
-	s((int)PhKphHandle);
+	//s((int)PhKphHandle);
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;//创建进程快照
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -1402,8 +1402,6 @@ BOOL KillProcess(LPCWSTR ProcessName)//结束进程
 			HANDLE hProcess = 0;
 			if (Main.Check[16].Value && ConnectSuccess)
 			{
-				//s(L"success");
-				//return 0;
 				PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID, PhKphHandle);
 				PhTerminateProcess(hProcess, 1, PhKphHandle);
 			}
@@ -1625,7 +1623,44 @@ void GetLanguage(GETLAN& a)
 		s(L"error");
 	}
 }
+void EnableTADeleter()
+{
+	if (DeleteFileHandle != 0)return;
+	wchar_t tmp[301];
+	wcscpy_s(tmp, Path);
+	wcscat_s(tmp, L"DeleteFile.sys");
+	if (Bit == 32)
+		ReleaseRes(tmp, FILE_TAX32, L"JPG");
+	else
+		ReleaseRes(tmp, FILE_TAX64, L"JPG");
+	UnloadNTDriver(L"DeleteFile");
+	LoadNTDriver(L"DeleteFile", tmp);
+	AdjustPrivileges(SE_DEBUG_NAME);
 
+	OBJECT_ATTRIBUTES objectAttributes;
+	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
+	if (hModule == NULL)
+		return;
+	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
+	UNICODE_STRING on;
+	RtlInitUnicodeString(&on, L"\\Device\\DeleteFile");
+	InitializeObjectAttributes(
+		&objectAttributes,
+		&on,
+		0x40,
+		NULL,
+		NULL
+	);
+	IO_STATUS_BLOCK isb;
+	myopen(
+		&DeleteFileHandle,
+		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+		&objectAttributes,
+		&isb,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		0x40
+	);
+}
 void EnableKPH()
 {
 	wchar_t tmp[301];
@@ -1822,36 +1857,7 @@ bool AutoSetupSethc()//安装sethc的外壳函数
 	if (flag == 2) { Main.InfoBox(L"NoSethc"); return false; }//找不到文件
 	return true;
 }
-bool DeleteSethc()//删除sethc
-{
-	if (GetFileAttributes(SethcPath) == -1)return true;//sethc已经没了 -> 成功
-	TakeOwner(SethcPath);//取得所有权
-	wchar_t tmp[] = L"C:\\Windows\\system32\\dllcache\\sethc.exe";//删除xp中sethc备份文件
-	TakeOwner(tmp);
-	DeleteFile(tmp);
-	return DeleteFile(SethcPath);//返回是否成功
-}
 
-bool DeleteSethcS()//用驱动删除sethc.exe
-{
-	bool flag1 = false, flag2 = false;
-	wchar_t p1[34], p2[34];
-	if (DeleteSethc())return true;//先尝试应用层删除
-	if (Bit == 32)//还是删除不了的话再用驱动吧，因为驱动是两年前写的，不怎么稳定
-		wcscpy_s(p1, L"x32\\deletefile.sys"),//32位和64位选择不同驱动
-		wcscpy_s(p2, L"x32\\kill.sys");
-	else
-		wcscpy_s(p1, L"x64\\deletefile.sys"),
-		wcscpy_s(p2, L"x64\\kill.sys");
-	UnloadNTDriver(L"deletefile");//卸载之前残留的驱动
-
-	flag1 = LoadNTDriver(L"deletefile", p1);
-	UnloadNTDriver(L"kill");//加载deletefile和kill两个驱动
-	flag2 = LoadNTDriver(L"kill", p2);
-	WinExec("net stop kill", SW_HIDE);
-	UnloadNTDriver(L"deletefile");
-	return flag1 & flag2;
-}
 int SetupSethcS()//复制用驱动结束极域的sethc
 {
 	wchar_t tmp[301];
@@ -1871,7 +1877,7 @@ int CopyNTSD()//复制ntsd
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"ntsd.exe");
-	s(tmp);
+	//s(tmp);
 	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, FILE_NTSD, L"JPG");//文件不存在的话从资源里释放
 	if (GetFileAttributes(tmp) == -1)return 2;//文件还是不存在
 
@@ -1907,6 +1913,29 @@ bool MyDeleteFile(LPWSTR path)
 	else return DeleteFile(path);
 
 }
+bool DeleteSethc()//删除sethc(自动使用驱动)
+{
+	if (GetFileAttributes(SethcPath) == -1)return true;//sethc已经没了 -> 成功
+	//s(L"have");
+	TakeOwner(SethcPath);//取得所有权
+	wchar_t tmp[] = L"C:\\Windows\\system32\\dllcache\\sethc.exe";//删除xp中sethc备份文件
+	TakeOwner(tmp);
+	DeleteFile(tmp);
+	//s(L"deleting");
+	if (DeleteFile(SethcPath) == true) {
+		return true;
+	}
+	else
+	{
+		if (Admin == false)return false;
+		EnableTADeleter();
+		Main.Check[5].Value = 1;
+		MyDeleteFile(tmp);
+		return MyDeleteFile(SethcPath);//返回是否成功
+	}
+	return true;
+}
+
 void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删除文件夹
 {//有多个功能的函数，所以叫它"Tool"
 	wchar_t szFind[255], szFile[255];//因为都用的是同一段搜索代码，所以就干脆把三个按钮功能合起来了
@@ -2346,10 +2375,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 }
 void ReleaseDrvFiles(int bit)//释放驱动文件
 {//在每次运行"S"开头的函数前调用
-	const wchar_t Filename[5][16] = { L"360.sys",L"BSOD.sys",L"DeleteFile.sys",L"Kill.sys",L"sethc.exe" };
+	const wchar_t Filename[2][10] = { L"360.sys",L"BSOD.sys"};
 	wchar_t tmp[301] = { 0 };
 	if (bit == 32)
-		for (int i = 0; i <= 4; ++i)
+		for (int i = 0; i <= 1; ++i)
 		{
 			wcscpy_s(tmp, Path);
 			wcscat_s(tmp, L"x32\\");
@@ -2358,7 +2387,7 @@ void ReleaseDrvFiles(int bit)//释放驱动文件
 			if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, (WORD)(i + 152), L"JPG");//如果文件不存在再释放
 		}
 	else
-		for (int i = 0; i <= 3; ++i)
+		for (int i = 0; i <= 1; ++i)
 		{
 			wcscpy_s(tmp, Path);
 			wcscat_s(tmp, L"x64\\");
@@ -2481,10 +2510,7 @@ void BSOD()//尝试蓝屏
 	else
 	{//当我们有管理员权限时，就用驱动做真的蓝屏了
 		ReleaseDrvFiles(Bit);//释放驱动
-		UnloadNTDriver(L"BSOD");
 		if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
-		Main.Check[16].Value = true;
-		EnableKPH();
 		KillProcess(L"svc");//结束一些关键进程
 		KillProcess(L"sys");
 	}
@@ -3240,17 +3266,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			}
 			break;
 		}
-		BUTTON_IN(x, L"DelR3")//应用层删除sethc
+		if(x==Hash(L"DelR3")||x==Hash(L"DelR0"))//删除sethc
 		{
-			if (!DeleteSethc())Main.InfoBox(L"DSR3Fail"); else goto delok;// ---、
-			break;//													        |
-		}//																		/
-		BUTTON_IN(x, L"DelR0")//驱动层删除sethc								   /
-		{//(其实多数情况下还是应用层)										  /
-			if (!DeleteSethcS())Main.InfoBox(L"DSR0Fail");//				 /
-			else//															/
-			{//															   /
-			delok:// 《----------------------------------------------------
+			if (DeleteSethc()==false)Main.InfoBox(L"DSR0Fail"),s(999); 
+			else
+			{
 				Main.Button[Main.GetNumbyID(L"DelR0")].Enabled = Main.Button[Main.GetNumbyID(L"DelR3")].Enabled = false;
 				wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR0")].Name, Main.GetStr(L"Deleted"));
 				wcscpy_s(Main.Button[Main.GetNumbyID(L"DelR3")].Name, Main.GetStr(L"Deleted"));
@@ -3263,12 +3283,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (SethcInstallState == false)
 			{
-				ReleaseDrvFiles(32);//驱动sethc在32位文件夹中
-				if (Bit != 32)ReleaseDrvFiles(64);//因此64位系统上仍要release32位的驱动文件
-				int flag = SetupSethcS();
-				if (flag == 0)Main.InfoBox(L"CSFail");//安装失败
-				if (flag == 2)Main.InfoBox(L"NoSethc");//没有文件
-				if (flag == 1)//成功
+				if (AutoSetupSethc() && AutoCopyNTSD())
 				{
 					Main.Button[Main.GetNumbyID(L"SethcR3")].Enabled = false;
 					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR3")].Name, Main.GetStr(L"Installed"));
@@ -3619,43 +3634,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							break; }
 						case 5:
 						{//加载驱动删除文件
-							if (DeleteFileHandle != 0)break;
-							wchar_t tmp[301];
-							wcscpy_s(tmp, Path);
-							wcscat_s(tmp, L"DeleteFile.sys");
-							if (Bit == 32)
-								ReleaseRes(tmp, FILE_TAX32, L"JPG");
-							else
-								ReleaseRes(tmp, FILE_TAX64, L"JPG");
-							UnloadNTDriver(L"DeleteFile");
-							LoadNTDriver(L"DeleteFile", tmp);
-							AdjustPrivileges(SE_DEBUG_NAME);
-
-							OBJECT_ATTRIBUTES objectAttributes;
-							HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
-							if (hModule == NULL)
-								return FALSE;
-							NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
-							UNICODE_STRING on;
-							RtlInitUnicodeString(&on, L"\\Device\\DeleteFile");
-							InitializeObjectAttributes(
-								&objectAttributes,
-								&on,
-								0x40,
-								NULL,
-								NULL
-							);
-							IO_STATUS_BLOCK isb;
-							myopen(
-								&DeleteFileHandle,
-								FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-								&objectAttributes,
-								&isb,
-								FILE_SHARE_READ | FILE_SHARE_WRITE,
-								0x40
-							);
-							//s((int)DeleteFileHandle);
-
+							EnableTADeleter();
 							break;
 						}
 						case 6: {
