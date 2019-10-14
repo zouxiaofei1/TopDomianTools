@@ -224,7 +224,6 @@
     <None Include="DeleteFilex64.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
-    <None Include="DrvDelFile.zxf" />
     <None Include="English.zxf" />
     <None Include="fakenew.zxf" />
     <None Include="fakeold.zxf" />

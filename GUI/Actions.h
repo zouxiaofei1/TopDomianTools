@@ -32,14 +32,14 @@ VOID Restart()//瞬间重启
 }
 inline VOID RestartDirect()
 {//创建线程
-	CreateThread(0, 0, RestartThread, 0, 0,0);
+	CreateThread(0, 0, RestartThread, 0, 0, 0);
 }
 DWORD WINAPI RestartThread(LPVOID pM)
 {
 	(pM);
-	const int SE_SHUTDOWN_PRIVILEGE = 0x13;
-	typedef int(__stdcall *PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
-	typedef int(__stdcall *PFN_ZwShutdownSystem)(int);
+	constexpr auto SE_SHUTDOWN_PRIVILEGE = 0x13;
+	typedef int(__stdcall* PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
+	typedef int(__stdcall* PFN_ZwShutdownSystem)(int);
 	HMODULE hModule = ::LoadLibrary(_T("ntdll.dll"));
 	if (hModule != NULL)
 	{//寻找ZwShutdownSystem的地址
@@ -57,20 +57,20 @@ DWORD WINAPI RestartThread(LPVOID pM)
 }
 
 //typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
-typedef BOOL(WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
+typedef BOOL(WINAPI* PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 
 BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 {//用内部一点的函数获取系统版本
 	HMODULE hNtDll = GetModuleHandleW(L"NTDLL");
 
-	typedef int(__stdcall *tRtlGetVersion)(PRTL_OSVERSIONINFOW);
+	typedef int(__stdcall* tRtlGetVersion)(PRTL_OSVERSIONINFOW);
 	tRtlGetVersion pRtlGetVersion = nullptr;
 	if (hNtDll)pRtlGetVersion = (tRtlGetVersion)GetProcAddress(hNtDll, "RtlGetVersion");
 	if (pRtlGetVersion)return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0;
 	return FALSE;
 }
 
-BOOL AdjustPrivileges(const wchar_t *lpName)
+BOOL AdjustPrivileges(const wchar_t* lpName)
 {//输入权限名，获取指定的权限
 	HANDLE hToken = NULL;
 	TOKEN_PRIVILEGES tp = { 0 };
@@ -114,7 +114,9 @@ BOOL TakeOwner(LPWSTR FilePath)
 	DWORD cbSid = sizeof(Sid);
 	CHAR DomainBuffer[128] = { 0 };
 	DWORD cbDomainBuffer = sizeof(DomainBuffer);
+#pragma warning (disable:26812)
 	SID_NAME_USE eUse;
+#pragma warning (default:26812)
 	PACL Dacl = NULL, OldDacl = NULL;
 	EXPLICIT_ACCESS Ea;
 	PSECURITY_DESCRIPTOR Sd = NULL;
@@ -143,7 +145,7 @@ BOOL TakeOwner(LPWSTR FilePath)
 	}
 	return Ret;
 }
-bool RunEXE(wchar_t *CmdLine,DWORD flag,STARTUPINFO *si)
+bool RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 {//用CreateProcess来创建进程
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
@@ -162,7 +164,7 @@ typedef struct
 	ULONG UniqueProcessId;
 	ULONG InheritedFromUniqueProcessId;
 }   PROCESS_BASIC_INFORMATION;
-typedef LONG(__stdcall *PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
+typedef LONG(__stdcall* PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 
 DWORD GetParentProcessID(DWORD dwProcessId)
@@ -202,7 +204,7 @@ int CaptureImage()
 	BITMAPINFOHEADER bi = { 0 };
 	DWORD dwBmpSize;
 	HANDLE hDIB;
-	CHAR *lpbitmap;
+	CHAR* lpbitmap;
 	HANDLE hFile;
 	DWORD dwSizeofDIB;
 	DWORD dwBytesWritten = 0;
@@ -226,9 +228,9 @@ int CaptureImage()
 	dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
 
 	hDIB = GlobalAlloc(GHND, dwBmpSize);
-	lpbitmap = (char *)GlobalLock(hDIB);
+	lpbitmap = (char*)GlobalLock(hDIB);
 
-	GetDIBits(hdcScreen, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO *)&bi, DIB_RGB_COLORS);
+	GetDIBits(hdcScreen, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 	hFile = CreateFile(L"C:\\SAtemp\\ScreenShot.bmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 	bmfHeader.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER);
@@ -398,6 +400,11 @@ FORCEINLINE VOID RtlInitUnicodeString(
 #define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x,3,0)
 #define KPH_OPENPROCESS KPH_CTL_CODE(50)
 #define KPH_TERMINATEPROCESS KPH_CTL_CODE(55)
+typedef VOID(NTAPI* PIO_APC_ROUTINE)(
+	_In_ PVOID ApcContext,
+	_In_ PIO_STATUS_BLOCK IoStatusBlock,
+	_In_ ULONG Reserved
+	);
 NTSTATUS KphpDeviceIoControl(
 	_In_ ULONG KphControlCode,
 	_In_ PVOID InBuffer,

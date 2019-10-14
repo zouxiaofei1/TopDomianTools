@@ -88,7 +88,6 @@
     <None Include="Killx64.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
-    <None Include="DrvDelFile.zxf" />
     <None Include="cheat_old.zxf" />
     <None Include="cheat_new.zxf" />
     <None Include="jpg21.bin">
