@@ -220,8 +220,6 @@
     <None Include="cheat_new.zxf" />
     <None Include="cheat_old.zxf" />
     <None Include="Chinese.zxf" />
-    <None Include="DeleteFilex32.zxf" />
-    <None Include="DeleteFilex64.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
     <None Include="English.zxf" />
@@ -231,14 +229,11 @@
     <None Include="jpg1.bin" />
     <None Include="jpg21.bin" />
     <None Include="jpg3.bin" />
-    <None Include="Killx32.zxf" />
-    <None Include="Killx64.zxf" />
     <None Include="kprocesshacker.zxf" />
     <None Include="kprocesshacker64.zxf" />
     <None Include="ntsd.zxf" />
     <None Include="PsExec.zxf" />
     <None Include="sethc.zxf" />
-    <None Include="sethcdrv.zxf" />
     <None Include="zxf1.zxf" />
     <None Include="关于&amp;帮助.zxf" />
   </ItemGroup>

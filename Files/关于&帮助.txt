@@ -1,285 +1,294 @@
-ÃâÔðÉùÃ÷£º
+å…è´£å£°æ˜Žï¼š
 
-ÒÔÏÂÎÄ×ÖºÍ±¾³ÌÐò£¨°üÀ¨µ«²»ÏÞÓÚºº×Ö¡¢Ó¢ÎÄ¡¢°¢À­²®Êý×Ö ¡¢Í¼Æ¬£¬ÒÔ¼°Ç°ÊöÖ®¸÷ÖÖÈÎÒâ×éºÏµÈµÈ£©¾ùÎªËæÒâÇÃ»÷¼üÅÌ¼°µã»÷Êó±êËù³ö£¬
+ä»¥ä¸‹æ–‡å­—å’Œæœ¬ç¨‹åºï¼ˆåŒ…æ‹¬ä½†ä¸é™äºŽæ±‰å­—ã€è‹±æ–‡ã€é˜¿æ‹‰ä¼¯æ•°å­— ã€å›¾ç‰‡ï¼Œä»¥åŠå‰è¿°ä¹‹å„ç§ä»»æ„ç»„åˆç­‰ç­‰ï¼‰å‡ä¸ºéšæ„æ•²å‡»é”®ç›˜åŠç‚¹å‡»é¼ æ ‡æ‰€å‡ºï¼Œ
 
-ÓÃÓÚ¼ìÑé±¾ÈËµçÄÔ¼üÅÌÊó±êÂ¼ÈëÒÔ¼°ÆÁÄ»ÏÔÊ¾µÄ»úÐµ¡¢¹âµçÐÔÄÜ£¬²¢²»´ú±í±¾ÈË¹Ûµã¡£ÈçÐèÒªÏê²éÇëÖ±½ÓÓë¼üÅÌÊó±êÏÔÊ¾Æ÷·¢Ã÷Õß¼°Éú²ú³§ÉÌ·¨ÈË´ú±íÁªÏµ¡£
-
-
-
-
-¼«ÓòÆÆ½â v1.9.1 C++ Edition
-
-Ò»¸ö½â¾öÑ§ÉúÔÚÐÅÏ¢¿ÎÉÏ·³ÄÕµÄ³ÌÐò , ¿ÉÒÔ·½±ãµØÍË³ö¼«Óòµç×Ó½ÌÊÒ
-
-ÍÆ¼öÔÚÔËÐÐ±¾Èí¼þÇ°ÍË³ö 360°²È«ÎÀÊ¿/360É±¶¾ ¼°ÀàËÆÉ±¶¾Èí¼þ£¬ÒÔ·À±¨¶¾
-
-µã»÷ "Ò»¼ü°²×°" , ÐèÒªÍË³ö¼«Óòµç×Ó½ÌÊÒÊ±£¬°´ÏÂ Scroll Lock ¼´¿É
-
-ÉèÖÃ->Ñ¡Ôñ Chinese.ini ºó£¬Êó±êÐüÍ£ÔÚ°´Å¥ÉÏ¿ÉÒÔ¿´µ½Æä¾ßÌåµÄÊ¹ÓÃ·½·¨
+ç”¨äºŽæ£€éªŒæœ¬äººç”µè„‘é”®ç›˜é¼ æ ‡å½•å…¥ä»¥åŠå±å¹•æ˜¾ç¤ºçš„æœºæ¢°ã€å…‰ç”µæ€§èƒ½ï¼Œå¹¶ä¸ä»£è¡¨æœ¬äººè§‚ç‚¹ã€‚å¦‚éœ€è¦è¯¦æŸ¥è¯·ç›´æŽ¥ä¸Žé”®ç›˜é¼ æ ‡æ˜¾ç¤ºå™¨å‘æ˜Žè€…åŠç”Ÿäº§åŽ‚å•†æ³•äººä»£è¡¨è”ç³»ã€‚
 
 
 
-±¾³ÌÐòÖ§³ÖÃüÁîÐÐµ÷ÓÃ²¿·Ö¹¦ÄÜ
-²»Çø·Ö´óÐ¡Ð´£¬µ«Ò»¶¨ÒªÓÃ"-"¶ø²»ÊÇ"/"
--sethc °²×°sethc
--unsethc Ð¶ÔØsethc
--auto È«×Ô¶¯·À¿ØÖÆ
--clear Çå³ýÃÜÂë
--antishutdown ·À½ÌÊ¦¹Ø»ú
--reopen ÖØÐÂ´ò¿ª¼«Óò
--BSOD À¶ÆÁ
--restart Ë²¼äÖØÆô
--viewpass ³¢ÊÔ¶ÁÈ¡ÃÜÂë
--rekill "³ÌÐòÃû"
--delete "ÎÄ¼þÃû"
--change "ÃÜÂë"
--changewithpasswd "ÃÜÂë"
 
-°æ±¾Ö§³Ö£ºÎåÖÖ·½°¸£¬Ó¦¸ÃÄÜ¶¼Ö§³Öwin xp¼°ÒÔºóµÄËùÓÐwindowsÏµÍ³£¬¾ù²»ÒÀÀµcmd
-	"Ò»¼ü°²×°"²»Ö§³Ö2007°æµç×Ó½ÌÊÒ
-	"ÐéÄâ×ÀÃæ"Ê¹ÓÃÊ±¿ÉÄÜ³öÏÖÊó±êÍ»È»ÒÆ¶¯¡¢Ö÷Ìâ´íÎó¡¢´°¿Ú´ò²»¿ªµÈÎÊÌâ
+æžåŸŸç ´è§£ v1.9.1 C++ Edition
 
-Ê¹ÓÃÐ­Òé£º
-	Òò²»µ±Ê¹ÓÃ±¾Èí¼þ¶øÔì³ÉµÄ ÊÜµ½ÀÏÊ¦³Í·£ ³É¼¨ÏÂ½µ µÈºó¹û×÷Õß¸Å²»³Ðµ£
-	²»µÃÎ´¾­¿¼ÂÇËæÒâ½«±¾Èí¼þ´ó¹æÄ£ÍÆ¹ã
+ä¸€ä¸ªè§£å†³å­¦ç”Ÿåœ¨ä¿¡æ¯è¯¾ä¸Šçƒ¦æ¼çš„ç¨‹åº , å¯ä»¥æ–¹ä¾¿åœ°é€€å‡ºæžåŸŸç”µå­æ•™å®¤
 
-×÷Õß     : 	zouxiaofei1
+æŽ¨èåœ¨è¿è¡Œæœ¬è½¯ä»¶å‰é€€å‡º 360å®‰å…¨å«å£«/360æ€æ¯’ åŠç±»ä¼¼æ€æ¯’è½¯ä»¶ï¼Œä»¥é˜²æŠ¥æ¯’
+
+ç‚¹å‡» "ä¸€é”®å®‰è£…" , éœ€è¦é€€å‡ºæžåŸŸç”µå­æ•™å®¤æ—¶ï¼ŒæŒ‰ä¸‹ Scroll Lock å³å¯
+
+è®¾ç½®->é€‰æ‹© Chinese.ini åŽï¼Œé¼ æ ‡æ‚¬åœåœ¨æŒ‰é’®ä¸Šå¯ä»¥çœ‹åˆ°å…¶å…·ä½“çš„ä½¿ç”¨æ–¹æ³•
+
+
+
+æœ¬ç¨‹åºæ”¯æŒå‘½ä»¤è¡Œè°ƒç”¨éƒ¨åˆ†åŠŸèƒ½
+ä¸åŒºåˆ†å¤§å°å†™ï¼Œä½†ä¸€å®šè¦ç”¨"-"è€Œä¸æ˜¯"/"
+-sethc å®‰è£…sethc
+-unsethc å¸è½½sethc
+-auto å…¨è‡ªåŠ¨é˜²æŽ§åˆ¶
+-clear æ¸…é™¤å¯†ç 
+-antishutdown é˜²æ•™å¸ˆå…³æœº
+-reopen é‡æ–°æ‰“å¼€æžåŸŸ
+-BSOD è“å±
+-restart çž¬é—´é‡å¯
+-viewpass å°è¯•è¯»å–å¯†ç 
+-rekill "ç¨‹åºå"
+-delete "æ–‡ä»¶å"
+-change "å¯†ç "
+-changewithpasswd "å¯†ç "
+
+ç‰ˆæœ¬æ”¯æŒï¼šäº”ç§æ–¹æ¡ˆï¼Œåº”è¯¥èƒ½éƒ½æ”¯æŒwin xpåŠä»¥åŽçš„æ‰€æœ‰windowsç³»ç»Ÿï¼Œå‡ä¸ä¾èµ–cmd
+	"ä¸€é”®å®‰è£…"ä¸æ”¯æŒ2007ç‰ˆç”µå­æ•™å®¤
+	"è™šæ‹Ÿæ¡Œé¢"ä½¿ç”¨æ—¶å¯èƒ½å‡ºçŽ°é¼ æ ‡çªç„¶ç§»åŠ¨ã€ä¸»é¢˜é”™è¯¯ã€çª—å£æ‰“ä¸å¼€ç­‰é—®é¢˜
+
+ä½¿ç”¨åè®®ï¼š
+	å› ä¸å½“ä½¿ç”¨æœ¬è½¯ä»¶è€Œé€ æˆçš„ å—åˆ°è€å¸ˆæƒ©ç½š æˆç»©ä¸‹é™ ç­‰åŽæžœä½œè€…æ¦‚ä¸æ‰¿æ‹…
+	ä¸å¾—æœªç»è€ƒè™‘éšæ„å°†æœ¬è½¯ä»¶å¤§è§„æ¨¡æŽ¨å¹¿
+
+ä½œè€…     : 	zouxiaofei1
 	cxy
 	villager
 
-¼¼ÊõÖ§³Ö & ÖÂÐ»Ãûµ¥:
-//ÒÔ×ÖµäÐòÅÅÐò£¬²»Çø·Ö´óÐ¡Ð´
-	ÂÛÌ³¡¢ÍøÕ¾¡¢ÍÅ¶Ó
+æŠ€æœ¯æ”¯æŒ & è‡´è°¢åå•:
+//ä»¥å­—å…¸åºæŽ’åºï¼Œä¸åŒºåˆ†å¤§å°å†™
+	è®ºå›ã€ç½‘ç«™ã€å›¢é˜Ÿ
 	      github.com
 	      Microsoft
 	      MSDN & CSDN
 	      sourceforge.net
 	      stackoverflow.com
-	      Visual Studio ÍÅ¶Ó
+	      Visual Studio å›¢é˜Ÿ
 	      The FreeBASIC Development Team 
 	      www.baidu.com
 	      www.google.com
 	      www.PowerAdmin.com
-	      Îá°®ÆÆ½âÂÛÌ³
+	      å¾çˆ±ç ´è§£è®ºå›
 
-	·â×°£º
-	      @ ÄêÀÏ³Õ´ô 2014 
-	      AMµçÄÔ°É
+	å°è£…ï¼š
+	      @ å¹´è€ç—´å‘† 2014 
+	      AMç”µè„‘å§
 
-	²Î¿¼µÄ´úÂë:
-	      @ ¼´½«ÖØÆô
-	      @ »ð¾§Ê¯Motor
-	      CSDN ÉÏ²¿·Ö´úÂë
+	å‚è€ƒçš„ä»£ç :
+	      @ å³å°†é‡å¯
+	      @ ç«æ™¶çŸ³Motor
+	      CSDN ä¸Šéƒ¨åˆ†ä»£ç 
 	      wj32 (Process Hacker) https://github.com/processhacker/processhacker
 	      PaExec    https://github.com/poweradminllc/PAExec
-	      °Ù¶ÈÌù°É vb°É È«Ìå°ÉÓÑ
-	      °Ù¶ÈÌù°É ¼«Óòµç×Ó½ÌÊÒ°É È«Ìå°ÉÓÑ
-	      ÉÁÉÁµÄÐÇ https://shansing.com/
+	      ç™¾åº¦è´´å§ vbå§ å…¨ä½“å§å‹
+	      ç™¾åº¦è´´å§ æžåŸŸç”µå­æ•™å®¤å§ å…¨ä½“å§å‹
+	      é—ªé—ªçš„æ˜Ÿ https://shansing.com/
 
-	¿ª·¢¹¤¾ß:
+	å¼€å‘å·¥å…·:
 	      FreeBASIC 1.07
 	      Visual Basic 6.0
 	      Visual C++ 6.0
 	      Visual Studio 2017 & 2019
 	      WDK 7.0
 
-	ÆäËû¹¤¾ß:
+	å…¶ä»–å·¥å…·:
 	      Cheat Engine 6.7
 	      IDA 7.0
 	      OllyDebug
 	      RegFromApp 1.3.3
-	      ´°¿ÚÐÅÏ¢¹ÜÀíÆ÷
+	      çª—å£ä¿¡æ¯ç®¡ç†å™¨
 
-	Çý¶¯£º
-	      @ ¡¶º®½­¶Àµö¡·×÷ÕßÍÅ¶Ó
-	      m5home ×ÏË®¾§ÂÛÌ³
-	      ¿´Ñ©°²È«ÂÛÌ³
+	é©±åŠ¨ï¼š
+	      @ ã€Šå¯’æ±Ÿç‹¬é’“ã€‹ä½œè€…å›¢é˜Ÿ
+	      m5home ç´«æ°´æ™¶è®ºå›
+	      çœ‹é›ªå®‰å…¨è®ºå›
 	      @ angla.tesla
 	      tangptr@126.com
 	      wj32
 
-¸üÐÂÀúÊ·£º
+æ›´æ–°åŽ†å²ï¼š
 
-v0.8£º
-Ìá¹©taskmgr.exe£¬sethc.exe£¬Ðè×ÔÐÐ¸´ÖÆ
+v0.8ï¼š
+æä¾›taskmgr.exeï¼Œsethc.exeï¼Œéœ€è‡ªè¡Œå¤åˆ¶
 
-v1.0£º
-ÐÂÔösetup.exe ¿É×Ô¶¯°²×°
+v1.0ï¼š
+æ–°å¢žsetup.exe å¯è‡ªåŠ¨å®‰è£…
 
-v1.0.1£º
-ÐÂÔöÈÈ¼üµ÷ÓÃ
-Ôö¼ÓÐ¶ÔØ³ÌÐò
+v1.0.1ï¼š
+æ–°å¢žçƒ­é”®è°ƒç”¨
+å¢žåŠ å¸è½½ç¨‹åº
 
-v1.1£º
-Ôö¼Ó ²é¿´¹ÜÀíÔ±ÃÜÂë ¹¦ÄÜ
-Ôö¼Ó ¸Ä¹ÜÀíÔ±ÃÜÂë ¹¦ÄÜ
+v1.1ï¼š
+å¢žåŠ  æŸ¥çœ‹ç®¡ç†å‘˜å¯†ç  åŠŸèƒ½
+å¢žåŠ  æ”¹ç®¡ç†å‘˜å¯†ç  åŠŸèƒ½
 
-v1.1.1£º
-Ôö¼Ó ¸Ä¹ÜÀíÔ±ÃÜÂëÎª¿Õ ¹¦ÄÜ
-Ôö¼Ó ¸ÄÆµµÀ ¹¦ÄÜ
+v1.1.1ï¼š
+å¢žåŠ  æ”¹ç®¡ç†å‘˜å¯†ç ä¸ºç©º åŠŸèƒ½
+å¢žåŠ  æ”¹é¢‘é“ åŠŸèƒ½
 
 v1.1.2:
-Ôö¼Ó Ò»¼ü°²×° ¹¦ÄÜ
-Ôö¼Ó win7ÏµÍ³Ò»¼üÉ¾³ý¼«Óòµç×Ó½ÌÊÒ ¹¦ÄÜ
+å¢žåŠ  ä¸€é”®å®‰è£… åŠŸèƒ½
+å¢žåŠ  win7ç³»ç»Ÿä¸€é”®åˆ é™¤æžåŸŸç”µå­æ•™å®¤ åŠŸèƒ½
 
-v1.2£º
-¸ÄÉÆ ×¢ÊÍ
-Ôö¼Ó ¸Ä¹ÜÀíÔ±ÃÜÂë ¶Ô2010°æ¼«ÓòµÄÖ§³Ö
+v1.2ï¼š
+æ”¹å–„ æ³¨é‡Š
+å¢žåŠ  æ”¹ç®¡ç†å‘˜å¯†ç  å¯¹2010ç‰ˆæžåŸŸçš„æ”¯æŒ
 
 v1.2.1
-Ôö¼Ó sethc&taskmgr×¨É±¹¤¾ß(360ÎÄ¼þ·ÛËé»ú)
+å¢žåŠ  sethc&taskmgrä¸“æ€å·¥å…·(360æ–‡ä»¶ç²‰ç¢Žæœº)
 
 v1.3
-ÔöÇ¿ Ò»¼ü°²×° µÄ¹¦ÄÜ
+å¢žå¼º ä¸€é”®å®‰è£… çš„åŠŸèƒ½
 
 v1.3.1
-Ôö¼Ó BSOD.exe
+å¢žåŠ  BSOD.exe
 
 v1.4
-ºÏ²¢ ¸Ä¹ÜÀíÔ±ÃÜÂëÎª¿Õ ¸Ä¹ÜÀíÔ±ÃÜÂë ¸Ä¹ÜÀíÔ±ÃÜÂë2010°æ
-Ìá¹© µ¥ÎÄ¼þ·â×°°æ±¾
+åˆå¹¶ æ”¹ç®¡ç†å‘˜å¯†ç ä¸ºç©º æ”¹ç®¡ç†å‘˜å¯†ç  æ”¹ç®¡ç†å‘˜å¯†ç 2010ç‰ˆ
+æä¾› å•æ–‡ä»¶å°è£…ç‰ˆæœ¬
 
 v1.5
-ÔöÇ¿ ½çÃæÏÔÊ¾ ´ÓCUI±ä³É²Ëµ¥Ê½GUI
+å¢žå¼º ç•Œé¢æ˜¾ç¤º ä»ŽCUIå˜æˆèœå•å¼GUI
 
 v1.5.1
-¸ÄÉÆ ²úÆ·¼æÈÝÐÔ£ºxpµ½win10ÏµÍ³²âÊÔÈ«²¿¼æÈÝ
+æ”¹å–„ äº§å“å…¼å®¹æ€§ï¼šxpåˆ°win10ç³»ç»Ÿæµ‹è¯•å…¨éƒ¨å…¼å®¹
 
 v1.5.2
-Ôö¼Ó Çý¶¯½áÊø½ø³Ì
-Ôö¼Ó Çý¶¯É¾³ýÎÄ¼þ
-¸Ä½ø Èí¼þÌå»ý
+å¢žåŠ  é©±åŠ¨ç»“æŸè¿›ç¨‹
+å¢žåŠ  é©±åŠ¨åˆ é™¤æ–‡ä»¶
+æ”¹è¿› è½¯ä»¶ä½“ç§¯
 
 v1.6
-Ôö¼Ó Ê¹ÓÃntsdµÄ¸üÇ¿µÄHOOK·½°¸
-ÔöÇ¿ ¶ÔÎÄ¼þ·ÛËé»úµÄµ÷ÓÃ
+å¢žåŠ  ä½¿ç”¨ntsdçš„æ›´å¼ºçš„HOOKæ–¹æ¡ˆ
+å¢žå¼º å¯¹æ–‡ä»¶ç²‰ç¢Žæœºçš„è°ƒç”¨
 
 v1.6.1
-Ôö¼Ó ¹Ø±Õ360
-¸Ä½ø ÐÞ¸ÄÃÜÂë¹¦ÄÜ
-Ôö¼Ó Çå¿ÕÃÜÂë¶ÔÐÂ°æ¼«ÓòµÄÖ§³Ö
+å¢žåŠ  å…³é—­360
+æ”¹è¿› ä¿®æ”¹å¯†ç åŠŸèƒ½
+å¢žåŠ  æ¸…ç©ºå¯†ç å¯¹æ–°ç‰ˆæžåŸŸçš„æ”¯æŒ
 
 v1.6.2
-Ôö¼Ó BSOD¶ÔxpµÄÖ§³Ö(Çý¶¯¼¶)
-Ôö¼Ó Ë²¼äÖØÆô 
+å¢žåŠ  BSODå¯¹xpçš„æ”¯æŒ(é©±åŠ¨çº§)
+å¢žåŠ  çž¬é—´é‡å¯ 
 
 v1.7
-ÔöÇ¿ ½çÃæÏÔÊ¾£¬¸ÄÓÃVB 6.0±àÐ´
-ÕûºÏ ÐÞ¸ÄÃÜÂë/ÐÞ¸ÄÆµµÀ/Çå¿ÕÃÜÂë/¼ÓÔØÇý¶¯µÈ¹¦ÄÜÖÁÖ÷³ÌÐòÖÐ
+å¢žå¼º ç•Œé¢æ˜¾ç¤ºï¼Œæ”¹ç”¨VB 6.0ç¼–å†™
+æ•´åˆ ä¿®æ”¹å¯†ç /ä¿®æ”¹é¢‘é“/æ¸…ç©ºå¯†ç /åŠ è½½é©±åŠ¨ç­‰åŠŸèƒ½è‡³ä¸»ç¨‹åºä¸­
 
 v1.7.1
-Ôö¼Ó 64Î»Çý¶¯Êý×ÖÇ©Ãû
-¸Ä½ø ·â×°·½°¸
+å¢žåŠ  64ä½é©±åŠ¨æ•°å­—ç­¾å
+æ”¹è¿› å°è£…æ–¹æ¡ˆ
 
 v1.7.2
-Ôö¼Ó Games
-Ôö¼Ó ARP¹¥»÷
-ÐÞ¸Ä ¼ÓÔØÇý¶¯·½·¨£¬²»ÒÀÀµÓÚcmd
+å¢žåŠ  Games
+å¢žåŠ  ARPæ”»å‡»
+ä¿®æ”¹ åŠ è½½é©±åŠ¨æ–¹æ³•ï¼Œä¸ä¾èµ–äºŽcmd
 
 v1.7.3
-ÕûºÏ ³ÌÐòÖÐËùÓÐ¹¦ÄÜÖÁÒ»¸ö´°¿ÚÖÐ
-Ôö¼Ó ¼«Óò´°¿Ú»¯
-Ôö¼Ó systemÈ¨ÏÞcmd
+æ•´åˆ ç¨‹åºä¸­æ‰€æœ‰åŠŸèƒ½è‡³ä¸€ä¸ªçª—å£ä¸­
+å¢žåŠ  æžåŸŸçª—å£åŒ–
+å¢žåŠ  systemæƒé™cmd
 
 v1.7.4
-Ôö¼Ó ÐéÄâ×ÀÃæ·½°¸
-Ôö¼Ó ´°¿ÚÖÃ¶¥ ¿ÉÒÔ¸¡ÔÚ¼«ÓòÉÏÃæ
-¸ÄÉÆ °ïÖú&¹ØÓÚ
+å¢žåŠ  è™šæ‹Ÿæ¡Œé¢æ–¹æ¡ˆ
+å¢žåŠ  çª—å£ç½®é¡¶ å¯ä»¥æµ®åœ¨æžåŸŸä¸Šé¢
+æ”¹å–„ å¸®åŠ©&å…³äºŽ
 
 v1.7.5
-Ôö¼Ó ¿ì½Ý¼üÀ¶ÆÁ/ÖØÆô
-¸Ä½ø ARP¹¥»÷×Ô¶¯°²×°
-Ôö¼Ó ÏµÍ³°æ±¾ºÅ¼ì²â
+å¢žåŠ  å¿«æ·é”®è“å±/é‡å¯
+æ”¹è¿› ARPæ”»å‡»è‡ªåŠ¨å®‰è£…
+å¢žåŠ  ç³»ç»Ÿç‰ˆæœ¬å·æ£€æµ‹
 
 v1.7.6
-¸Ä½ø ½çÃæ·ç¸ñ(win8±âÆ½UI)
-Ôö¼Ó Ctrl+P ÏÔÊ¾/Òþ²Ø×ÔÉí
-Ôö¼Ó É¾³ýShutdown.exe·ÀÖ¹½ÌÊ¦¹Ø»ú
-Ôö¼Ó ½ûÖ¹ÆÁ±Î¼üÅÌÊäÈë
-Ôö¼Ó Î±×°Í¼±ê/¹¤¾ßÀ¸
-ÐÞ¸´ ÈÎÎñÀ¸ÏÔÊ¾
+æ”¹è¿› ç•Œé¢é£Žæ ¼(win8æ‰å¹³UI)
+å¢žåŠ  Ctrl+P æ˜¾ç¤º/éšè—è‡ªèº«
+å¢žåŠ  åˆ é™¤Shutdown.exeé˜²æ­¢æ•™å¸ˆå…³æœº
+å¢žåŠ  ç¦æ­¢å±è”½é”®ç›˜è¾“å…¥
+å¢žåŠ  ä¼ªè£…å›¾æ ‡/å·¥å…·æ 
+ä¿®å¤ ä»»åŠ¡æ æ˜¾ç¤º
 
 v1.7.7
-Ìæ»» 360ÎÄ¼þ·ÛËé»ú ´ó·ù¼õÐ¡Ìå»ý
-Ôö¼Ó EnglishÓïÑÔÎÄ¼þ
-ÕûºÏ ¼«Óò´°¿Ú»¯ ÖÁÖ÷³ÌÐòÖÐ
-È¡Ïû ¶ÔCMDµÄÒÀÀµ
-Ôö¼Ó ¼ì²â¼«Óò°æ±¾
+æ›¿æ¢ 360æ–‡ä»¶ç²‰ç¢Žæœº å¤§å¹…å‡å°ä½“ç§¯
+å¢žåŠ  Englishè¯­è¨€æ–‡ä»¶
+æ•´åˆ æžåŸŸçª—å£åŒ– è‡³ä¸»ç¨‹åºä¸­
+å–æ¶ˆ å¯¹CMDçš„ä¾èµ–
+å¢žåŠ  æ£€æµ‹æžåŸŸç‰ˆæœ¬
 
 v1.8
-ÐÞ¸´ bugÈô¸É ÌáÉýÁ÷³©ÐÔ
-¶Ô´úÂë×öÁË¼¸´¦ÓÅ»¯
-Ôö¼Ó ÃüÁîÐÐµ÷ÓÃ
-ÔöÇ¿ ·­ÒëÍØÕ¹ÐÔ
+ä¿®å¤ bugè‹¥å¹² æå‡æµç•…æ€§
+å¯¹ä»£ç åšäº†å‡ å¤„ä¼˜åŒ–
+å¢žåŠ  å‘½ä»¤è¡Œè°ƒç”¨
+å¢žå¼º ç¿»è¯‘æ‹“å±•æ€§
 
 beta 0.3~0.9
-ÖØÐ´È«²¿´úÂë ¸ÄÓÃ Visual Studio C++ ¿ª·¢
-Öð²½ÊµÏÖvb°æ±¾µÄ¹¦ÄÜ
+é‡å†™å…¨éƒ¨ä»£ç  æ”¹ç”¨ Visual Studio C++ å¼€å‘
+é€æ­¥å®žçŽ°vbç‰ˆæœ¬çš„åŠŸèƒ½
 
 v1.8.1
-VCÓïÑÔ±àÐ´µÄ¼«ÓòÆÆ½âµÄµÚÒ»¸öÕýÊ½°æ
-¸Ä½ø ½çÃæ²¼¾Ö
-ÓÅ»¯ Ìå»ý¼õÉÙ40% ËÙ¶È¿ì300%
+VCè¯­è¨€ç¼–å†™çš„æžåŸŸç ´è§£çš„ç¬¬ä¸€ä¸ªæ­£å¼ç‰ˆ
+æ”¹è¿› ç•Œé¢å¸ƒå±€
+ä¼˜åŒ– ä½“ç§¯å‡å°‘40% é€Ÿåº¦å¿«300%
 
 v1.8.2
-Ôö¼Ó È«×Ô¶¯·À¿ØÖÆ
-Ôö¼Ó Mac¼ì²â
-Ôö¼Ó IPµØÖ·¼ì²â
-Ôö¼Ó DPIËõ·Å
-Ôö¼Ó ×îÐ¡»¯
-Ôö¼Ó ½ØÍ¼Î±×°
+å¢žåŠ  å…¨è‡ªåŠ¨é˜²æŽ§åˆ¶
+å¢žåŠ  Macæ£€æµ‹
+å¢žåŠ  IPåœ°å€æ£€æµ‹
+å¢žåŠ  DPIç¼©æ”¾
+å¢žåŠ  æœ€å°åŒ–
+å¢žåŠ  æˆªå›¾ä¼ªè£…
 
 v1.8.3
-Ôö¼Ó ×îÐ¡»¯ÖÃ¶¥´°¿Ú
-¼ÓÇ¿ Çý¶¯ÎÈ¶¨ÐÔ
+å¢žåŠ  æœ€å°åŒ–ç½®é¡¶çª—å£
+åŠ å¼º é©±åŠ¨ç¨³å®šæ€§
 
 v1.8.4
-ÖØÐ´²¿·Ö´úÂë
-¸ÄÓÃÐÂµÄÍ¼±ê
-Ôö¼Ó °ëÍ¸Ã÷/ÒõÓ°/½¥±äÉ«ÌØÐ§
-Ôö¼Ó ÏÔÊ¾ÓÚ°²È«×ÀÃæ
-Ôö¼Ó ¼üÅÌ²Ù×÷Êó±ê
-¼ÓÇ¿ Ó¦ÓÃ²ãÎÄ¼þÉ¾³ý¹¦ÄÜ
-Ôö¼Ó ·Ç¹ÜÀíÔ±ºÚÆÁÖØÆô
-Ôö¼Ó ´°¿Ú¼àÊÓ
+é‡å†™éƒ¨åˆ†ä»£ç 
+æ”¹ç”¨æ–°çš„å›¾æ ‡
+å¢žåŠ  åŠé€æ˜Ž/é˜´å½±/æ¸å˜è‰²ç‰¹æ•ˆ
+å¢žåŠ  æ˜¾ç¤ºäºŽå®‰å…¨æ¡Œé¢
+å¢žåŠ  é”®ç›˜æ“ä½œé¼ æ ‡
+åŠ å¼º åº”ç”¨å±‚æ–‡ä»¶åˆ é™¤åŠŸèƒ½
+å¢žåŠ  éžç®¡ç†å‘˜é»‘å±é‡å¯
+å¢žåŠ  çª—å£ç›‘è§†
 
 v1.8.5
-Ôö¼Ó 2016°æ¼«ÓòÃÜÂëÐÞ¸Ä
-É¾³ý (±¾µØ)ARP¹¥»÷
-Ôö¼Ó ntsd & Process Hacker ½áÊø½ø³Ì¹¦ÄÜ
-Ôö¼Ó ×Ô¼º±àÐ´µÄntsd ¼õÐ¡Ìå»ý
-Ôö¼Ó ¾«¼ò°æProcess Hacker
-¸Ä½ø UI & ¼ÓÇ¿¿Ø¼þÎÈ¶¨ÐÔ
+å¢žåŠ  2016ç‰ˆæžåŸŸå¯†ç ä¿®æ”¹
+åˆ é™¤ (æœ¬åœ°)ARPæ”»å‡»
+å¢žåŠ  ntsd & Process Hacker ç»“æŸè¿›ç¨‹åŠŸèƒ½
+å¢žåŠ  è‡ªå·±ç¼–å†™çš„ntsd å‡å°ä½“ç§¯
+å¢žåŠ  ç²¾ç®€ç‰ˆProcess Hacker
+æ”¹è¿› UI & åŠ å¼ºæŽ§ä»¶ç¨³å®šæ€§
 
 v1.9
-Ôö¼Ó ÁªÍøÏÂÔØÎÄ¼þ¹¦ÄÜ
-Ôö¼Ó ÐÂ°æ¼«Óò°æ±¾ºÅ¶ÁÈ¡
-Ôö¼Ó Ö±½Ó ½áÊø\Æô¶¯ ¼«ÓòµÄÑ¡Ïî
-Ôö¼Ó ¸ü¶àÃüÁîÐÐµ÷ÓÃ
-Ôö¼Ó ÐéÄâ×ÀÃæºÚÆÁË²¼äÖØÆô¹¦ÄÜ
-Ôö¼Ó 64Î»ÏµÍ³Process Hacker ½áÊø½ø³Ì
-Ôö¼Ó ·Ç¹ÜÀíÔ±Î±×°À¶ÆÁ
+å¢žåŠ  è”ç½‘ä¸‹è½½æ–‡ä»¶åŠŸèƒ½
+å¢žåŠ  æ–°ç‰ˆæžåŸŸç‰ˆæœ¬å·è¯»å–
+å¢žåŠ  ç›´æŽ¥ ç»“æŸ\å¯åŠ¨ æžåŸŸçš„é€‰é¡¹
+å¢žåŠ  æ›´å¤šå‘½ä»¤è¡Œè°ƒç”¨
+å¢žåŠ  è™šæ‹Ÿæ¡Œé¢é»‘å±çž¬é—´é‡å¯åŠŸèƒ½
+å¢žåŠ  64ä½ç³»ç»ŸProcess Hacker ç»“æŸè¿›ç¨‹
+å¢žåŠ  éžç®¡ç†å‘˜ä¼ªè£…è“å±
 
 v1.9.1
-ÐÞ¸´ µã»÷Ê±EditÑÕÉ«²»»á±ä»¯µÄbug
-ÐÞ¸´ ¼«Óò½ø³Ì¹¤¾ßPIDÏÔÊ¾´íÎ»µÄbug
-ÐÞ¸´ ³ÌÐò±êÌâÀ¸ÑÕÉ«¸ü¸ÄµÄbug
-ÐÞ¸´ Î±×°À¶ÆÁÓïÑÔ´íÎóµÄbug
-ÐÞ¸´ ¼üÅÌ¿ØÖÆÊó±êËÙ¶È¹ýÂýµÄbug
-ÐÞ¸´ ¶à²ãÎÄ¼þ¼ÐÉ¾³ý²»ÍêÈ«µÄbug
-ÐÞ¸´ ´´½¨ÐÂÏß³Ì²ÎÊý´íÎóµ¼ÖÂÏÂÔØÎÄ¼þÊ§°ÜµÄbug
-ÐÞ¸´ ÎÞ·¨É¾³ýÒÔ"."¿ªÍ·µÄÎÄ¼þ¼ÐµÄbug
-ÕûºÏ Î±×°¹¤¾ßÀ¸¹¦ÄÜÖÁÖ÷³ÌÐòÖÐ
-ÕûºÏ ProcessHacker½áÊø½ø³Ì¹¦ÄÜ
-¸ÄÓÃ PaExec.exe¼õÐ¡Ìå»ý
-È¡Ïû nsisÑ¹Ëõ°ü¼Ó¿ìÆô¶¯ËÙ¶È
-Í¼Æ¬¸ÄÓÃjpg¸ñÊ½
+ä¿®å¤ ç‚¹å‡»æ—¶Edité¢œè‰²ä¸ä¼šå˜åŒ–çš„bug
+ä¿®å¤ æžåŸŸè¿›ç¨‹å·¥å…·PIDæ˜¾ç¤ºé”™ä½çš„bug
+ä¿®å¤ ç¨‹åºæ ‡é¢˜æ é¢œè‰²æ›´æ”¹çš„bug
+ä¿®å¤ ä¼ªè£…è“å±è¯­è¨€é”™è¯¯çš„bug
+ä¿®å¤ é”®ç›˜æŽ§åˆ¶é¼ æ ‡é€Ÿåº¦è¿‡æ…¢çš„bug
+ä¿®å¤ å¤šå±‚æ–‡ä»¶å¤¹åˆ é™¤ä¸å®Œå…¨çš„bug
+ä¿®å¤ åˆ›å»ºæ–°çº¿ç¨‹å‚æ•°é”™è¯¯å¯¼è‡´ä¸‹è½½æ–‡ä»¶å¤±è´¥çš„bug
+ä¿®å¤ æ— æ³•åˆ é™¤ä»¥"."å¼€å¤´çš„æ–‡ä»¶å¤¹çš„bug
+ä¿®å¤ æ”¾å¤§\ç¼©å°æ—¶é˜´å½±æ˜¾ç¤ºé”™è¯¯çš„bug
+æ•´åˆ ä¼ªè£…å·¥å…·æ åŠŸèƒ½è‡³ä¸»ç¨‹åºä¸­
+æ•´åˆ ProcessHackerç»“æŸè¿›ç¨‹åŠŸèƒ½
+æ”¹ç”¨ PaExec.exeå‡å°ä½“ç§¯
+å–æ¶ˆ nsisåŽ‹ç¼©åŒ…åŠ å¿«å¯åŠ¨é€Ÿåº¦
+å›¾ç‰‡æ”¹ç”¨jpgæ ¼å¼
 
-×îºóÐÞ¸Ä£º2019-9-15
+v1.9.2 preview
+ä¿®å¤ ä¸‹è½½å¤šä¸ªæ–‡ä»¶æ˜¾ç¤ºé”™è¯¯çš„bug
+ä¿®å¤ éƒ¨åˆ†æƒ…å†µä¸‹è™šæ‹Ÿæ¡Œé¢ä¸­å¯åŠ¨ç¨‹åºé”™è¯¯çš„bug
+ä¿®å¤ è™šæ‹Ÿæ¡Œé¢æ— æ³•åˆ‡æ¢çš„bug
+ä¿®å¤ éƒ¨åˆ†å«ç‰¹æ®Šå­—ç¬¦æ–‡ä»¶å¤¹æ— æ³•ç²‰ç¢Žçš„bug
+å¢žåŠ  è™šæ‹Ÿæ¡Œé¢ä¸­å¯åŠ¨æžåŸŸåŠŸèƒ½
+å¢žåŠ  é©±åŠ¨æ–‡ä»¶ç²‰ç¢ŽæœºåŠŸèƒ½
 
-±¾°æÎªÕýÊ½°æ(²»Ò»¶¨)
+æœ€åŽä¿®æ”¹ï¼š2019-10-20
 
-ÓÐºÃµÄ½¨Òé»òÒâ¼û¿ÉÒÔ·¢zouxiaofei1@gmail.com
+æœ¬ç‰ˆä¸ºæ­£å¼ç‰ˆ(ä¸ä¸€å®š)
+
+æœ‰å¥½çš„å»ºè®®æˆ–æ„è§å¯ä»¥å‘zouxiaofei1@gmail.com
 		    Github:zouxiaofei1
 
-ÄãµÄÊ¹ÓÃ£¬¾ÍÊÇ¶ÔÎÒÃÇµÄ×î´ó¹ÄÀø£¡
+ä½ çš„ä½¿ç”¨ï¼Œå°±æ˜¯å¯¹æˆ‘ä»¬çš„æœ€å¤§é¼“åŠ±ï¼

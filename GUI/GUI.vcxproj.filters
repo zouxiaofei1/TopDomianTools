@@ -79,13 +79,8 @@
     <None Include="PsExec.zxf" />
     <None Include="360x32.zxf" />
     <None Include="BSODx32.zxf" />
-    <None Include="DeleteFilex32.zxf" />
-    <None Include="Killx32.zxf" />
-    <None Include="sethcdrv.zxf" />
     <None Include="360x64.zxf" />
     <None Include="BSODx64.zxf" />
-    <None Include="DeleteFilex64.zxf" />
-    <None Include="Killx64.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
     <None Include="cheat_old.zxf" />

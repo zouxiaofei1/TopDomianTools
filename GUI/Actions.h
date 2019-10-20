@@ -17,10 +17,8 @@ DWORD WINAPI RestartThread(LPVOID pM);
 VOID LockCursor()//锁住鼠标
 {
 	RECT rect;
-	rect.bottom = GetSystemMetrics(SM_CYSCREEN);
-	rect.right = GetSystemMetrics(SM_CXSCREEN);
-	rect.left = GetSystemMetrics(SM_CXSCREEN);
-	rect.top = GetSystemMetrics(SM_CYSCREEN);//把鼠标限制在右下角
+	rect.bottom = rect.top = GetSystemMetrics(SM_CYSCREEN);
+	rect.right = rect.left = GetSystemMetrics(SM_CXSCREEN);//把鼠标限制在右下角
 	ClipCursor(&rect);//但是按windows键或者ctrl+alt+del就会恢复
 }
 VOID Restart()//瞬间重启
@@ -145,7 +143,7 @@ BOOL TakeOwner(LPWSTR FilePath)
 	}
 	return Ret;
 }
-bool RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
+bool RunEXE(wchar_t*CmdLine, DWORD flag, STARTUPINFO* si)
 {//用CreateProcess来创建进程
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
@@ -431,7 +429,7 @@ NTSTATUS KphOpenProcess(
 	} input = { ProcessHandle, DesiredAccess, ClientId };
 
 	return KphpDeviceIoControl(
-		KPH_OPENPROCESS,
+		(ULONG)KPH_OPENPROCESS,
 		&input,
 		sizeof(input),
 		PhKphHandle
@@ -470,7 +468,7 @@ NTSTATUS PhTerminateProcess(
 	} input = { ProcessHandle, ExitStatus };
 
 	status = KphpDeviceIoControl(
-		KPH_TERMINATEPROCESS,
+		(ULONG)KPH_TERMINATEPROCESS,
 		&input,
 		sizeof(input),
 		PhKphHandle
@@ -480,9 +478,7 @@ NTSTATUS PhTerminateProcess(
 
 NTSTATUS KphConnect(PHANDLE handle)
 {
-	//DWORD A;
 	OBJECT_ATTRIBUTES objectAttributes;
-	//s(A);
 	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
 	if (hModule == NULL)
 		return FALSE;
