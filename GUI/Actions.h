@@ -28,7 +28,7 @@ VOID Restart()//瞬间重启
 	LockCursor();
 	RestartDirect();
 }
-inline VOID RestartDirect()
+__forceinline VOID RestartDirect()
 {//创建线程
 	CreateThread(0, 0, RestartThread, 0, 0, 0);
 }
