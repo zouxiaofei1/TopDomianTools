@@ -77,10 +77,6 @@
     <None Include="ntsd.zxf" />
     <None Include="sethc.zxf" />
     <None Include="PsExec.zxf" />
-    <None Include="360x32.zxf" />
-    <None Include="BSODx32.zxf" />
-    <None Include="360x64.zxf" />
-    <None Include="BSODx64.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
     <None Include="cheat_old.zxf" />

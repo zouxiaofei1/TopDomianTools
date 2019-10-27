@@ -13,7 +13,6 @@ VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
 VOID RestartDirect();
 VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
-
 VOID LockCursor()//锁住鼠标
 {
 	RECT rect;
@@ -21,13 +20,7 @@ VOID LockCursor()//锁住鼠标
 	rect.right = rect.left = GetSystemMetrics(SM_CXSCREEN);//把鼠标限制在右下角
 	ClipCursor(&rect);//但是按windows键或者ctrl+alt+del就会恢复
 }
-VOID Restart()//瞬间重启
-{
-	HDESK VirtualDesk = CreateDesktop(L"GUI", NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
-	SwitchDesktop(VirtualDesk);
-	LockCursor();
-	RestartDirect();
-}
+
 __forceinline VOID RestartDirect()
 {//创建线程
 	CreateThread(0, 0, RestartThread, 0, 0, 0);
@@ -246,27 +239,26 @@ int CaptureImage()
 	return 0;
 }
 
-
 #pragma warning(disable:4244)
 
 void change(void* Src, bool wow)
 {//改极域的knock密码
 	unsigned int v5, v10;
 	BYTE* v6, * v7, v8, * v9, * i;
-	HKEY phkResult;
+	HKEY phkResult;//键值的句柄
 	LPCWSTR lpSubKeya;
 
 	phkResult = 0;
 
 	if (wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
-	else
+	else//根据系统位数打开键值所在的目录
 		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
 
-	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;
-	v6 = (BYTE*)operator new[](v5);
-	v7 = v6;
+	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;//随机得到加密后密码的长度，向下取整为4的倍数
+	v6 = (BYTE*)operator new[](v5);//申请相应的内存空间
+	v7 = v6;//v7是指向v6开头的指针
 	if (v5 >> 1)
-	{
+	{//先给v6每个位上都写上随机值
 		lpSubKeya = (LPCWSTR)(v5 >> 1);
 		do
 		{
@@ -275,13 +267,13 @@ void change(void* Src, bool wow)
 			lpSubKeya = (LPCWSTR)((char*)lpSubKeya - 1);
 		} while (lpSubKeya);
 	}
-	v8 = rand() % (v5 - 68) + 2;
-	*v6 = v8;
-	v6[v5 - 1] = v8;
-	if (Src && wcslen((const wchar_t*)Src))
+	v8 = rand() % (v5 - 68) + 2;//取一个大小为2 - 57的随机值
+	*v6 = v8;//v6的第一位和最后一位都标上这个值
+	v6[v5 - 1] = v8;//以这个值为加密后密码字段的开始
+	if (Src && wcslen((const wchar_t*)Src))//如果密码不为空，将密码明文先复制到v8处
 		memcpy(&v6[v8], Src, 2 * wcslen((const wchar_t*)Src) + 2);
 	else
-	{
+	{//若密码为空，则将v8和v8的下一字节都设为空
 		v9 = &v6[v8];
 		*v9 = 0;
 		v9[1] = 0;
@@ -289,14 +281,14 @@ void change(void* Src, bool wow)
 	v10 = v5 >> 2;
 
 	for (i = v6; v10; --v10)
-	{
+	{//从头到尾把密文和0x150f0f15异或
 		*(DWORD*)i ^= 0x150f0f15u;
 		i += 4;
 	}
 
 	RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
 	RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
-	operator delete[](v6);
+	operator delete[](v6);//然后设到Knock中
 
 	RegCloseKey(phkResult);
 }

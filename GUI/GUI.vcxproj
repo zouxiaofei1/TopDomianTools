@@ -121,7 +121,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>MinSpace</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -213,10 +213,6 @@
     <Image Include="zxf2.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="360x32.zxf" />
-    <None Include="360x64.zxf" />
-    <None Include="BSODx32.zxf" />
-    <None Include="BSODx64.zxf" />
     <None Include="cheat_new.zxf" />
     <None Include="cheat_old.zxf" />
     <None Include="Chinese.zxf" />

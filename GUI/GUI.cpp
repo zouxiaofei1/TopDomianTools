@@ -7,13 +7,13 @@
 #include "WndShadow.h"
 #include "Actions.h"
 #include "TestFunctions.h"
-
+#include <Gdiplus.h>
 
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib
 #pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
 #pragma comment(lib, "netapi32.lib")//也是Winsock API 库
-
+#pragma comment(lib, "Gdiplus.lib")
 
 //部分(重要)函数的前向声明
 BOOL				InitInstance(HINSTANCE, int);//初始化
@@ -801,7 +801,7 @@ public:
 		int pos1 = min(Edit[cur].Pos1, Edit[cur].Pos2);
 		int pos2 = max(Edit[cur].Pos1, Edit[cur].Pos2);
 		EditStr = new wchar_t[pos2 - pos1 + 1];
-		ClipBoardStr = new char[pos2 - pos1 + 1];
+		ClipBoardStr = new char[(pos2 - pos1 + 1) * 2];
 		t = Edit[cur].str[pos2];
 		Edit[cur].str[pos2] = '\0';
 		wcscpy(EditStr, Edit[cur].str + pos1);
@@ -1376,20 +1376,30 @@ void KillTop()//杀掉置顶窗口
 BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 {
 	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b;
-	wcscpy(tmp, ProcessName);
-	b = a = tmp;
-	while (wcsstr(a, L"/") != 0)
-	{
-		b = wcsstr(a, L"/");
-		*b = 0;//处理用"/"分隔的不同进程名
-		a[3] = 0;//将每个"/"前的字符串转为小写并只保留前三个字母
-		wcscat_s(MyProcessName, a);
-		wcscat_s(MyProcessName, L"/");
-		a = b + 1;
+	if (Main.Check[11].Value == true)
+	{//完全匹配进程名
+		wcscpy_s(MyProcessName, ProcessName);
+		_wcslwr_s(MyProcessName);
+		if (wcsstr(MyProcessName, L".exe") == 0)wcscat_s(MyProcessName, L".exe");
 	}
-	a[3] = 0;
-	wcscat_s(MyProcessName, a);
-	_wcslwr_s(MyProcessName);
+	else
+	{
+		wcscpy(tmp, ProcessName);
+		b = a = tmp;
+		while (wcsstr(a, L"/") != 0)
+		{
+			b = wcsstr(a, L"/");
+			*b = 0;//处理用"/"分隔的不同进程名
+			a[3] = 0;//将每个"/"前的字符串转为小写并只保留前三个字母
+			wcscat_s(MyProcessName, a);
+			wcscat_s(MyProcessName, L"/");
+			a = b + 1;
+		}
+		a[3] = 0;
+		wcscat_s(MyProcessName, a);
+		_wcslwr_s(MyProcessName);
+	}
+
 
 	HANDLE PhKphHandle = 0;
 	BOOL ConnectSuccess = FALSE;//尝试连接KProcessHacker
@@ -1400,11 +1410,15 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 	if (!Process32First(hSnapShot, &pe))return FALSE;
 	while (Process32Next(hSnapShot, &pe))
 	{
-		pe.szExeFile[3] = 0;//根据进程名前三个字符标识
+		if (Main.Check[11].Value == false)pe.szExeFile[3] = 0;//根据进程名前三个字符标识
 		_wcslwr_s(pe.szExeFile);
 		if (wcsstr(MyProcessName, pe.szExeFile) != 0 || ProcessName == NULL)
 		{
+#ifndef _WIN64
 			DWORD dwProcessID = pe.th32ProcessID;
+#else
+			long long dwProcessID = pe.th32ProcessID;
+#endif
 			HANDLE hProcess = 0;
 			if (Main.Check[16].Value && ConnectSuccess)
 			{//连接成功->用驱动结束进程
@@ -1480,12 +1494,12 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 {//获取系统版本的函数
 	OSVERSIONINFOEX osvi;
 	BOOL bOsVersionInfoEx;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//据说GetVersionEx用来判断版本效果较好
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//网上查到的其他函数判断一台win10电脑
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果一般是8.1(9200)
-	if (!bOsVersionInfoEx) return FALSE;//这个则能正确显示详细版本号
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//据说GetVersionEx用来判断版本效果不好
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//用它来判断一台win10电脑
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果一般是6.2(9200)
+	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
 
-	wchar_t tmp[101];//对于win7以前的系统
+	wchar_t tmp[101];//对于win7以前的系统用GetVersionEx没有问题
 	_itow_s(osvi.dwMajorVersion, tmp, 10);//大版本号
 	wcscpy(pszOS, tmp); wcscat(pszOS, L".");
 	_itow_s(osvi.dwMinorVersion, tmp, 10);//小版本号
@@ -1506,8 +1520,7 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 		_itow_s(osvi.dwMinorVersion, tmp, 10);//拼接版本号
 		wcscat(pszOS, tmp); wcscat(pszOS, L".");
 		_itow_s(osvi.dwBuildNumber, tmp, 10);
-		wcscat(pszOS, tmp);//版本号比较旧的自动用旧版伪装蓝屏
-		if (osvi.dwBuildNumber <= 8000 && Admin == false)Main.Check[17].Value = true;
+		wcscat(pszOS, tmp);
 	}
 	return true;
 }
@@ -1621,8 +1634,9 @@ void EnableTADeleter()
 		0x40
 	);
 }
-void EnableKPH()
+bool EnableKPH()
 {//加载KprocessHacker驱动
+	if (Main.Check[16].Value)return true;//如果已经加载，就不用再加载了
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"kprocesshacker");
@@ -1633,9 +1647,9 @@ void EnableKPH()
 	else
 		ReleaseRes(tmp, FILE_KPH64, L"JPG");
 	UnloadNTDriver(L"KProcessHacker2");
-	LoadNTDriver(L"KProcessHacker2", tmp);
+	bool flag = LoadNTDriver(L"KProcessHacker2", tmp);
 	AdjustPrivileges(SE_DEBUG_NAME);
-	return;
+	return flag;
 }
 
 struct GETLAN
@@ -1812,6 +1826,7 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 		SetWindowText(CatchWnd.hWnd, CatchWnd.GetStr(L"Title"));
 		haveInfo = true;
 		SetFrame();
+		Main.Button[Main.GetNumbyID(L"more.txt")].Enabled = !(bool)wcsstr(name, L"English");
 		Main.Redraw();
 		if (CatchWnd.hWnd)CatchWnd.Redraw();
 	}
@@ -2324,9 +2339,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	switch (nTimerid)
 	{
 	case 1://连续结束进程
-		if (Main.Check[10].Value == 1)
-			KillProcess(Main.Edit[Main.GetNumByIDe(L"E_TDname")].str);
+	{
+		if (Main.Check[10].Value == 1)KillProcess(Main.Edit[Main.GetNumByIDe(L"E_TDname")].str);
 		break;
+	}
 	case 2://延时捕捉窗口
 	{
 		timerleft--;
@@ -2393,9 +2409,12 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	case 6:
 		CatchWnd.Redraw();
 		break;
-	case 7://刷新HOOK
-		if (Main.Check[11].Value == 1)KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
-		if (Main.Check[12].Value == 1)MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
+	case 7://刷新鼠标键盘钩子
+		if (Main.Check[12].Value == 1)
+		{//只有最后加入的钩子才有效，这样极域就没法用钩子来禁用键盘了
+			MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInst, 0);
+			KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInst, 0);
+		}
 		break;
 	case 8://刷新极域状态
 		if (Main.CurWnd == 2)RefreshTDstate();
@@ -2426,29 +2445,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	}
 }
 
-void ReleaseDrvFiles(int bit)//释放驱动文件
-{//可能在日后被删除
-	const wchar_t Filename[2][10] = { L"360.sys",L"BSOD.sys" };
-	wchar_t tmp[301] = { 0 };
-	if (bit == 32)
-		for (int i = 0; i <= 1; ++i)
-		{
-			wcscpy_s(tmp, Path);
-			wcscat_s(tmp, L"x32\\");
-			if (i == 0)CreateDirectory(tmp, NULL);
-			wcscat_s(tmp, Filename[i]);
-			if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, (WORD)(i + 152), L"JPG");//如果文件不存在再释放
-		}
-	else
-		for (int i = 0; i <= 1; ++i)
-		{
-			wcscpy_s(tmp, Path);
-			wcscat_s(tmp, L"x64\\");
-			if (i == 0)CreateDirectory(tmp, NULL);
-			wcscat_s(tmp, Filename[i]);
-			if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, (WORD)(157 + i), L"JPG");
-		}
-}
 void SDesktop()//切换桌面
 {
 	if (hCurrentDesk == defaultDesk)//从原始桌面切换到新桌面
@@ -2493,7 +2489,7 @@ void BrowseFolder()//显示"打开文件夹"的对话框
 void ClearUp()//清理文件并退出
 {
 	wchar_t tmpFiles[13][21] = { L"kprocesshacker32.sys",L"kprocesshacker64.sys",L"arp.exe",L"psexec.exe",L"hook.exe",\
-	L"ntsd.exe",L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" },tmp[301];
+	L"ntsd.exe",L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" }, tmp[301];
 	KillProcess(L"hook.exe");
 	for (int i = 0; i < 12; ++i)
 	{
@@ -2501,7 +2497,7 @@ void ClearUp()//清理文件并退出
 		wcscat_s(tmp, tmpFiles[i]);
 		AutoDelete(tmp, true);
 	}
-	AutoDelete(tmpFiles[12],true);//删除SAtemp文件夹
+	AutoDelete(tmpFiles[12], true);//删除SAtemp文件夹
 	if (DeleteFileHandle != 0)UnloadNTDriver(L"DeleteFile");
 	UnloadNTDriver(L"KProcessHacker2");//卸载驱动
 	PostQuitMessage(0);
@@ -2564,44 +2560,57 @@ void FakeBSOD()//召唤伪装蓝屏的窗口
 void BSOD()//尝试蓝屏
 {
 	LockCursor();//锁住鼠标
-	if (Admin == FALSE)//没有管理员权限时使用伪装蓝屏 + NtShutdown
-	{
-		wchar_t tmp[340];
-		HDESK VirtualDesk = CreateDesktop(fBSODdesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
-		//有时候主桌面会运行个任务管理器什么的程序，能够浮在POPUP窗口的上面
-		STARTUPINFO si = { 0 };//这样伪装蓝屏就露馅了
-		si.cb = sizeof(si);//所以我们创建一个虚拟桌面，把蓝屏窗口显示在本来空无一物的那里比较安全
-		si.lpDesktop = fBSODdesk;
-		if (Main.Check[17].Value)
-			wcscpy_s(tmp, L"d -showbsod \"old\"");
-		else//命令行调用，由另一个GUI.exe进程完成蓝屏
-			wcscpy_s(tmp, L"d -showbsod \"new\"");
-		if (wcslen(CurrentLanguage) != 0)
-		{//其他文字的蓝屏选项
-			wcscat_s(tmp, L" /");
-			wcscat_s(tmp, CurrentLanguage);
-		}
-		PROCESS_INFORMATION pi = { 0 };
+	//默认使用伪装蓝屏 + NtShutdown
 
-		CreateProcess(Name, tmp, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
-		BlackBoard = true;
-		MyRegisterClass(hInst, ScreenProc, ScreenWindow);
-		HWND t = CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
-		ShowWindow(t, SW_SHOW);
-		for (int i = 0; i < 10; ++i)InvalidateRect(t, NULL, false), UpdateWindow(t);
-		//切换到那个桌面去
-		SwitchDesktop(VirtualDesk);//另一个程序启动也需要时间，在这之前打开一个黑屏窗口过渡
+	wchar_t tmp[340];
+	HDESK VirtualDesk = CreateDesktop(fBSODdesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
+	//有时候主桌面会运行个任务管理器什么的程序，能够浮在POPUP窗口的上面
+	STARTUPINFO si = { 0 };//这样伪装蓝屏就露馅了
+	si.cb = sizeof(si);//所以我们创建一个虚拟桌面，把蓝屏窗口显示在本来空无一物的那里比较安全
+	si.lpDesktop = fBSODdesk;
 
+	bool oldBSOD = true;
+	OSVERSIONINFOEX osvi;
+	BOOL bOsVersionInfoEx;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//检查一次版本号，小于8000则应是win7或更旧的系统
+	if (bOsVersionInfoEx && osvi.dwBuildNumber > 8000)oldBSOD = false;//此时默认用旧版蓝屏
+	
+	if (oldBSOD)
+		wcscpy_s(tmp, L"d -showbsod \"old\"");
+	else//命令行调用，由另一个GUI.exe进程完成蓝屏
+		wcscpy_s(tmp, L"d -showbsod \"new\"");
+	if (wcslen(CurrentLanguage) != 0)
+	{//其他文字的蓝屏选项
+		wcscat_s(tmp, L" /");
+		wcscat_s(tmp, CurrentLanguage);
 	}
-	else
-	{//当我们有管理员权限时，就用驱动做真的蓝屏了
-		ReleaseDrvFiles(Bit);//释放驱动
-		if (Bit == 32)LoadNTDriver(L"BSOD", L"x32\\BSOD.sys"); else LoadNTDriver(L"BSOD", L"x64\\BSOD.sys");
-		KillProcess(L"svc");//结束一些关键进程
-		KillProcess(L"sys");
-	}
+	PROCESS_INFORMATION pi = { 0 };
+
+	CreateProcess(Name, tmp, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+	BlackBoard = true;
+	MyRegisterClass(hInst, ScreenProc, ScreenWindow);
+	HWND t = CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+	ShowWindow(t, SW_SHOW);
+	for (int i = 0; i < 10; ++i)InvalidateRect(t, NULL, false), UpdateWindow(t);
+	//切换到那个桌面去
+	SwitchDesktop(VirtualDesk);//另一个程序启动也需要时间，在这之前打开一个黑屏窗口过渡
+
 	Sleep(4000);//延迟一段时间
 	RestartDirect();//重启
+}
+VOID Restart()//瞬间重启
+{
+	RestartDirect();
+	BlackBoard = true;
+	MyRegisterClass(hInst, ScreenProc, ScreenWindow);
+	HWND t = CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+	ShowWindow(t, SW_SHOW);
+	LockCursor();
+	KillTop();
+	//HDESK VirtualDesk = CreateDesktop(L"GUI", NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
+	//SwitchDesktop(VirtualDesk);
 }
 void EasterEgg(bool flag)//开关easteregg(计时器)
 {
@@ -2616,76 +2625,138 @@ void EasterEgg(bool flag)//开关easteregg(计时器)
 		EasterEggFlag = false;
 	}
 }
-void AutoViewPass()//读取密码并显示
-{//不支持加密过的(因为懒得写)
-	HKEY hKey;
-	LONG ret;
-	wchar_t szLocation[300];
-	DWORD dwSize = sizeof(wchar_t) * 300;
-	DWORD dwType = REG_SZ;
-	ZeroMemory(&szLocation, sizeof(szLocation));
-	if (Bit != 64)
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
-	else//尝试打开键值
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
-
-	if (ret != 0 && slient == false)//打不开键值
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
-	ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType, (LPBYTE)&szLocation, &dwSize);//尝试读取键值
-	if (ret != 0 && slient == false)//读取不了键值
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPUKE"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
-	if (szLocation[0] != 0)
+void AutoPassBox(const wchar_t* str)
+{
+	if (slient)
+		printf("%ls\n", str);
+	else
 	{
 		wchar_t Tmp[300];
 		wcscpy_s(Tmp, Main.GetStr(L"pswdis"));
-		wcscat_s(Tmp, szLocation);//显示读取结果
-		Main.InfoBox(Tmp);
+		wcscat_s(Tmp, str);
+		wcscat_s(Tmp, Main.GetStr(L"Copypswd"));
+		if (MessageBox(Main.hWnd, Tmp, Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) == IDOK)
+		{
+			char* ClipBoardStr = new char[wcslen(str) * 2 + 1];
+			WideCharToMultiByte(CP_ACP, 0, str, -1, ClipBoardStr, 0xffff, NULL, NULL);
+
+			if (OpenClipboard(Main.hWnd))
+			{
+				HGLOBAL clipbuffer;
+				char* buffer;
+				EmptyClipboard();
+				clipbuffer = GlobalAlloc(GMEM_DDESHARE, strlen(ClipBoardStr) + 1);
+				buffer = (char*)GlobalLock(clipbuffer);
+				if (buffer != NULL)strcpy(buffer, LPCSTR(ClipBoardStr));
+				GlobalUnlock(clipbuffer);
+				SetClipboardData(CF_TEXT, clipbuffer);
+				CloseClipboard();
+			}
+		}
 	}
-	else//没有密码
-		Main.InfoBox(L"VPNULL");
+}
+void AutoViewPass()//读取密码并显示
+{
+	HKEY hKey;
+	LONG ret;
+	wchar_t szLocation[300] = { 0 };
+	DWORD dwSize = sizeof(wchar_t) * 300;
+	DWORD dwType = REG_SZ;
+	BYTE* a;
+	BYTE bits[300] = { 0 };
+	int start, cur = 0;
+	DWORD dwType2 = REG_BINARY, dwSize2 = 300;
+	wchar_t str[100] = { 0 };
+	if (Bit != 64)//首先尝试读取未加密过的(如明文密码或前面加Passwd的明文密码)
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
+	else//尝试打开键值
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
+	if (ret != 0 && slient == false)//打不开文件夹
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+
+	ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType, (LPBYTE)&szLocation, &dwSize);//尝试读取键值
+	if (ret != 0 && slient == false)goto encrypted;//读取不了键值，尝试到knock中读取
+	if (wcslen(szLocation) != 0)//读取到了明文密码
+	{
+		if (wcsstr(szLocation, L"Passwd") != 0)//可能是带passwd的密码
+		{
+			if (wcsstr(szLocation, L"[123456]") != 0)goto encrypted;//密码中含有带方括号的123456，很可能是加密过的
+			else
+				AutoPassBox(szLocation + 6);//显示读取结果
+		}
+		else AutoPassBox(szLocation);//显示读取结果
+		//goto finish;//读取完退出
+	}
+	else Main.InfoBox(L"VPNULL");
+	goto finish;
+encrypted:
+	//ts(L"encryped");
+	if (hKey != 0)RegCloseKey(hKey);
+	if (Bit != 64)//然后尝试读取加密后的密码
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class\\Student", 0, KEY_QUERY_VALUE, &hKey);
+	else
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class\\Student", 0, KEY_QUERY_VALUE, &hKey);
+	if (ret != 0 && slient == false)//打不开文件夹
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+
+
+	ret = RegQueryValueExW(hKey, L"Knock1", 0, &dwType2, (LPBYTE)bits, &dwSize2);//尝试读取键值
+	if (ret != 0)//读取不了键值,尝试从Knock中读取	
+	{
+		ret = RegQueryValueExW(hKey, L"Knock", 0, &dwType2, (LPBYTE)bits, &dwSize2);
+		if (ret != 0)goto encrypted2;//如果Knock和Knock1都不存在，那么尝试从Key中读取
+	}
+	a = bits;
+	while (*a != 0)
+	{//从头到尾把密文和0x150f0f15异或
+		*(DWORD*)a ^= 0x150f0f15u;
+		a += 4;
+	}
+	start = bits[0];
+	a = bits + start;//读取出来的内容中第一个字节存有有效数据的位置
+
+	while ((*a != 0) || (*(a + 1) != 0))
+	{//把单个字节的数据拼接成字符串
+		str[cur] = (*(a + 1) << 8) + (*(a));
+		//s((int)str[cur]);
+		a += 2;
+		cur++;
+	}
+	if (wcslen(str) == 0)Main.InfoBox(L"VPNULL"); else AutoPassBox(str);
+	goto finish;
+encrypted2:
+	if (hKey != 0)RegCloseKey(hKey);
+	if (Bit != 64)
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
+	else//这里是2015年版的异或加密，保存在Key中
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_READ, &hKey);
+	if (ret != 0 && slient == false)//打不开文件夹
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+
+	ret = RegQueryValueExW(hKey, L"Key", 0, &dwType2, (LPBYTE)&bits, &dwSize2);//尝试读取键值
+	if (ret != 0 && slient == false)//打不开键值
+		if (MessageBox(Main.hWnd, Main.GetStr(L"VPUKE"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+	//a = bits;
+	for (int i = 0; i < 150; ++i)
+	{//从头到尾把密文和0x4350u异或
+		if (bits[i * 2] == 0 && bits[i * 2 + 1] == 0)break;
+		bits[i * 2] ^= 0x50;
+		bits[i * 2 + 1] ^= 0x43;
+	}
+	//for (int i = 0; i <= 50; ++i)s((int)bits[i]);
+	ZeroMemory(str, sizeof(str));
+	a = bits;
+	while ((*a != 0) || (*(a + 1) != 0))
+	{//把单个字节的数据拼接成字符串
+		str[cur] = (*(a + 1) << 8) + (*(a));
+		//s((int)str[cur]);
+		a += 2;
+		cur++;
+	}
+	if (wcslen(str) == 0)Main.InfoBox(L"VPNULL"); else AutoPassBox(str);
 finish:
 	RegCloseKey(hKey);
 }
-void AutoClearPassWd()//自动清空密码
-{
-	const BYTE key[] = { 0x37,0x6A,0x12,0x11,0xDB,0x6E,0xE4,0x1A,0x20,0x18,0xE6,0x43,0xDE,0x38,0x17,0x06,0x92,\
-		0x22,0xA4,0x33,0x82,0x36,0xB9,0x2B,0xCA,0x05,0x49,0x01,0x34,0x62,0x5F,0x12,0xA1,0x71,0x0F,0x15,0xAB,0x07,0x22,\
-		0x5C,0x2E,0x39,0x60,0x0F,0x73,0x07,0xB3,0x4D,0x2C,0x14,0xBB,0x67,0x35,0x2C,0x39,0x67,0x03,0x1A,0x8B,0x3D,\
-		0xAE,0x3B,0x71,0x59,0x27,0x6F,0x81,0x36,0xAA,0x60,0x43,0x46,0x69,0x60,0xD5,0x3D,0xB6,0x64,0x85,0x59,0x55,\
-		0x03,0x40,0x5E,0x55,0x6C,0xF1,0x79,0x55,0x27,0x77,0x50,0x93,0x38,0x25,0x35,0x12,0x19,0x87,0x35,0x7B,0x05,\
-		0x7F,0x12,0x6F,0x14,0x94,0x59,0x3A,0x09,0x75,0x37 };//存储的加密过的空密码值
-	wchar_t tmp = 0;
-	HKEY hKey;
-	LONG ret, ret2;
-	if (Bit != 64)
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class\\Student", 0, KEY_SET_VALUE, &hKey);
-	else
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class\\Student", 0, KEY_SET_VALUE, &hKey);
-	if (ret != 0)
-	{
-		Main.InfoBox(L"ACFail");
-		RegCloseKey(hKey);
-		return;
-	}
-	ret = RegSetValueEx(hKey, L"Knock", 0, REG_BINARY, (const BYTE*)&key, sizeof(key));//极域加密过的密码会存在Knock(1)里
-	ret2 = RegSetValueEx(hKey, L"Knock1", 0, REG_BINARY, (const BYTE*)&key, sizeof(key));
-	if (ret != 0 || ret2 != 0)
-	{
-		Main.InfoBox(L"ACUKE");
-		RegCloseKey(hKey);
-		return;
-	}
-	if (Bit != 64)
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-	else
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }
-	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(tmp));//UninstallPasswd里一定是没有加密过的值
-	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }
-	Main.InfoBox(L"ACOK");//顺便说一下，极域在2015，16版本中玩了个骗人的小把戏
-	RegCloseKey(hKey);//以前的密码直接存储在UninstallPasswd，明文，非常容易破解
-	return;//现在呢，加密后存在Knock系列里，UninstallPasswd键值似乎就没有任何作用了
-}//但是UninstallPasswd却被自动设置为"Passwd[123456]"，看起来密码是123456，但实际上，密码和这个数字一点关系都没有，让许多人白高兴了= =
 
 void ChangePasswordEx(wchar_t* a, int type)//自动更改密码
 {
@@ -2701,7 +2772,7 @@ void ChangePasswordEx(wchar_t* a, int type)//自动更改密码
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t) * (DWORD)wcslen(tmp));
 	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }//失败
 	RegCloseKey(hKey);
-	if (type == 1)//额外修改knock和异或加密
+	if (type == 1)//额外修改key和knock异或加密
 	{
 		wcscpy_s(tmp, L"Passwd");//下面说说knock密码的加密方式
 		BYTE data[2000];//这是2018年用IDA研究出来的，以后加密方式可能会变
@@ -2715,11 +2786,11 @@ void ChangePasswordEx(wchar_t* a, int type)//自动更改密码
 		}//然后，就没了。只是一个异或而已，强度并不大。
 		if (Bit != 64)
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-		else
+		else//这里是2015年版的异或加密，保存在Key中
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
 		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char) * len);
 
-		if (Bit != 64)change(a, false); else change(a, true);
+		if (Bit != 64)change(a, false); else change(a, true);//这里是2016版的异或加密，保存在Knock中
 	}
 	Main.InfoBox(L"ACOK");
 	return;
@@ -2776,7 +2847,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	if (wcsstr(str, L"-reopen") != NULL) { ReopenTD(); return true; }//这些功能不细说了
 	if (wcsstr(str, L"-bsod") != NULL) { BSOD(); return true; }//看 关于&帮助.txt 里面有介绍
 	if (wcsstr(str, L"-restart") != NULL) { Restart(); return true; }
-	if (wcsstr(str, L"-clear") != NULL) { AutoClearPassWd(); return true; }
+	if (wcsstr(str, L"-clear") != NULL) { wchar_t tmp[10] = { 0 }; ChangePasswordEx(tmp, 1); return true; }
 	if (wcsstr(str, L"-rekill") != NULL)
 	{
 		wchar_t tmp[1001], * tmp1 = wcsstr(str, L"-rekill");
@@ -2792,14 +2863,14 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	}
 	if (wcsstr(str, L"-changewithpasswd") != NULL)//二者顺序不能调换
 	{//因为changewithpasswd包括change这个字符串
-		wchar_t tmp[1001], * tmp1 = wcsstr(str, L"-changewithpasswd");
+		wchar_t tmp[1001] = { 0 }, * tmp1 = wcsstr(str, L"-changewithpasswd");
 		if (!Findquotations(tmp1, tmp))ExitProcess(0);
 		ChangePasswordEx(tmp, 2);
 		return true;
 	}
 	if (wcsstr(str, L"-change") != NULL)
 	{
-		wchar_t tmp[1001], * tmp1 = wcsstr(str, L"-change");
+		wchar_t tmp[1001] = { 0 }, * tmp1 = wcsstr(str, L"-change");
 		if (!Findquotations(tmp1, tmp))ExitProcess(0);
 		ChangePasswordEx(tmp, 1);
 		return true;
@@ -2884,7 +2955,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.hWnd = CreateWindowW(szWindowClass, Main.GetStr(L"Title"), NULL, \
 		CW_USEDEFAULT, CW_USEDEFAULT, 1, 1, NULL, nullptr, hInstance, nullptr);//创建主窗口
 	Main.Timer = GetTickCount();
-	SetTimer(Main.hWnd, 4, 500, (TIMERPROC)TimerProc);//开启Exp计时器
+	SetTimer(Main.hWnd, 4, 1000, (TIMERPROC)TimerProc);//开启Exp计时器
 	CreateCaret(Main.hWnd, NULL, 1, 20);
 	SetCaretBlinkTime(500);//初始化闪烁光标
 	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
@@ -2902,10 +2973,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
 
-	if(!slient)RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');//显示 隐藏
+	if (!slient)RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');//显示 隐藏
 	RegisterHotKey(Main.hWnd, 2, MOD_CONTROL, 'B');//切换桌面
 	RegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
-	if(FirstFlag)RegisterHotKey(Main.hWnd, 3, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
+	if (FirstFlag)RegisterHotKey(Main.hWnd, 3, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
 
 	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载头像
 	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//加载签名
@@ -2962,8 +3033,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateFrame(345, 75, 250, 272, 2, L" 管理员密码工具 ");
 	Main.CreateButton(365, 102, 97, 45, 2, L"清空密码", L"ClearPass");
 	Main.CreateButton(477, 102, 97, 45, 2, L"查看密码", L"ViewPass");
-	Main.CreateButton(365, 235, 97, 45, 2, L"改密1", L"CP1");
-	Main.CreateButton(477, 235, 97, 45, 2, L"改密2", L"CP2");
+	Main.CreateButton(365, 235, 97, 45, 2, L"改密方案1", L"CP1");
+	Main.CreateButton(477, 235, 97, 45, 2, L"改密方案2", L"CP2");
 	Main.CreateText(365, 295, 2, L"Tcp1", RGB(50, 50, 50));
 	Main.CreateText(365, 317, 2, L"Tcp2", RGB(255, 100, 0));
 	Main.CreateLine(360, 160, 583, 160, 2, 0);
@@ -2971,7 +3042,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateCheck(165, 250, 2, 150, L" 伪装工具条旧");
 	Main.CreateCheck(165, 275, 2, 150, L" 伪装工具条新");
 	Main.CreateCheck(165, 300, 2, 150, L" 伪装托盘图标");
-	Main.CreateCheck(165, 325, 2, 150, L" 新桌面中启动极域");
+	Main.CreateCheck(165, 325, 2, 180, L" 新桌面中启动极域");
 	Main.CreateFrame(160, 370, 160, 135, 2, L" 极域进程工具 ");
 	Main.CreateText(175, 390, 2, L"TDState", 0);
 	Main.CreateText(175, 415, 2, L"TDPID", 0);
@@ -2994,7 +3065,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	Main.CreateFrame(170, 255, 273, 105, 3, L" 电源 - 慎用 ");
 	Main.CreateButton(192, 280, 115, 60, 3, L"BSOD(蓝屏)", L"BSOD");
-	Main.CreateButton(324, 280, 100, 60, 3, L"瞬间重启", L"NtShutdown");
+	Main.CreateButton(324, 280, 100, 60, 3, L"快速重启", L"NtShutdown");
 
 	Main.CreateFrame(170, 388, 410, 105, 3, L" 杂项 ");
 	Main.CreateButton(192, 412, 100, 60, 3, L"ARP攻击", L"ARP");//34
@@ -3019,16 +3090,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	Main.CreateCheck(180, 70, 5, 100, L" 窗口置顶");
 	Main.CreateCheck(180, 100, 5, 160, L" Ctrl+R 紧急蓝屏");
-	Main.CreateCheck(180, 130, 5, 160, L" Ctrl+T 瞬间重启");
+	Main.CreateCheck(180, 130, 5, 160, L" Ctrl+T 快速重启");
 	Main.CreateCheck(180, 160, 5, 200, L" Ctrl+Alt+P 截图/显示");
 	Main.CreateCheck(180, 190, 5, 94, L" 连续结束                   .exe");
-	Main.CreateCheck(180, 220, 5, 160, L" 禁止键盘钩子");
-	Main.CreateCheck(180, 250, 5, 160, L" 禁止鼠标钩子");
+	Main.CreateCheck(180, 220, 5, 250, L" (结束进程)完全匹配进程名");
+	Main.CreateCheck(180, 250, 5, 160, L" 禁止键鼠钩子");
 	Main.CreateCheck(180, 280, 5, 240, L" Ctrl+Alt+K 键盘操作鼠标");
-	Main.CreateCheck(180, 310, 5, 160, L" 低画质");
+	Main.CreateCheck(180, 310, 5, 120, L" 低画质");
 	Main.CreateCheck(180, 340, 5, 160, L" 缩小/放大");
 	Main.CreateCheck(180, 370, 5, 250, L" 使用ProcessHacker结束进程");
-	if (Admin == 0)Main.CreateCheck(180, 400, 5, 200, L" 使用旧版伪装蓝屏");//伪装蓝屏选项只在没有管理员权限时出现
 
 	Main.CreateButton(470, 430, 100, 45, 5, L"永久隐藏", L"hidest");
 	Main.CreateButton(470, 485, 100, 45, 5, L"清理并退出", L"clearup");
@@ -3143,10 +3213,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI) + 1, (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//重设一下窗口大小，让shadow反应过来
 				SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//ps:可能优化
 			}
-			HideState = 1 - HideState;
+			HideState = !HideState;
 			break; }
 		case 2: {SDesktop(); break; }//切换桌面
-		case 3: {KillProcess(L"stu"); break; }//scroll lock结束极域
+		case 3: {KillProcess(L"StudentMain.exe"); break; }//scroll lock结束极域
 		case 4: {BSOD(); break; }//ctrl+r蓝屏
 		case 5: {Restart(); break; }//ctrl+t重启
 		case 6://截图 \ 显示
@@ -3159,7 +3229,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		case 7:
 		{
-			if (Main.Check[13].Value == false)RegMouseKey(), Main.Check[13].Value = true; else UnMouseKey(), Main.Check[11].Value = false;
+			if (Main.Check[13].Value == false)RegMouseKey(), Main.Check[13].Value = true; else UnMouseKey(), Main.Check[13].Value = false;
 			Main.Readd(3, 13);
 			RECT rc = Main.GetRECTc(13);
 			Main.Redraw(rc);
@@ -3445,7 +3515,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"hookS")//安装hook,又名"全局键盘钩子"
 		{
-			KillProcess(L"hoo");
+			KillProcess(L"hook.exe");
 			if (!RunHOOK())Main.InfoBox(L"OneFail");
 			else
 			{
@@ -3459,7 +3529,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"hookU")//关闭hook
 		{//实质上是结束进程
-			KillProcess(L"hoo");
+			KillProcess(L"hook.exe");
 			wcscpy_s(Main.Button[Main.GetNumbyID(L"hookS")].Name, Main.GetStr(L"Setup"));
 			wcscpy_s(Main.Button[Main.GetNumbyID(L"hookU")].Name, Main.GetStr(L"Uned"));
 			Main.Button[Main.GetNumbyID(L"hookS")].Enabled = true;
@@ -3506,11 +3576,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			Main.InfoBox(L"ACOK");//成功
 			break;
 		}
-		BUTTON_IN(x, L"ClearPass") { AutoClearPassWd(); break; }//A U T O
+		BUTTON_IN(x, L"ClearPass") { wchar_t tmp[10] = { 0 }; ChangePasswordEx(tmp, 1);  break; }//A U T O
 		BUTTON_IN(x, L"ViewPass") { AutoViewPass(); break; }
-		BUTTON_IN(x, L"CP1") { ChangePasswordEx(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, 1); break; }
-		BUTTON_IN(x, L"CP2") { ChangePasswordEx(Main.Edit[Main.GetNumByIDe(L"E_CP")].str, 2); break; }
-		BUTTON_IN(x, L"kill-TD") { KillProcess(L"stu"); break; }
+		if (x == Hash(L"CP1") || x == Hash(L"CP2"))
+		{
+			size_t len = wcslen(Main.Edit[Main.GetNumByIDe(L"E_CP")].str) + 2;
+			wchar_t* str = new wchar_t[len];
+			ZeroMemory(str, sizeof(wchar_t) * len);
+			wcscpy(str, Main.Edit[Main.GetNumByIDe(L"E_CP")].str);
+			str[32] = str[33] = 0;
+			if (x == Hash(L"CP1"))ChangePasswordEx(str, 1); else ChangePasswordEx(str, 2); break;
+		}
+		BUTTON_IN(x, L"kill-TD") { KillProcess(L"StudentMain.exe"); break; }
 		BUTTON_IN(x, L"re-TD") { ReopenTD(); break; }
 		BUTTON_IN(x, L"windows.ex")//打开捕捉窗口的...窗口
 		{
@@ -3604,16 +3681,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		BUTTON_IN(x, L"Killer")//驱动结束360
 		{
-			ReleaseDrvFiles(Bit);//最近体验变差了
-			UnloadNTDriver(L"360");//在启动前360会报2次毒
-			bool flag;//结束进程后还有几率会被360"报复性的"蓝屏= =
 			Main.InfoBox(L"360Start");
-			if (Bit == 32)
-				flag = LoadNTDriver(L"360", L"x32\\360.sys");
+			if (!EnableKPH())Main.InfoBox(L"360Fail");
 			else
-				flag = LoadNTDriver(L"360", L"x64\\360.sys");
-			if (flag == false)
-				Main.InfoBox(L"360Fail");
+			{
+				Main.Check[16].Value = true;
+				Main.Check[11].Value = false;//暂时关闭进程名完全匹配
+				KillProcess(L"360");
+				KillProcess(L"zhu");
+			}
 			break;
 		}
 		BUTTON_IN(x, L"more.txt")//关于
@@ -3740,7 +3816,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							RegisterHotKey(Main.hWnd, 6, MOD_CONTROL | MOD_ALT, 'P');
 							break; }
 						case 10: {SetTimer(hWnd, 1, 1500, (TIMERPROC)TimerProc); break; }//连续结束进程
-						case 11:case 12: {SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc); break; }//禁止键盘（鼠标）钩子
+						//case 11: {break; }
+						case 12: {SetTimer(hWnd, 7, 100, (TIMERPROC)TimerProc); break; }//禁止键盘（鼠标）钩子
 						case 13: {RegMouseKey(); break; }//键盘控制鼠标
 						case 14: {//低画质
 							Effect = false;
@@ -3757,7 +3834,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							break; }
 						case 16:
 						{//使用KProcessHacker结束进程
-							EnableKPH();
+							if(!EnableKPH())Main.Check[16].Value=!Main.Check[16].Value;
 							break;
 						}
 						}
@@ -3783,7 +3860,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 						}
 						case 7:case 8:case 9: {UnregisterHotKey(Main.hWnd, i - 1); break; }
 						case 10: {KillTimer(hWnd, 1); break; }
-						case 11:case 12: {KillTimer(hWnd, 7); break; }
+						case 12: {KillTimer(hWnd, 7); break; }
 						case 13: {UnMouseKey(); break; }
 						case 14: {
 							Effect = true;
@@ -3801,7 +3878,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 						}
 					}
 					RECT rc = Main.GetRECTc(i);
-					Main.Check[i].Value = 1 - Main.Check[i].Value;
+					Main.Check[i].Value = !Main.Check[i].Value;
 					Main.Readd(3, i);
 					Main.Redraw(rc);
 				}
@@ -3904,11 +3981,13 @@ LRESULT CALLBACK ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 int code[26] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
-wchar_t words[8][300] =
+bool FBoldFirst = true;
+wchar_t words[9][300] =
 { L"A problem has been detected and windows has been shut down to prevent damage to your computer. ",
 L"IRQL_NOT_LESS_OR_EQUAL ",//win7及更旧版本的系统的蓝屏文字
+L"An executive worker thread is being terminated without having gone through the worker thread rundown code.work items queued to the Ex worker queue must not terminate their threads.A stack trace should indicate the culprit. ",
 L"If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps: "
-,L"Check to make sure any new hareware of software is properly installed. If this is new installation, ask your hardware or software manufacturer for any windows updates you might need. "
+,L"Check to make sure any new hardware of software is properly installed. If this is new installation, ask your hardware or software manufacturer for any windows updates you might need. "
 ,L"If problems continue,disable or remove any newly installed hardware or software. Disable BIOS memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode. ",
 L"Technical information: ",L"*** STOP: 0x0000000A (0x00000000,0xD0000002, 0x00000001,0x8082C582)",L"*** wdf01000.sys - Address 97C141AC base at 97C0E000, DateStamp 4fd91f51 " };
 LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -3962,16 +4041,29 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else//旧版蓝屏
 		{
-			int ybegin = 20, xbegin = 2, xmax = 480, ymax = 360, left, right, s = 7;
+			if (FBoldFirst)
+			{
+				FBoldFirst = false;
+				DEVMODE lpDevMode;
+				lpDevMode.dmBitsPerPel = 32;
+				lpDevMode.dmPelsWidth = 640;
+				lpDevMode.dmPelsHeight = 480;
+				lpDevMode.dmSize = sizeof(lpDevMode);
+				lpDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+				ChangeDisplaySettings(&lpDevMode, 0);
+			}
+			/*Gdiplus::Graphics a(bdc);
+			a.SetSmoothingMode(Gdiplus::SmoothingModeNone);*/
+			int ybegin = 20, xbegin = 2, xmax = 640, ymax = 480, left, right, s = 8;
 
 			SetTextColor(bdc, RGB(255, 255, 255));
 			SelectObject(bdc, CreateSolidBrush(RGB(1, 0, 0x80)));
 			SelectObject(bdc, CreatePen(PS_SOLID, 1, RGB(1, 0, 0x80)));
 			SetBkMode(bdc, 1);
-			HFONT A = CreateFontW(14, 7, 0, 0, FW_NORMAL, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Lucida Console"));
+			HFONT A = CreateFontW(14, 8, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Lucida Console"));
 			SelectObject(bdc, A);
-			Rectangle(bdc, 0, 0, 480, 360);
-			for (int i = 0; i < 9; ++i)
+			Rectangle(bdc, 0, 0, 640, 480);
+			for (int i = 0; i < 10; ++i)
 			{
 				if (ymax - 50 <= ybegin)break;
 				left = right = 0;
@@ -3993,15 +4085,16 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 					{
 						xbegin = 2;
-						ybegin += (int)(s * 1.9);
+						ybegin += (int)(s * 1.8);
 						right = left;
 					}
 				}
-				ybegin += (int)(s * 3);
+				ybegin += (int)(s * 3.6);
 			}
-			if (BSODstate >= 4)TextOut(bdc, 2, ybegin, L"Collecting data for crash dump...", 33), ybegin += s * 2;
+			if (BSODstate >= 4)TextOut(bdc, 2, ybegin, L"Collecting data for crash dump...", 33), ybegin += (int)(s * 1.8);
 			if (BSODstate >= 10)TextOut(bdc, 2, ybegin, L"Initializing disk for crash dump...", 35);
-			StretchBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, 480, 360, SRCCOPY);
+			//BitBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, SRCCOPY);
+			StretchBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, 640, 480, SRCCOPY);
 		}
 		EndPaint(hWnd, &ps);
 		break;
