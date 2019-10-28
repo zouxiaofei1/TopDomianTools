@@ -74,7 +74,6 @@
       <Filter>资源文件</Filter>
     </None>
     <None Include="hook.zxf" />
-    <None Include="ntsd.zxf" />
     <None Include="sethc.zxf" />
     <None Include="PsExec.zxf" />
     <None Include="DeleteFile_x32.zxf" />

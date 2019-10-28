@@ -122,9 +122,9 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
-      <Optimization>MinSpace</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
@@ -229,7 +229,6 @@
     <None Include="jpg3.bin" />
     <None Include="kprocesshacker.zxf" />
     <None Include="kprocesshacker64.zxf" />
-    <None Include="ntsd.zxf" />
     <None Include="PsExec.zxf" />
     <None Include="sethc.zxf" />
     <None Include="zxf1.zxf" />

@@ -7,7 +7,6 @@
 #include "WndShadow.h"
 #include "Actions.h"
 #include "TestFunctions.h"
-#include <Gdiplus.h>
 
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib
 #pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
@@ -53,7 +52,7 @@ BOOL Effect = TRUE;//特效开关
 
 //第一页的全局变量
 wchar_t Path[301], Name[301];//程序路径 and 路径+程序名 (Path最后有"\")
-wchar_t SethcPath[255], ntsdPath[255];//Sethc路径 & ntsd路径
+wchar_t SethcPath[255];//Sethc路径
 HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
 wchar_t szVDesk[] = L"GUIdesk", fBSODdesk[] = L"GUIBSOD";//虚拟桌面 & 蓝屏伪装窗口显示桌面 名称
 BOOL OneClick;//一键安装状态
@@ -1897,26 +1896,6 @@ bool AutoSetupSethc()//安装sethc的外壳函数
 	return true;
 }
 
-int CopyNTSD()//复制ntsd
-{
-	int f = GetFileAttributes(ntsdPath);
-	if (f != -1)return true;
-	wchar_t tmp[301];
-	wcscpy_s(tmp, Path);
-	wcscat_s(tmp, L"ntsd.exe");
-
-	if (GetFileAttributes(tmp) == -1)ReleaseRes(tmp, FILE_NTSD, L"JPG");//文件不存在的话从资源里释放
-	if (GetFileAttributes(tmp) == -1)return 2;//文件还是不存在
-
-	return CopyFile(tmp, ntsdPath, false);
-}
-bool AutoCopyNTSD()//自动复制ntsd的外壳函数
-{
-	int flag = CopyNTSD();
-	if (flag == 0) { Main.InfoBox(L"CNTSDFail"); return false; }//复制失败
-	if (flag == 2) { Main.InfoBox(L"NoNTSD"); return false; }//文件不存在
-	return true;
-}
 bool MyRemoveDirectory(wchar_t* path)//由于RemoveDirectory的bug,无法删除某些含有特殊字符的文件夹
 {//使得AutoDelete执行完毕后，可能会残留少许空的目录无法删除。这里尝试调用SHFileOperation删除它们
 	path[wcslen(path) + 1] = '\0';
@@ -2509,10 +2488,10 @@ void BrowseFolder()//显示"打开文件夹"的对话框
 
 void ClearUp()//清理文件并退出
 {
-	wchar_t tmpFiles[13][21] = { L"kprocesshacker32.sys",L"kprocesshacker64.sys",L"arp.exe",L"psexec.exe",L"hook.exe",\
-	L"ntsd.exe",L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" }, tmp[301];
+	wchar_t tmpFiles[12][21] = { L"kprocesshacker32.sys",L"kprocesshacker64.sys",L"arp.exe",L"psexec.exe",L"hook.exe",\
+	L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" }, tmp[301];
 	KillProcess(L"hook.exe");
-	for (int i = 0; i < 12; ++i)
+	for (int i = 0; i < 11; ++i)
 	{
 		wcscpy_s(tmp, Path);
 		wcscat_s(tmp, tmpFiles[i]);
@@ -2855,7 +2834,6 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	{
 		if (!DeleteSethc())Main.InfoBox(L"DSR3Fail");
 		AutoSetupSethc();
-		AutoCopyNTSD();
 		return true;
 	}
 	if (wcsstr(str, L"-auto") != NULL) { KillTop(); return true; }//自动结束置顶进程
@@ -2910,11 +2888,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	GetBit();//获取位数
 	if (Bit != 34)
-		wcscpy_s(SethcPath, L"C:\\Windows\\System32\\sethc.exe"),
-		wcscpy_s(ntsdPath, L"C:\\Windows\\System32\\ntsd.exe");
+		wcscpy_s(SethcPath, L"C:\\Windows\\System32\\sethc.exe");
 	else//根据系统位数设置path
-		wcscpy_s(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe"),
-		wcscpy_s(ntsdPath, L"C:\\Windows\\SysNative\\ntsd.exe");
+		wcscpy_s(SethcPath, L"C:\\Windows\\SysNative\\sethc.exe");
 
 	FirstFlag = BackupSethc();//备份
 
@@ -3490,7 +3466,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (SethcInstallState == false)
 			{
-				if (AutoSetupSethc() && AutoCopyNTSD())
+				if (AutoSetupSethc())
 				{
 					Main.Button[Main.GetNumbyID(L"SethcR3")].Enabled = false;
 					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR3")].Name, Main.GetStr(L"Installed"));
@@ -3507,7 +3483,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (SethcInstallState == false)
 			{
-				if (AutoSetupSethc() && AutoCopyNTSD())//安装
+				if (AutoSetupSethc())//安装
 				{
 					Main.Button[Main.GetNumbyID(L"SethcR0")].Enabled = false;
 					wcscpy_s(Main.Button[Main.GetNumbyID(L"SethcR0")].Name, Main.GetStr(L"Installed"));
@@ -4062,17 +4038,17 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else//旧版蓝屏
 		{
-			if (FBoldFirst)
-			{
-				FBoldFirst = false;
-				DEVMODE lpDevMode;
-				lpDevMode.dmBitsPerPel = 32;
-				lpDevMode.dmPelsWidth = 640;
-				lpDevMode.dmPelsHeight = 480;
-				lpDevMode.dmSize = sizeof(lpDevMode);
-				lpDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
-				ChangeDisplaySettings(&lpDevMode, 0);
-			}
+			//if (FBoldFirst)
+			//{
+			//	FBoldFirst = false;
+			//	DEVMODE lpDevMode;
+			//	lpDevMode.dmBitsPerPel = 32;
+			//	lpDevMode.dmPelsWidth = 640;
+			//	lpDevMode.dmPelsHeight = 480;
+			//	lpDevMode.dmSize = sizeof(lpDevMode);
+			//	lpDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+			//	ChangeDisplaySettings(&lpDevMode, 0);
+			//}
 			/*Gdiplus::Graphics a(bdc);
 			a.SetSmoothingMode(Gdiplus::SmoothingModeNone);*/
 			int ybegin = 20, xbegin = 2, xmax = 640, ymax = 480, left, right, s = 8;
