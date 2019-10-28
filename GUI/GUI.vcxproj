@@ -155,6 +155,8 @@
       <Profile>true</Profile>
       <UACUIAccess>true</UACUIAccess>
       <ShowProgress>NotSet</ShowProgress>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

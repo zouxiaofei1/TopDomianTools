@@ -1307,7 +1307,12 @@ BOOL CALLBACK EnumTDwnd(HWND hwnd, LPARAM lParam)//查找被监视窗口的枚�
 	if (A != 0 && GetParent(hwnd) == NULL)
 	{
 		::GetWindowThreadProcessId(hwnd, &nProcessID);//如果pid正确，把hwnd记录下来
-		if (tdpid[nProcessID]) { tdh[++tdhcur] = hwnd; }
+		if (tdpid[nProcessID]) { tdh[++tdhcur] = hwnd; 
+		//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_POPUP);
+		//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TOPMOST);
+		//SetWindowPos(hwnd, 0, 100, 100, 400, 400, SWP_NOZORDER);
+		//s(1);
+		}
 	}
 	return 1;
 }
@@ -1375,7 +1380,9 @@ void KillTop()//杀掉置顶窗口
 
 BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 {
-	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b;
+	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b, filepath[301] ;
+	wcscpy_s(filepath, Path);
+
 	if (Main.Check[11].Value == true)
 	{//完全匹配进程名
 		wcscpy_s(MyProcessName, ProcessName);
@@ -1404,6 +1411,11 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 	HANDLE PhKphHandle = 0;
 	BOOL ConnectSuccess = FALSE;//尝试连接KProcessHacker
 	if (KphConnect(&PhKphHandle) >= 0)ConnectSuccess = TRUE;
+	if (ConnectSuccess && Bit == 34)
+	{
+		wcscat_s(filepath, L"Win64KPHcaller.exe");
+		ReleaseRes(filepath, FILE_CALLER, L"JPG");
+	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;//创建进程快照
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -1414,16 +1426,24 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 		_wcslwr_s(pe.szExeFile);
 		if (wcsstr(MyProcessName, pe.szExeFile) != 0 || ProcessName == NULL)
 		{
-#ifndef _WIN64
 			DWORD dwProcessID = pe.th32ProcessID;
-#else
-			long long dwProcessID = pe.th32ProcessID;
-#endif
 			HANDLE hProcess = 0;
 			if (Main.Check[16].Value && ConnectSuccess)
 			{//连接成功->用驱动结束进程
-				PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID, PhKphHandle);
-				PhTerminateProcess(hProcess, 1, PhKphHandle);
+				if (Bit != 34)
+				{
+					PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID, PhKphHandle);
+					PhTerminateProcess(hProcess, 1, PhKphHandle);
+				}
+				else
+				{
+					wchar_t cmdline[351], tmpstr[20] = { 0 };
+					wcscpy_s(cmdline, filepath);
+					_itow_s(dwProcessID, tmpstr, 10);
+					wcscat_s(cmdline,L" ");
+					wcscat_s(cmdline, tmpstr);
+					RunEXE(cmdline, NULL, nullptr);
+				}
 			}
 			else
 			{
@@ -1433,6 +1453,7 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 			CloseHandle(hProcess);
 		}
 	}
+	if (Bit == 34)DeleteFile(filepath);
 	return TRUE;
 }
 
@@ -3139,8 +3160,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(621 * Main.DPI), (int)(550 * Main.DPI), SWP_NOMOVE);
 	Main.Width = 621; Main.Height = 550;
 
-	RECT rc = { 0,0,(long)(900 * Main.DPI),(long)(600 * Main.DPI) };
-	if (Admin)Main.es.push(rc);
 	Main.Redraw();//第一次创建窗口时全部重绘
 	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
 
@@ -3689,6 +3708,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				Main.Check[11].Value = false;//暂时关闭进程名完全匹配
 				KillProcess(L"360");
 				KillProcess(L"zhu");
+				KillProcess(L"sof");
 			}
 			break;
 		}
@@ -4004,6 +4024,7 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_PAINT:
 	{
+		LockCursor();
 		ldc = BeginPaint(hWnd, &ps);
 		if (Main.Check[17].Value == false)//false -> 新版蓝屏
 		{

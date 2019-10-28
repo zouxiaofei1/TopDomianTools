@@ -406,6 +406,7 @@ NTSTATUS KphpDeviceIoControl(
 	DeviceIoControl(PhKphHandle, KphControlCode, InBuffer, InBufferLength, nullptr, sizeof(DWORD), &a, nullptr);
 	return GetLastError();
 }
+
 NTSTATUS KphOpenProcess(
 	_Out_ PHANDLE ProcessHandle,
 	_In_ ACCESS_MASK DesiredAccess,
@@ -446,6 +447,7 @@ NTSTATUS PhOpenProcess(
 		PhKphHandle
 	);
 }
+
 NTSTATUS PhTerminateProcess(
 	_In_ HANDLE ProcessHandle,
 	_In_ NTSTATUS ExitStatus,
