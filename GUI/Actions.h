@@ -1,11 +1,8 @@
 //为了减短GUI.cpp长度
-//一部分和主程序关系稍小的，有实际作用的函数被放在这里
+//一部分和主程序中Class、全局变量没有关系函数被放在这里
 
 #pragma once
 #include "stdafx.h"
-//因某种原因被注释掉的lib
-//#pragma comment(lib, "User32.lib")
-//#pragma comment(lib, "Advapi32.lib")
 void s(int cathy);
 void s(LPCWSTR cathy);
 VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
@@ -13,6 +10,28 @@ VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
 VOID RestartDirect();
 VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
+
+void charTowchar(const char* chr, wchar_t* wchar, int size)
+{
+	MultiByteToWideChar(CP_ACP,
+		0, chr, (int)strlen(chr) + 1,
+		wchar,
+		size / sizeof(wchar[0]));
+}
+
+unsigned int Hash(const wchar_t* str)
+{
+	unsigned int seed = 131;
+	unsigned int hash = 0;
+
+	while (*str)
+	{
+		hash = hash * seed + (*str++);
+	}
+
+	return (hash & 0x7FFFFFFF);
+}
+
 VOID LockCursor()//锁住鼠标
 {
 	RECT rect;
@@ -94,8 +113,26 @@ BOOL AdjustPrivileges(const wchar_t* lpName)
 	CloseHandle(hToken);
 	return TRUE;
 }
-
-
+wchar_t* wip;
+__forceinline wchar_t* CheckIP()//取本机的ip地址  
+{
+	WSADATA wsaData;
+	char name[155];
+	char* ip;
+	wip=new wchar_t[60];
+	PHOSTENT hostinfo;
+	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
+	{//具体原理不太清楚，详见百科
+		if (gethostname(name, sizeof(name)) == 0)
+			if ((hostinfo = gethostbyname(name)) != NULL)
+			{//wip存ip地址字符串
+				ip = inet_ntoa(*(struct in_addr*) * hostinfo->h_addr_list);
+				charTowchar(ip, wip, sizeof(wip) * 60);
+			}//清理
+		WSACleanup();
+	}
+	return wip;
+}
 
 BOOL TakeOwner(LPWSTR FilePath)
 {//获取指定文件的所有权，在删除sethc等时要用
@@ -110,7 +147,6 @@ BOOL TakeOwner(LPWSTR FilePath)
 #pragma warning (default:26812)
 	PACL Dacl = NULL, OldDacl = NULL;
 	EXPLICIT_ACCESS Ea;
-	PSECURITY_DESCRIPTOR Sd = NULL;
 	BOOL Ret = FALSE;
 
 	if (AdjustPrivileges(SE_TAKE_OWNERSHIP_NAME) && AdjustPrivileges(SE_RESTORE_NAME))
@@ -118,13 +154,11 @@ BOOL TakeOwner(LPWSTR FilePath)
 		GetUserNameA(UserName, &cbUserName);
 		if (LookupAccountNameA(NULL, UserName, &Sid, &cbSid, DomainBuffer, &cbDomainBuffer, &eUse))
 		{
-
 			ZeroMemory(&Ea, sizeof(EXPLICIT_ACCESS));
-			GetNamedSecurityInfoW(FilePath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &OldDacl, NULL, &Sd);
 			wchar_t x[] = L"everyone";
 			BuildExplicitAccessWithName(&Ea, x, GENERIC_ALL, GRANT_ACCESS, SUB_CONTAINERS_AND_OBJECTS_INHERIT);
 			if (SetEntriesInAclW(1, &Ea, OldDacl, &Dacl) == ERROR_SUCCESS)
-			{
+			{//直接不复制旧的ace,不然无法去除文件的拒绝权
 				SetNamedSecurityInfoW(FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &Sid, NULL, NULL, NULL);
 				if (SetNamedSecurityInfoW(FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &Sid, NULL, Dacl, NULL) == ERROR_SUCCESS)
 				{
@@ -136,7 +170,7 @@ BOOL TakeOwner(LPWSTR FilePath)
 	}
 	return Ret;
 }
-bool RunEXE(wchar_t*CmdLine, DWORD flag, STARTUPINFO* si)
+bool RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 {//用CreateProcess来创建进程
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
@@ -240,7 +274,7 @@ int CaptureImage()
 }
 
 #pragma warning(disable:4244)
-
+#pragma warning(disable:4312)
 void change(void* Src, bool wow)
 {//改极域的knock密码
 	unsigned int v5, v10;
@@ -333,7 +367,126 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 	return TRUE;
 }
 
+
 //改编过的与Kprocesshacker驱动通信的一段代码
+
+
+BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
+{
+	wchar_t szDriverImagePath[256];
+	//得到完整的驱动路径
+	GetFullPathName(lpszDriverPath, 256, szDriverImagePath, NULL);
+	//s(szDriverImagePath);
+	BOOL bRet = FALSE;
+
+	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
+	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
+
+								 //打开服务控制管理器
+	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+
+	if (hServiceMgr == NULL)
+	{
+		bRet = FALSE;
+		goto BeforeLeave;
+	}
+
+	//创建驱动所对应的服务
+	hServiceDDK = CreateService(hServiceMgr,
+		lpszDriverName, //驱动程序的在注册表中的名字  
+		lpszDriverName, // 注册表驱动程序的 DisplayName 值  
+		SERVICE_ALL_ACCESS, // 加载驱动程序的访问权限  
+		SERVICE_KERNEL_DRIVER,// 表示加载的服务是驱动程序  
+		SERVICE_DEMAND_START, // 注册表驱动程序的 Start 值  
+		SERVICE_ERROR_IGNORE, // 注册表驱动程序的 ErrorControl 值  
+		szDriverImagePath, // 注册表驱动程序的 ImagePath 值  
+		NULL, NULL, NULL, NULL, NULL);
+
+	DWORD dwRtn;
+
+	//判断服务是否失败
+	if (hServiceDDK == NULL)
+	{
+		dwRtn = GetLastError();
+		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_EXISTS)
+		{
+			bRet = FALSE;
+			goto BeforeLeave;
+		}
+		hServiceDDK = OpenService(hServiceMgr, lpszDriverName, SERVICE_ALL_ACCESS);
+		if (hServiceDDK == NULL)
+		{
+			bRet = FALSE;
+			goto BeforeLeave;
+		}
+	}
+
+	//开启此项服务
+	bRet = StartService(hServiceDDK, NULL, NULL);
+	if (!bRet)
+	{
+		dwRtn = GetLastError();
+		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_ALREADY_RUNNING)
+		{
+			bRet = FALSE;
+			goto BeforeLeave;
+		}
+		else
+		{
+			if (dwRtn == ERROR_IO_PENDING)
+			{
+				bRet = FALSE;
+				goto BeforeLeave;
+			}
+			else
+			{
+				bRet = TRUE;
+				goto BeforeLeave;
+			}
+		}
+	}
+	bRet = TRUE;
+	//离开前关闭句柄
+BeforeLeave:
+	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
+	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
+	return bRet;
+}
+
+//卸载驱动程序  
+BOOL UnloadNTDriver(LPCWSTR szSvrName)
+{
+	BOOL bRet = FALSE;
+	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
+	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
+	SERVICE_STATUS SvrSta;
+	//打开SCM管理器
+	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	if (hServiceMgr == NULL)
+	{
+		bRet = FALSE;
+		goto BeforeLeave;
+	}
+	//打开驱动所对应的服务
+	hServiceDDK = OpenService(hServiceMgr, szSvrName, SERVICE_ALL_ACCESS);
+
+	if (hServiceDDK == NULL)
+	{
+		bRet = FALSE;
+		goto BeforeLeave;
+	}
+	//停止驱动程序，如果停止失败，只有重新启动才能，再动态加载。  
+	ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta);
+	//动态卸载驱动程序。  
+	DeleteService(hServiceDDK);
+	bRet = TRUE;
+BeforeLeave:
+	//离开前关闭打开的句柄
+	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
+	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
+	return bRet;
+}
+
 typedef _Success_(return >= 0) LONG NTSTATUS;
 typedef struct _IO_STATUS_BLOCK
 {

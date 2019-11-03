@@ -21,7 +21,7 @@
 // TODO: 在此处引用程序需要的其他头文件
 
 #include <locale.h>//设置语言区域等
-#include <unordered_map>//map
+#include <unordered_map>//map映射
 #include <TlHelp32.h>//遍历进程
 #include <commdlg.h>//包括"选择文件"对话框的头文件
 #include <shellapi.h>//用于接收文件拖拽
