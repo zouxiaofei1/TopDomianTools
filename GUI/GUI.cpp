@@ -80,7 +80,7 @@ HANDLE DeleteFileHandle;//文件删除驱动句柄
 //第四页的全局变量
 HBITMAP hZXFBitmap, hZXFsign;//头像 & 签名两个图片句柄
 int EasterEggState;//CopyLeft文字循环状态
-BOOL EasterEggFlag = FALSE;//CopyLeft是否显示
+bool EasterEggFlag = false;//CopyLeft是否显示
 wchar_t EasterEggStr[11][8] = { L"Answer",L"Left" ,L"Left",L"Right",\
 L"Down",L"Up",L"In",L"On",L"Back",L"Front",L"Teacher" };//滚动显示的字符
 bool haveInfo = false;//是否已经检查过系统信息
@@ -450,7 +450,7 @@ public:
 
 	void DrawEdits(int cur)//绘制输入框
 	{
-		int i;//结构示意:			创建缓存dc -> 绘制边框(蓝色 or 灰色) -> 打印文字(提示文字)
+		int i, MOffset = 0, showBegin = 0, showEnd = 0;//结构示意:			创建缓存dc -> 绘制边框(蓝色 or 灰色) -> 打印文字(提示文字)
 		HDC mdc;//					->打印文字(未选中) ->打印文字(选中) -> 从缓存dc贴图 -> 清理
 		mdc = CreateCompatibleDC(hdc);
 
@@ -465,7 +465,7 @@ public:
 			{
 				SelectObject(mdc, White);//清空缓存dc
 				SelectObject(mdc, WhiteBrush);
-				Rectangle(mdc, 0, 0, 8000, 80);
+				Rectangle(mdc, 0, 0, MAX_EDIT_WIDTH, MAX_EDIT_HEIGHT);
 
 				SelectObject(hdc, WhiteBrush);
 				if (i == CoverEdit)SelectObject(hdc, BLUE); else SelectObject(hdc, BLACK);//如果当前Edit被选中则用蓝色绘制边框
@@ -486,24 +486,61 @@ public:
 				//pos1&pos2里记录的数值只表示选中的先后顺序，不代表左右，因此这里要特殊处理
 
 				if (Edit[i].font != NULL)SelectObject(mdc, Edit[i].font); else SelectObject(mdc, DefFont);//字体
+				if (Edit[i].XOffset != 0)
+				{
+					showBegin = max(MyGetTextExtentPoint32Binary(i, Edit[i].XOffset) - 1, 0);
+					SIZE se;
+					MyGetTextExtentPoint32(i, -1, showBegin - 1, se);
+					MOffset = se.cx;
+					showEnd = min(MyGetTextExtentPoint32Binary(i, (int)(Edit[i].XOffset + Edit[i].Width * DPI)), Edit[i].strLength - 1);
+				}
 				if (pos2 == -1)
 				{//如果没有选中，直接打印+贴图 -> 走人
-					TextOutW(mdc, 0, 4, Edit[i].str, (int)wcslen(Edit[i].str));
+					if (Edit[i].XOffset != 0)
+						TextOutW(mdc, 0, 4, Edit[i].str + showBegin, showEnd - showBegin + 1);
+					else
+						TextOutW(mdc, 0, 4, Edit[i].str, Edit[i].strLength);
 					goto next;
 				}
 				//如果选中:较为复杂的情况
-				GetTextExtentPoint32(mdc, Edit[i].str, pos1, &sel);//选中条左边字符总长度
-				GetTextExtentPoint32(mdc, Edit[i].str, pos2, &ser);//选中条长度+左边字符总长度
-				SelectObject(mdc, BLUE);
-				SelectObject(mdc, BlueBrush);//用蓝色绘制选中条背景
-				Rectangle(mdc, sel.cx, 0, ser.cx, (int)(ser.cy + 5 * DPI));
-				SetTextColor(mdc, RGB(0, 0, 0));
-				TextOutW(mdc, 0, 4, Edit[i].str, pos1);//黑色打印选中条左边文字
-				SetTextColor(mdc, RGB(255, 255, 255));
-				TextOutW(mdc, sel.cx, 4, &Edit[i].str[pos1], pos2 - pos1);//白色打印选中条中间文字
-				SetTextColor(mdc, RGB(0, 0, 0));
-				TextOutW(mdc, ser.cx, 4, &Edit[i].str[pos2], (int)wcslen(&Edit[i].str[pos2]));//黑色打印选中条右边文字
+				MyGetTextExtentPoint32(i, -1, pos1 - 1, sel);//选中条左边字符总长度
+				MyGetTextExtentPoint32(i, -1, pos2 - 1, ser);//选中条长度+左边字符总长度
+				if (Edit[i].XOffset != 0)
+				{
 
+					if (pos1 >= showBegin)
+					{
+						SetTextColor(mdc, RGB(0, 0, 0));
+						TextOutW(mdc, 0, 4, Edit[i].str + showBegin, min(pos1, showEnd) - showBegin);//黑色打印选中条左边文字
+					}
+					if (pos2 >= showBegin)
+					{
+						SelectObject(mdc, BLUE);
+						SelectObject(mdc, BlueBrush);//用蓝色绘制选中条背景
+						Rectangle(mdc, max(sel.cx - MOffset, 0), 0, min(ser.cx - MOffset, int(Edit[i].XOffset + Edit[i].Width * DPI)), (int)(ser.cy + 5 * DPI));
+						SetTextColor(mdc, RGB(255, 255, 255));
+						TextOutW(mdc, max(sel.cx - MOffset, 0), 4, max(Edit[i].str + pos1, Edit[i].str + showBegin), min(pos2, showEnd) - max(pos1, showBegin) + 1);//白色打印选中条中间文字
+					}
+					if (pos2 <= showEnd)
+					{
+						SetTextColor(mdc, RGB(0, 0, 0));
+						TextOutW(mdc, max(ser.cx - MOffset, 0), 4, max(Edit[i].str + pos2, Edit[i].str + showBegin), showEnd - max(pos2, showBegin) + 1);//黑色打印选中条右边文字
+					}
+				}
+				else
+				{
+					//GetTextExtentPoint32(mdc, Edit[i].str, pos1, &sel);//选中条左边字符总长度
+					//GetTextExtentPoint32(mdc, Edit[i].str, pos2, &ser);//选中条长度+左边字符总长度
+					SelectObject(mdc, BLUE);
+					SelectObject(mdc, BlueBrush);//用蓝色绘制选中条背景
+					Rectangle(mdc, sel.cx, 0, ser.cx, (int)(ser.cy + 5 * DPI));
+					SetTextColor(mdc, RGB(0, 0, 0));
+					TextOutW(mdc, 0, 4, Edit[i].str, pos1);//黑色打印选中条左边文字
+					SetTextColor(mdc, RGB(255, 255, 255));
+					TextOutW(mdc, sel.cx, 4, &Edit[i].str[pos1], pos2 - pos1);//白色打印选中条中间文字
+					SetTextColor(mdc, RGB(0, 0, 0));
+					TextOutW(mdc, ser.cx, 4, &Edit[i].str[pos2], Edit[i].strLength-pos2);//黑色打印选中条右边文字
+				}
 			next:
 				int yMax = (int)((Edit[i].Top + Edit[i].Height / 2) * DPI - 4 - Edit[i].strHeight / 2);
 				if (yMax < Edit[i].Top * DPI + 1)yMax = (int)(Edit[i].Top * DPI + 1);//贴图
@@ -514,7 +551,7 @@ public:
 				else
 					BitBlt(hdc, (int)(Edit[i].Left * DPI), yMax//有Xoffset时直接根据Xoffset贴
 						, (int)(Edit[i].Width * DPI)//注意Xoffset也是真实坐标
-						, Edit[i].strHeight + 4, mdc, Edit[i].XOffset, 0, SRCCOPY);
+						, Edit[i].strHeight + 4, mdc, Edit[i].XOffset - MOffset, 0, SRCCOPY);
 			}
 			if (cur != 0)goto end;
 		}
@@ -560,61 +597,77 @@ public:
 		return rc;
 	}
 
-	void SetEditStrOrFont(LPCWSTR Newstr, HFONT font, int cur)//改变制定Edit的字体或文字
+	void RefreshEditSize(int cur)
 	{
 		HDC mdc;
 		HBITMAP bmp;//创建一个空bmp用来GetTextExtentPoint32(获取字符宽度)
 		mdc = CreateCompatibleDC(hdc);
 		bmp = CreateCompatibleBitmap(hdc, 1, 1);
 		SelectObject(mdc, bmp);
-		if (font != NULL) Edit[cur].font = font;//先设置font，因为文字宽度和字体有关
 		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
-		if (Newstr != NULL)//改变文字
-		{
-			if (Edit[cur].str != NULL)if (*Edit[cur].str != NULL)delete[] Edit[cur].str;
-			Edit[cur].str = new wchar_t[wcslen(Newstr) + 1];
-			wcscpy(Edit[cur].str, Newstr);
-		}
+		delete[]Edit[cur].strW;
+		delete[]Edit[cur].strH;
+		Edit[cur].strW = new int[Edit[cur].strLength + 1];
+		Edit[cur].strH = new int[Edit[cur].strLength + 1];
 		SIZE se;
-		GetTextExtentPoint32(mdc, Edit[cur].str, (int)wcslen(Edit[cur].str), &se);
-		Edit[cur].strWidth = se.cx; if (se.cy != 0) Edit[cur].strHeight = se.cy;
-		if ((int)(Edit[cur].Width * DPI) < se.cx)Edit[cur].XOffset = (int)(se.cx - Edit[cur].Width * DPI) / 2; else Edit[cur].XOffset = 0;
+		GetTextExtentPoint32(mdc, Edit[cur].str, 1, &se);
+		Edit[cur].strW[0] = se.cx;
+		Edit[cur].strH[0] = Edit[cur].strHeight = se.cy;
+		for (int i = 1; i < Edit[cur].strLength; ++i)
+		{
+			GetTextExtentPoint32(mdc, Edit[cur].str + i, 1, &se);
+			Edit[cur].strW[i] = Edit[cur].strW[i - 1] + se.cx;
+			Edit[cur].strH[i] = se.cy;
+			Edit[cur].strHeight = max(Edit[cur].strHeight, se.cy);
+		}
 		DeleteDC(mdc);
 		DeleteObject(bmp);
 	}
+	void SetEditStrOrFont(LPCWSTR Newstr, HFONT font, int cur)//改变指定Edit的字体或文字
+	{
+
+		if (font != NULL) Edit[cur].font = font;//先设置font，因为文字宽度和字体有关
+
+		if (Newstr != NULL)//改变文字
+		{
+			if (Edit[cur].str != NULL)if (*Edit[cur].str != NULL)delete[] Edit[cur].str;
+			Edit[cur].strLength = wcslen(Newstr);
+			Edit[cur].str = new wchar_t[Edit[cur].strLength + 1];
+			wcscpy(Edit[cur].str, Newstr);
+		}
+		RefreshEditSize(cur);
+		Edit[cur].strWidth = Edit[cur].strW[Edit[cur].strLength - 1];
+		if ((int)(Edit[cur].Width * DPI) < Edit[cur].strWidth)Edit[cur].XOffset = (int)(Edit[cur].strWidth - Edit[cur].Width * DPI) / 2; else Edit[cur].XOffset = 0;
+
+	}
 	int GetNearestChar(int cur, POINT Point)//试着获取输入框中离光标最近的字符
-	{//point为窗体中真实坐标
+	{//Point为窗体中真实坐标
+		//s(0);
 		POINT point;
 		if (Edit[cur].strWidth <= Edit[cur].Width * DPI)//如果字符较少没有填满
 		{//按居中计算真实的偏移量
-			if (Point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI - Edit[cur].strWidth / 2))return 0;
-			if (Point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI + Edit[cur].strWidth / 2))return (int)wcslen(Edit[cur].str);
+			if (Point.x < (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI - Edit[cur].strWidth / 2)) {
+				/*s(11);*/ return 0;
+			}
+			if (Point.x > (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI + Edit[cur].strWidth / 2))return Edit[cur].strLength;
 			point.x = Point.x - (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI) + Edit[cur].strWidth / 2;
 		}
 		else//反之直接用XOffset计算
 			point.x = (long)(Point.x - Edit[cur].Left * DPI + Edit[cur].XOffset);
-		HDC mdc;
-		HBITMAP bmp;//创建一个临时dc
-		mdc = CreateCompatibleDC(hdc);
-		bmp = CreateCompatibleBitmap(hdc, 1, 1);
-		SelectObject(mdc, bmp);
-		ReleaseDC(hWnd, hdc);
-		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
-		int l = (int)wcslen(Edit[cur].str), sum = 0, pos = -1;
-		for (int i = 0; i <= l - 1; ++i)
-		{
-			++pos;//循环逐个累加字符宽度，超过光标位置时停止
-			SIZE se;//(感觉效率好低.)
-			GetTextExtentPoint32(mdc, &Edit[cur].str[i], 1, &se);
-			sum += se.cx;
-			if (sum >= point.x)  break;
-		}
+		//HDC mdc;
+		//HBITMAP bmp;//创建一个临时dc
+		//mdc = CreateCompatibleDC(hdc);
+		//bmp = CreateCompatibleBitmap(hdc, 1, 1);
+		//SelectObject(mdc, bmp);
+		//ReleaseDC(hWnd, hdc);
+		//if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
+		int  pos = MyGetTextExtentPoint32Binary(cur, point.x);
 		SIZE sel, ser; //int t;
-		GetTextExtentPoint32(mdc, Edit[cur].str, pos, &sel);//计算前一个字符宽度
-		GetTextExtentPoint32(mdc, Edit[cur].str, pos + 1, &ser);//计算后一个
+		MyGetTextExtentPoint32(cur, -1, pos - 1, sel);//计算前一个字符宽度
+		MyGetTextExtentPoint32(cur, -1, pos, ser);//计算后一个
 
-		DeleteDC(mdc);//清理
-		DeleteObject(bmp);
+		//DeleteDC(mdc);//清理
+		//DeleteObject(bmp);
 		if (point.x < (sel.cx + ser.cx) / 2)return pos; else return pos + 1;//判断是选中光标左边还是右边的字符
 	}
 	void EditPaste(int cur)//将剪贴板中文字粘贴到Edit中的函数
@@ -629,7 +682,7 @@ public:
 				GlobalUnlock(hData);
 				CloseClipboard();
 			}
-			int len = (int)strlen(buffer), len2 = (int)wcslen(Edit[cur].str) + 1;//这段代码有个缺陷
+			int len = (int)strlen(buffer), len2 =Edit[cur].strLength + 1;//这段代码有个缺陷
 			wchar_t* ClipBoardtmp = new wchar_t[len + 1], * Edittmp = new wchar_t[len + len2];//只能粘贴文字
 			ZeroMemory(ClipBoardtmp, sizeof(wchar_t) * len);//粘贴文件上去时会直接崩溃
 			ZeroMemory(Edittmp, sizeof(wchar_t) * (len + len2));//所以全部用__try包住了
@@ -687,7 +740,7 @@ public:
 			break;
 		case 39:EditAll(CoverEdit); break;//全选
 		case 40://Delete键（不是Backspace!）
-			if (wcslen(Edit[CoverEdit].str) == (UINT)Edit[CoverEdit].Pos1)break;
+			if (Edit[CoverEdit].strLength == (UINT)Edit[CoverEdit].Pos1)break;
 			int pos1 = Edit[CoverEdit].Pos1, pos2 = Edit[CoverEdit].Pos2;
 			if (pos2 != -1)//Backspace键直接算在WM_CHAR里面了
 				EditDelete(CoverEdit, min(pos1, pos2), max(pos1, pos2));
@@ -738,7 +791,7 @@ public:
 
 	void EditAdd(int cur, int Left, int Right, wchar_t Char)//向某个Edit中添加一个字符 或 把一段字符替换成一个字符
 	{//这里的Left&Right是字符位置而不是坐标
-		int len = (int)wcslen(Edit[cur].str) + 5;//计算原Edit中文字的长度
+		int len = Edit[cur].strLength + 5;//计算原Edit中文字的长度
 		wchar_t* Tempstr = new wchar_t[len], t = 0;//申请对应长度的缓存空间
 		if (Left == Right)t = Edit[cur].str[Left];//如果只是添加字符，则先备份光标右侧的字符
 		Edit[cur].str[Left] = '\0';
@@ -759,7 +812,7 @@ public:
 	void EditDelete(int cur, int Left, int Right)//删除一个或一段字符
 	{
 		if (Left == -1)return;//在最左边还按下BackSpace ?
-		wchar_t* Tempstr = new wchar_t[wcslen(Edit[cur].str)];
+		wchar_t* Tempstr = new wchar_t[Edit[cur].strLength];
 		Edit[cur].str[Left] = '\0';
 		wcscpy(Tempstr, Edit[cur].str);
 		wcscat(Tempstr, Edit[cur].str + Right);
@@ -775,7 +828,7 @@ public:
 	{
 		if (cur == 0)return;//未选中任何Edit
 		Edit[cur].Pos1 = 0;
-		Edit[cur].Pos2 = (int)wcslen(Edit[cur].str);
+		Edit[cur].Pos2 =Edit[cur].strLength;
 		RefreshXOffset(CoverEdit);
 		RefreshCaretByPos(CoverEdit);
 		EditRedraw(cur);//刷新
@@ -787,7 +840,7 @@ public:
 		if (Edit[cur].Pos2 != -1)return;
 		Edit[cur].Pos1 += offset;
 		if (Edit[cur].Pos1 < 0)Edit[cur].Pos1 = 0;
-		if ((unsigned int)Edit[cur].Pos1 > (unsigned int)wcslen(Edit[cur].str))Edit[cur].Pos1 = (int)wcslen(Edit[cur].str);
+		if ((unsigned int)Edit[cur].Pos1 > (unsigned int)Edit[cur].strLength)Edit[cur].Pos1 = Edit[cur].strLength;
 		RefreshXOffset(cur);
 		RefreshCaretByPos(cur);
 	}
@@ -820,28 +873,56 @@ public:
 			CloseClipboard();
 		}
 	}
+	void MyGetTextExtentPoint32(int cur, int start, int end, SIZE& se)
+	{
+		if (*Edit[cur].OStr != 0)return;
+		if (start == -1)
+		{
+			if (end == -1)se.cx = 0; else se.cx = Edit[cur].strW[end];
+		}
+		else se.cx = Edit[cur].strW[end] - Edit[cur].strW[start];
+		se.cy = Edit[cur].strHeight;
+	}
+	int MyGetTextExtentPoint32Binary(int cur, int search)
+	{//获取指定Edit中宽度大于search的第一个字符位置
+		int left = 0, right = Edit[cur].strLength - 1, mid;
+		while (right >= left)
+		{
+			mid = (left + right) >> 1;
+			if (Edit[cur].strW[mid] < search)left = mid + 1;
+			if (Edit[cur].strW[mid] >= search)
+			{
+				if (Edit[cur].strW[mid - 1] < search)return mid; else
+					right = mid - 1;
+			}
+			//if (Edit[cur].strW[mid] == search) { s(mid); return mid; }
+		}
+		if (left == 0)return 0; else {
+			return Edit[cur].strLength - 1;
+		}
+	}
 	void RefreshCaretByPos(int cur)//刷新选中的Edit中光标的位置
 	{
 		if (Edit[cur].Pos1 == -1)return;//指定Edit未被选中->退出
-		HDC mdc;
-		HBITMAP bmp;
-		mdc = CreateCompatibleDC(hdc);
-		bmp = CreateCompatibleBitmap(hdc, 1, 1);
-		SelectObject(mdc, bmp);
-		ReleaseDC(hWnd, hdc);
-		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
+		//HDC mdc;
+		//HBITMAP bmp;
+		//mdc = CreateCompatibleDC(hdc);
+		//bmp = CreateCompatibleBitmap(hdc, 1, 1);
+		//SelectObject(mdc, bmp);
+		//ReleaseDC(hWnd, hdc);
+		//if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
 		SIZE se;//通过这个Edit的Pos1的字符来计算字符长度
 		if (Edit[cur].Pos2 != -1)
-			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos2, &se);
+			MyGetTextExtentPoint32(cur, -1, Edit[cur].Pos2 - 1, se);
 		else
-			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos1, &se);
+			MyGetTextExtentPoint32(cur, -1, Edit[cur].Pos1 - 1, se);
 		if (Edit[cur].XOffset == 0)//减去Xoffset，再加上Edit的坐标就是光标位置了
 			SetCaretPos(se.cx + (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI) - Edit[cur].strWidth / 2, (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) * DPI - Edit[cur].strHeight / 2));
 		else
 			SetCaretPos((int)(se.cx + Edit[cur].Left * DPI - Edit[cur].XOffset), (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) * DPI - Edit[cur].strHeight / 2));
 		ShowCaret(hWnd);
-		DeleteDC(mdc);//做好清理
-		DeleteObject(bmp);
+		//DeleteDC(mdc);//做好清理
+		//DeleteObject(bmp);
 	}
 	void EditDown(int cur)//鼠标左键在某个Edit上按下
 	{
@@ -1054,26 +1135,26 @@ public:
 		if (Edit[cur].strWidth < Edit[cur].Width * DPI) {
 			Edit[cur].XOffset = 0; return;//如果Edit中内容太少，XOffset直接为0，退出
 		}
-		HDC mdc;
-		HBITMAP bmp;
-		mdc = CreateCompatibleDC(hdc);//创建临时dc
-		bmp = CreateCompatibleBitmap(hdc, 1, 1);
-		SelectObject(mdc, bmp);
-		ReleaseDC(hWnd, hdc);
-		if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
+		//HDC mdc;
+		//HBITMAP bmp;
+		//mdc = CreateCompatibleDC(hdc);//创建临时dc
+		//bmp = CreateCompatibleBitmap(hdc, 1, 1);
+		//SelectObject(mdc, bmp);
+		//ReleaseDC(hWnd, hdc);
+		//if (Edit[cur].font != NULL)SelectObject(mdc, Edit[cur].font); else SelectObject(mdc, DefFont);
 		SIZE se;
 
 		if (Edit[cur].Pos2 != -1)
-			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos2, &se);//计算长度
+			MyGetTextExtentPoint32(cur, -1, Edit[cur].Pos2 - 1, se);//计算长度
 		else
-			GetTextExtentPoint32(mdc, Edit[cur].str, Edit[cur].Pos1, &se);//过程比较复杂，但原理简单
+			MyGetTextExtentPoint32(cur, -1, Edit[cur].Pos1 - 1, se);//计算长度//过程比较复杂，但原理简单
 		if (se.cx < Edit[cur].XOffset)Edit[cur].XOffset = se.cx - 1;
 		if (se.cx > (long)(Edit[cur].XOffset + Edit[cur].Width * DPI))Edit[cur].XOffset += (int)(se.cx - (Edit[cur].XOffset + Edit[cur].Width * DPI) - 1);
 		if (Edit[cur].strWidth - Edit[cur].XOffset < Edit[cur].Width * DPI)Edit[cur].XOffset = (int)(Edit[cur].strWidth - Edit[cur].Width * DPI);
 		RefreshCaretByPos(cur);
 		EditRedraw(cur);
-		DeleteDC(mdc);//做好清理
-		DeleteObject(bmp);
+		//DeleteDC(mdc);//做好清理
+		//DeleteObject(bmp);
 	}
 
 	int GetNumByIDe(LPCWSTR ID)//通过Edit的ID获取其编号
@@ -1122,7 +1203,7 @@ public:
 	{
 		hdc = HDc;
 		if (EditBitmap != NULL)DeleteObject(EditBitmap);//给Edit创建一个Bitmap
-		EditBitmap = CreateCompatibleBitmap(hdc, 8000, 80);
+		EditBitmap = CreateCompatibleBitmap(hdc, MAX_EDIT_WIDTH, MAX_EDIT_HEIGHT);
 	}
 	void Try2CreateExp()//尝试解析一个Exp的内容并绘制
 	{
@@ -1213,7 +1294,8 @@ public:
 	struct EditEx//输入框
 	{
 		int Left, Top, Width, Height, Page;
-		int strWidth, strHeight, Pos1, Pos2, XOffset;
+		int strWidth, strHeight, Pos1, Pos2, XOffset, strLength;
+		int* strW, * strH;
 		bool Press;
 		wchar_t* str, ID[11], OStr[21];
 		HFONT font;
@@ -1306,11 +1388,12 @@ BOOL CALLBACK EnumTDwnd(HWND hwnd, LPARAM lParam)//查找被监视窗口的枚�
 	if (A != 0 && GetParent(hwnd) == NULL)
 	{
 		::GetWindowThreadProcessId(hwnd, &nProcessID);//如果pid正确，把hwnd记录下来
-		if (tdpid[nProcessID]) { tdh[++tdhcur] = hwnd; 
-		//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_POPUP);
-		//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TOPMOST);
-		//SetWindowPos(hwnd, 0, 100, 100, 400, 400, SWP_NOZORDER);
-		//s(1);
+		if (tdpid[nProcessID]) {
+			tdh[++tdhcur] = hwnd;
+			//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_POPUP);
+			//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TOPMOST);
+			//SetWindowPos(hwnd, 0, 100, 100, 400, 400, SWP_NOZORDER);
+			//s(1);
 		}
 	}
 	return 1;
@@ -1379,7 +1462,7 @@ void KillTop()//杀掉置顶窗口
 
 BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 {
-	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b, filepath[301] ;
+	wchar_t MyProcessName[1001] = { 0 }, tmp[1501], * a, * b, filepath[301];
 	wcscpy_s(filepath, Path);
 
 	if (Main.Check[11].Value == true)
@@ -1439,7 +1522,7 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 					wchar_t cmdline[351], tmpstr[20] = { 0 };
 					wcscpy_s(cmdline, filepath);
 					_itow_s(dwProcessID, tmpstr, 10);
-					wcscat_s(cmdline,L" ");
+					wcscat_s(cmdline, L" ");
 					wcscat_s(cmdline, tmpstr);
 					RunEXE(cmdline, NULL, nullptr);
 				}
@@ -1616,9 +1699,9 @@ BOOL BackupSethc()//备份sethc.exe
 	return TRUE;
 }
 
-void EnableTADeleter()
+bool EnableTADeleter()
 {//尝试和DeleteFile驱动通信
-	if (DeleteFileHandle != 0)return;//已经连接上了 -> 退出
+	if (DeleteFileHandle != 0)return true;//已经连接上了 -> 退出
 	wchar_t tmp[301];
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"DeleteFile.sys");
@@ -1633,7 +1716,7 @@ void EnableTADeleter()
 	OBJECT_ATTRIBUTES objectAttributes;
 	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
 	if (hModule == NULL)
-		return;
+		return false;
 	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
 	UNICODE_STRING on;
 	RtlInitUnicodeString(&on, L"\\Device\\DeleteFile");
@@ -1653,6 +1736,7 @@ void EnableTADeleter()
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		0x40
 	);
+	return (bool)DeleteFileHandle;
 }
 bool EnableKPH()
 {//加载KprocessHacker驱动
@@ -1853,6 +1937,12 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 	__except (EXCEPTION_EXECUTE_HANDLER) { s(L"error"); }
 }
 
+void MyExitProcess()
+{
+	if (DeleteFileHandle != 0)UnloadNTDriver(L"DeleteFile");
+	UnloadNTDriver(L"KProcessHacker2");
+	ExitProcess(0);
+}
 BOOL RunWithAdmin(wchar_t* path)//以管理员身份运行一个程序
 {
 	SHELLEXECUTEINFO info = { 0 };
@@ -2007,7 +2097,14 @@ void AutoDelete(wchar_t* tmp, bool sli)//自动删除文件
 	int FileType = GetFileAttributes(tmp);
 	if (FileType == -1)
 	{//不是文件也不是文件夹？是否强制删除？
-		if (!sli)if (MessageBox(Main.hWnd, Main.GetStr(L"TINotF"), Main.GetStr(L"Info"), MB_YESNO | MB_ICONQUESTION) == 6)goto a;
+		if (!sli)
+		{
+			wchar_t tmp2[301] = L"\"";
+			wcscat_s(tmp2, tmp);
+			wcscat_s(tmp2, L"\"");
+			wcscat_s(tmp2, Main.GetStr(L"TINotF"));
+			if (MessageBox(Main.hWnd, tmp2, Main.GetStr(L"Info"), MB_YESNO | MB_ICONQUESTION) == 6)goto a;
+		}
 		return;
 	}
 a:
@@ -2015,8 +2112,10 @@ a:
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
 	{
-		SearchTool(tmp, 3);//是文件夹
-		MyRemoveDirectory(tmp);
+		wchar_t tmp3[301];
+		wcscpy_s(tmp3, tmp);
+		SearchTool(tmp3, 3);//是文件夹
+		MyRemoveDirectory(tmp3);//shfileoperation需要对字符串操作
 	}
 	else
 		MyDeleteFile(tmp);//是文件，直接删除
@@ -2201,10 +2300,10 @@ DWORD WINAPI FakeNewThread(LPVOID pM)
 	int offset = *(int*)pM;
 	RECT rc;
 	GetWindowRect(FakeWnd, &rc);
-	for (int i = 1; i <= 29; ++i)
+	for (int i = 1; i <= 59; ++i)
 	{
-		Sleep(25);//伸缩动画
-		SetWindowPos(FakeWnd, 0, rc.left, rc.top + i * offset * 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
+		Sleep(1);//伸缩动画
+		SetWindowPos(FakeWnd, 0, rc.left, rc.top + i * offset, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
 	}
 	if (offset == -1 && FakeNew)//设置一下工具条最终位置
 		SetWindowPos(FakeWnd, 0, rc.left, -60, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
@@ -2368,9 +2467,9 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		wcscat_s(tmp, EasterEggStr[EasterEggState % 11]);
 		wcscat_s(tmp, Main.GetStr(L"Tleft"));
 		Main.SetStr(tmp, L"_Tleft");
-		RECT rc{ (int)(170 * Main.DPI),(int)(417 * Main.DPI),(int)(420 * Main.DPI),(int)(441 * Main.DPI) };
-		Main.es.push(rc);
-		Main.Readd(4, 20);
+		RECT rc{ (int)(170 * Main.DPI),(int)(417 * Main.DPI),(int)(420 * Main.DPI),(int)(610 * Main.DPI) };
+		//Main.es.push(rc);
+		//Main.Readd(4, 20);
 		Main.Redraw(rc);
 		break;
 	}
@@ -2428,7 +2527,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		if (CatchWnd.hWnd != NULL)SetWindowPos(CatchWnd.hWnd, HWND_TOPMOST, 0, 0, 0, 0, 1 | 2);
 		break;
 	case 11:
-		if (GetTickCount() - FakeTimer > 3000)
+		if (GetTickCount() - FakeTimer > 2500)
 		{
 			RECT rc;
 			GetWindowRect(FakeWnd, &rc);
@@ -2498,9 +2597,7 @@ void ClearUp()//清理文件并退出
 		AutoDelete(tmp, true);
 	}
 	AutoDelete(tmpFiles[12], true);//删除SAtemp文件夹
-	if (DeleteFileHandle != 0)UnloadNTDriver(L"DeleteFile");
-	UnloadNTDriver(L"KProcessHacker2");//卸载驱动
-	PostQuitMessage(0);
+	MyExitProcess();
 }
 DWORD WINAPI SearchToolStarter(LPVOID pM)
 {
@@ -2576,7 +2673,7 @@ void BSOD()//尝试蓝屏
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//检查一次版本号，小于8000则应是win7或更旧的系统
 	if (bOsVersionInfoEx && osvi.dwBuildNumber > 8000)oldBSOD = false;//此时默认用旧版蓝屏
-	
+
 	if (oldBSOD)
 		wcscpy_s(tmp, L"d -showbsod \"old\"");
 	else//命令行调用，由另一个GUI.exe进程完成蓝屏
@@ -2718,7 +2815,6 @@ encrypted:
 	while ((*a != 0) || (*(a + 1) != 0))
 	{//把单个字节的数据拼接成字符串
 		str[cur] = (*(a + 1) << 8) + (*(a));
-		//s((int)str[cur]);
 		a += 2;
 		cur++;
 	}
@@ -2760,17 +2856,24 @@ finish:
 
 void ChangePasswordEx(wchar_t* a, int type)//自动更改密码
 {
-	wchar_t tmp[1001] = { 0 };
-	HKEY hKey; LONG ret;
+	wchar_t tmp[201] = { 0 };
+	HKEY hKey; LONG ret; DWORD dwType2 = REG_SZ, dwSize2 = 201, dwType = REG_BINARY;
 	if (Bit != 64)
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 	else//打开键值
-		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }//打开失败
+	if (type == 1)
+	{
+		ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType2, (LPBYTE)tmp, &dwSize2);//尝试读取键值
+		if (wcsstr(tmp, L"Passwd[123456]") != 0 || ret != 0)goto nobasic;
+	}
+	ZeroMemory(tmp, sizeof(tmp));
 	if (type == 2)wcscpy_s(tmp, L"Passwd"), wcscat_s(tmp, a);//是否在之前加上Passwd
 	else wcscpy_s(tmp, a);
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t) * (DWORD)wcslen(tmp));
 	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }//失败
+nobasic:
 	RegCloseKey(hKey);
 	if (type == 1)//额外修改key和knock异或加密
 	{
@@ -2785,11 +2888,15 @@ void ChangePasswordEx(wchar_t* a, int type)//自动更改密码
 			data[i * 2] = (BYTE)tmp[i] - (tmp[i] >> 8 << 8);
 		}//然后，就没了。只是一个异或而已，强度并不大。
 		if (Bit != 64)
-			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
+			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 		else//这里是2015年版的异或加密，保存在Key中
-			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE, &hKey);
-		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char) * len);
+			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 
+		ret = RegQueryValueExW(hKey, L"Key", 0, &dwType, (LPBYTE)tmp, &dwSize2);//尝试读取键值
+		if (ret != 0)goto nokey;
+
+		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char) * len);
+	nokey:
 		if (Bit != 64)change(a, false); else change(a, true);//这里是2016版的异或加密，保存在Knock中
 	}
 	Main.InfoBox(L"ACOK");
@@ -2863,14 +2970,14 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	if (wcsstr(str, L"-changewithpasswd") != NULL)//二者顺序不能调换
 	{//因为changewithpasswd包括change这个字符串
 		wchar_t tmp[1001] = { 0 }, * tmp1 = wcsstr(str, L"-changewithpasswd");
-		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		if (!Findquotations(tmp1, tmp))MyExitProcess();
 		ChangePasswordEx(tmp, 2);
 		return true;
 	}
 	if (wcsstr(str, L"-change") != NULL)
 	{
 		wchar_t tmp[1001] = { 0 }, * tmp1 = wcsstr(str, L"-change");
-		if (!Findquotations(tmp1, tmp))ExitProcess(0);
+		if (!Findquotations(tmp1, tmp))MyExitProcess();
 		ChangePasswordEx(tmp, 1);
 		return true;
 	}
@@ -3162,7 +3269,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_CLOSE://关闭
 		if (DeleteFileHandle != 0)UnloadNTDriver(L"DeleteFile");
 		UnloadNTDriver(L"KProcessHacker2");
-		PostQuitMessage(0);
+		MyExitProcess();
 		break;
 	case WM_CREATE://创建窗口
 	{
@@ -3187,10 +3294,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		ScreenToClient(hWnd, &point);
 		if (Main.InsideEdit(4, point) == TRUE)
 		{
-			wchar_t tmp[501], * a = Main.Edit[Main.GetNumByIDe(L"E_View")].OStr;
+			wchar_t tmp[25601] = { 0 }, * a = Main.Edit[Main.GetNumByIDe(L"E_View")].OStr;
+			int sum = 0;
 			HDROP hDrop = (HDROP)wParam;
-			DragQueryFile(hDrop, 0, tmp, MAX_PATH);
+			UINT numFiles = DragQueryFileW(hDrop, 0xFFFFFFFF, 0, 0);
+			for (unsigned int i = 0; i < numFiles; ++i)
+			{
+				wchar_t tmp2[255] = { 0 };
+				DragQueryFileW(hDrop, i, tmp2, MAX_PATH);
+				wcscat_s(tmp2, L"|");
+				sum = sum + wcslen(tmp2);
+				if (sum > 25600)break;
+				wcscat_s(tmp, tmp2);
+				//tmp[sum] = '/';
+				//s(tmp);
+			}
+			DragFinish(hDrop);
 			if (*a != 0)*a = 0;
+			//s(wcslen(tmp));
+			//s(sum);
+			//s(tmp);
 			Main.SetEditStrOrFont(tmp, NULL, Main.GetNumByIDe(L"E_View"));
 			Main.EditRedraw(Main.GetNumByIDe(L"E_View"));
 		}
@@ -3311,7 +3434,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		Main.DrawEVERYTHING();//重绘全部
 
-		if (f == true)  goto finish;//xiaofei头像一般不需要重绘
+		//if (f == true)  goto finish;//xiaofei头像一般不需要重绘
 		//如果是区域绘制就直接跳过这部分
 		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI));
 		DrawIconEx(Main.hdc, (int)(20 * Main.DPI), (int)(10 * Main.DPI), hicon, (int)(32 * Main.DPI), (int)(32 * Main.DPI), 0, NULL, DI_NORMAL | DI_COMPAT);
@@ -3322,7 +3445,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			img.Load(L"C:\\SAtemp\\1.JPG");
 			RECT rc1{ (int)(170 * Main.DPI), (int)(75 * Main.DPI), (int)((135 + 170) * Main.DPI), (int)((170 + 75) * Main.DPI) };
 			img.Draw(Main.hdc, rc1);
-			if (EasterEggFlag)
+
+			if (EasterEggFlag == true)
 			{
 				BitmapBrush = CreatePatternBrush(hZXFsign);//绘制xiaofei签名
 				SelectObject(Main.hdc, BitmapBrush);
@@ -3390,6 +3514,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			RECT rc = Main.GetRECT(Main.CoverBotton);
 			Main.Readd(2, Main.CoverBotton);
 			Main.Redraw(rc);
+			if (Main.CoverEdit != 0)
+			{
+				int tmp0 = Main.CoverEdit;
+
+				Main.EditUnHotKey();
+				Main.Edit[Main.CoverEdit].Press = false;
+				Main.CoverEdit = 0;
+				if (Main.Obredraw)Main.Readd(5, tmp0);//重绘原来的Edit
+				rc = Main.GetRECTe(tmp0);
+				Main.Redraw(rc);
+				break;
+			}
 		}
 		if (Main.CoverEdit == 0)Main.EditUnHotKey();
 		Main.Edit[Main.CoverEdit].Press = false;
@@ -3420,7 +3556,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					if (Effect)EasterEgg(true);//如果开低画质就不显示了
 					break;//毕竟滚动文字(相对)浪费资源
 				case 3:
-					if (RunWithAdmin(Name))ExitProcess(0);//以管理员权限重启
+					if (RunWithAdmin(Name))MyExitProcess();//以管理员权限重启
 					break;
 				}
 			}
@@ -3615,9 +3751,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		BUTTON_IN(x, L"folder") { BrowseFolder(); break; }//选择文件夹
 		BUTTON_IN(x, L"TI")//开始删除文件 or 文件夹
 		{
-			wchar_t tmp[1001];
-			wcscpy_s(tmp, Main.Edit[Main.GetNumByIDe(L"E_View")].str);
-			AutoDelete(tmp, false);
+
+			wchar_t c[25600]; int len, prv = 0;
+			wcscpy_s(c, Main.Edit[Main.GetNumByIDe(L"E_View")].str);
+			len = wcslen(c);
+			if (wcsstr(c, L"|") == 0)AutoDelete(c, false);
+			else
+			{
+				for (int i = 0; i < len; ++i)
+				{
+					if (c[i] == '|')
+					{
+						c[i] = 0;
+						AutoDelete(&c[prv], true);
+						prv = i + 1;
+					}
+				}
+			}
 			break;
 		}
 		BUTTON_IN(x, L"BSOD") { BSOD(); break; }//蓝屏
@@ -3732,7 +3882,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			else { CreateDownload(6); }break;
 		}
 
-		BUTTON_IN(x, L"Close") { if (DeleteFileHandle != 0)UnloadNTDriver(L"DeleteFile"); PostQuitMessage(0); }//"关闭"按钮
+		BUTTON_IN(x, L"Close") { MyExitProcess(); }//"关闭"按钮
 
 		for (int i = 1; i <= Main.CurCheck; ++i)//分派check事件
 		{
@@ -3794,7 +3944,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							break; }
 						case 5:
 						{//加载驱动删除文件
-							EnableTADeleter();
+							if (!EnableTADeleter())Main.Check[5].Value = !Main.Check[5].Value;
 							break;
 						}
 						case 6: {
@@ -3830,7 +3980,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							break; }
 						case 16:
 						{//使用KProcessHacker结束进程
-							if(!EnableKPH())Main.Check[16].Value=!Main.Check[16].Value;
+							if (!EnableKPH())Main.Check[16].Value = !Main.Check[16].Value;
 							break;
 						}
 						}
@@ -3991,6 +4141,9 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	switch (message)
 	{
+	case WM_CLOSE:
+		MyExitProcess();
+		break;
 	case WM_CREATE:
 		ldc = GetDC(hWnd);//创建缓存DC
 		bdc = CreateCompatibleDC(ldc);

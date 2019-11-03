@@ -250,9 +250,9 @@ void change(void* Src, bool wow)
 
 	phkResult = 0;
 
-	if (wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
+	if (wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
 	else//根据系统位数打开键值所在的目录
-		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, 0x20006u, &phkResult);
+		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
 
 	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;//随机得到加密后密码的长度，向下取整为4的倍数
 	v6 = (BYTE*)operator new[](v5);//申请相应的内存空间
@@ -286,8 +286,11 @@ void change(void* Src, bool wow)
 		i += 4;
 	}
 
-	RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
-	RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
+	DWORD ret, dwSize = 999, dwType = REG_BINARY; BYTE data[1000];
+	ret = RegQueryValueExW(phkResult, L"Knock", 0, &dwType, (LPBYTE)data, &dwSize);//尝试读取键值
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
+	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//尝试读取键值
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
 	operator delete[](v6);//然后设到Knock中
 
 	RegCloseKey(phkResult);
