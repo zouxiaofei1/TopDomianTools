@@ -170,7 +170,7 @@ BOOL TakeOwner(LPWSTR FilePath)
 	}
 	return Ret;
 }
-bool RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
+BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 {//用CreateProcess来创建进程
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
@@ -178,6 +178,42 @@ bool RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
+{//封装过的注册Class函数.
+	WNDCLASSEXW wcex = { 0 };
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = proc;
+	wcex.hInstance = h;
+	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
+	wcex.lpszClassName = ClassName;//自定义ClassName和WndProc
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
+	return RegisterClassExW(&wcex);
+}
+
+BOOL RunWithAdmin(wchar_t* path)//以管理员身份运行一个程序.
+{
+	SHELLEXECUTEINFO info = { 0 };
+	info.cbSize = sizeof(info);
+	info.lpFile = path;
+	info.lpVerb = L"runas";
+	info.nShow = SW_SHOWNORMAL;
+	return ShellExecuteEx(&info);
+}
+
+bool MyGetInfo(__out LPSYSTEM_INFO lpSystemInfo)//得到环境变量
+{
+	if (NULL == lpSystemInfo)return false;
+	typedef void(WINAPI* LPFN_GetNativeSystemInfo)(LPSYSTEM_INFO lpSystemInfo);
+	HMODULE Handle = GetModuleHandle(L"Kernel32");
+	LPFN_GetNativeSystemInfo fnGetNativeSystemInfo = 0;
+	if (Handle != NULL)fnGetNativeSystemInfo = (LPFN_GetNativeSystemInfo)GetProcAddress(Handle, "GetNativeSystemInfo");
+	if (fnGetNativeSystemInfo != NULL)fnGetNativeSystemInfo(lpSystemInfo); else GetSystemInfo(lpSystemInfo);
+	return true;
+}
 
 #define ProcessBasicInformation 0  
 typedef struct
