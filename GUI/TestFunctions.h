@@ -18,15 +18,19 @@ void s(int a)
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
-	wchar_t tmp0;
-	wchar_t *tmp1 = wcsstr(zxf, L"\"");
-	wchar_t *tmp2 = wcsstr(tmp1 + 1, L"\"");
-	if (tmp1 == 0 || tmp2 == 0)return false;
-	tmp0 = *tmp2;
-	*tmp2 = 0;
-	wcscpy(zxf2, tmp1 + 1);
-	*tmp2 = tmp0;
-	return true;
+	__try
+	{
+		wchar_t tmp0;
+		wchar_t* tmp1 = wcsstr(zxf, L"\"");
+		wchar_t* tmp2 = wcsstr(tmp1 + 1, L"\"");
+		if (tmp1 == 0 || tmp2 == 0)return false;
+		tmp0 = *tmp2;
+		*tmp2 = 0;
+		wcscpy(zxf2, tmp1 + 1);
+		*tmp2 = tmp0;
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 
 BOOL GetOSDisplayString(wchar_t* pszOS)
