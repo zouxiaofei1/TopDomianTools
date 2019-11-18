@@ -194,7 +194,6 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Actions.h" />
     <ClInclude Include="TestFunctions.h" />
-    <ClInclude Include="WndShadow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp" />
@@ -204,7 +203,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="WndShadow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="GUI.rc" />

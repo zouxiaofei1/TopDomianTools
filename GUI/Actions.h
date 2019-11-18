@@ -19,7 +19,7 @@ void charTowchar(const char* chr, wchar_t* wchar, int size)
 		size / sizeof(wchar[0]));
 }
 
-unsigned int Hash(const wchar_t* str)
+const unsigned int Hash(const wchar_t* str)
 {
 	unsigned int seed = 131;
 	unsigned int hash = 0;

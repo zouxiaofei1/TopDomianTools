@@ -4,7 +4,6 @@
 //头文件
 #include "stdafx.h"
 #include "GUI.h"
-#include "WndShadow.h"
 #include "Actions.h"
 #include "TestFunctions.h"
 
@@ -21,7 +20,7 @@ LRESULT CALLBACK	ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 LRESULT CALLBACK	BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//蓝屏伪装窗口
 LRESULT CALLBACK	FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//伪装工具条窗口
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
-void SearchTool(LPCWSTR lpPath, int type);
+bool SearchTool(LPCWSTR lpPath, int type);
 
 //自己定义的全局变量 有点乱
 
@@ -48,7 +47,6 @@ HDC fdc, gdc;//工具条伪装窗口dc
 HWND FakeWnd;//工具条伪装窗口hwnd
 HBITMAP FakeBitmap;//工具条伪装窗口Bitmap
 //不使用CC的窗口只能用这些奇怪的名字(待遇不公= =)
-CWndShadow Cshadow;//主窗口阴影特效
 BOOL Effect = TRUE;//特效开关
 COLORREF crCustColors[16];//颜色选择中的自定义颜色
 
@@ -298,6 +296,7 @@ public:
 				LineTo(hdc, (int)(Frame[i].Left * DPI), (int)(Frame[i].Top * DPI));
 				SetTextColor(hdc, Frame[i].rgb);//自定义文字颜色
 				RECT rc = GetRECTf(i);
+				//s((int)hdc);
 				SetBkMode(hdc, OPAQUE);//打印上方文字
 				DrawTextW(hdc, Frame[i].Name, (int)wcslen(Frame[i].Name), &rc, NULL);
 				SetTextColor(hdc, NULL);
@@ -907,6 +906,10 @@ public:
 	void RefreshCaretByPos(int cur)//刷新选中的Edit中光标的位置
 	{
 		if (Edit[cur].Pos1 == -1)return;//指定Edit未被选中->退出
+		if (Edit[cur].strLength == 0) {
+			SetCaretPos((long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI), (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) * DPI - 6 * DPI));
+			goto finish;
+		}
 		SIZE se;//通过这个Edit的Pos1的字符来计算字符长度
 		if (Edit[cur].Pos2 != -1)
 			MyGetTextExtentPoint32(cur, -1, Edit[cur].Pos2 - 1, se);
@@ -916,6 +919,7 @@ public:
 			SetCaretPos(se.cx + (long)((Edit[cur].Left + Edit[cur].Width / 2) * DPI) - Edit[cur].strWidth / 2, (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) * DPI - Edit[cur].strHeight / 2));
 		else
 			SetCaretPos((int)(se.cx + Edit[cur].Left * DPI - Edit[cur].XOffset), (int)((Edit[cur].Top + Edit[cur].Height / 2 - 4) * DPI - Edit[cur].strHeight / 2));
+	finish:
 		ShowCaret(hWnd);
 	}
 	void EditDown(int cur)//鼠标左键在某个Edit上按下
@@ -1170,13 +1174,14 @@ public:
 	void SetDPI(DOUBLE NewDPI)//改变窗口的缩放大小
 	{//							(由于某历史原因，缩放大小的变量被我命名成了DPI)
 		DPI = NewDPI;//创建新大小的字体
+		DeleteObject(DefFont);
 		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 		for (int i = 1; i <= CurEdit; ++i)SetEditStrOrFont(0, DefFont, i), RefreshXOffset(i);//设置字体
 		RefreshCaretByPos(CoverEdit);
 		if (Width != 0 && Height != 0)SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI), (int)(Height * DPI), SWP_NOMOVE | SWP_NOREDRAW);
 		DestroyCaret();//设置闪烁的光标
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
-		while (!es.empty())es.pop();
+		es.push({ 0,0,(int)(Width * DPI), (int)(Height * DPI) });
 		while (!rs.empty())rs.pop();
 		Redraw();//全部重绘
 	}
@@ -1244,7 +1249,7 @@ public:
 	}
 	FORCEINLINE void Erase(RECT& rc) { es.push(rc); }//设置要擦除的区域
 	void Redraw(const RECT& rc) { InvalidateRect(hWnd, &rc, FALSE); UpdateWindow(hWnd); }//自动重绘 & 刷新指定区域
-	void Redraw() { InvalidateRect(hWnd, nullptr, FALSE); UpdateWindow(hWnd); }//添加要刷新的控件-、
+	void Redraw() { InvalidateRect(hWnd, nullptr, false); UpdateWindow(hWnd); }//添加要刷新的控件-、
 	void Readd(int type, int cur) { rs.push(std::make_pair(type, cur)); }//1=Frame,2=Button,3=Check,4=Text,5=Edit
 
 	//下面是Class的变量
@@ -1571,8 +1576,8 @@ DWORD WINAPI ReopenThread2(LPVOID pM)//尝试打开极域
 	if (!TDsearched)
 	{
 		TDsearched = true;
-		SearchTool(L"C:\\Program Files", 1);//各种目录都找一遍就行了
 		SearchTool(L"C:\\Program Files (x86)", 1);
+		if (*TDPath == NULL)SearchTool(L"C:\\Program Files", 1);//各种目录都找一遍就行了
 	}
 	wchar_t tmpstr[MY_MAX_PATH + 10];
 	wcscpy_s(tmpstr, Main.GetStr(L"_TPath"));
@@ -1960,14 +1965,14 @@ bool DeleteSethc()//删除sethc(删不掉的话自动使用驱动).
 	}
 }
 
-void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删除文件夹.
+bool SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删除文件夹.
 {//有多个功能的函数，所以叫它"Tool"
 	wchar_t szFind[MY_MAX_PATH], szFile[MY_MAX_PATH];//因为都用的是同一段搜索代码，所以就干脆把三个按钮功能合起来了
 	WIN32_FIND_DATA FindFileData;
 	wcscpy_s(szFind, lpPath);
 	wcscat_s(szFind, L"\\*.*");
 	HANDLE hFind = ::FindFirstFile(szFind, &FindFileData);
-	if (INVALID_HANDLE_VALUE == hFind) return;
+	if (INVALID_HANDLE_VALUE == hFind) return true;
 	while (TRUE)
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -1977,7 +1982,7 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删
 				wcscpy_s(szFile, lpPath);
 				wcscat_s(szFile, L"\\");
 				wcscat_s(szFile, FindFileData.cFileName);
-				SearchTool(szFile, type);//递归查找
+				if (!SearchTool(szFile, type))return false;//递归查找
 				if (type == 3)RemoveDirectory(szFile);
 			}//删除完这个文件夹内的文件后删除这个空文件夹
 		}
@@ -1993,7 +1998,7 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删
 					wcscat_s(szFile, L"\\");
 					wcscat_s(szFile, FindFileData.cFileName);
 					wcscpy_s(TDPath, szFile);
-					return;
+					return false;
 				}
 			}
 			if (type == 2)//删除shutdown
@@ -2018,7 +2023,7 @@ void SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删
 		if (!FindNextFile(hFind, &FindFileData))break;//没有下一个文件了
 	}
 	FindClose(hFind);//关闭句柄
-	return;
+	return true;
 }
 
 void AutoDelete(wchar_t* FilePath, bool sli)//自动删除文件.
@@ -2235,9 +2240,6 @@ void SearchLanguageFiles()//在当前目录里寻找语言文件
 	wcscpy_s(tmp, Path);
 	wcscat_s(tmp, L"language\\English.ini");
 	ReleaseRes(tmp, FILE_ENG, L"JPG");
-	wcscpy_s(tmp, Path);
-	wcscat_s(tmp, L"language\\Tradional_Chinese.ini");
-	ReleaseRes(tmp, FILE_TRA, L"JPG");
 
 	SendMessage(FileList, LB_RESETCONTENT, 0, 0);//在寻找新文件前清空listbox
 	wchar_t szFind[MY_MAX_PATH];
@@ -2629,8 +2631,9 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试打开极域
 			Main.Readd(2, num);
 			Main.Redraw(Main.GetRECT(num));
 		}
-		SearchTool(L"C:\\Program Files", 1);//各种目录都找一遍就行了
+		//各种目录都找一遍就行了
 		SearchTool(L"C:\\Program Files (x86)", 1);
+		if (*TDPath == NULL)SearchTool(L"C:\\Program Files", 1);
 		if (!slient)
 		{
 			Main.Button[num].Enabled = true;
@@ -3140,7 +3143,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 		SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
 	}
 	//SetWindowLong(Main.hWnd, GWL_STYLE, GetWindowLong(Main.hWnd, GWL_STYLE) & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_SYSMENU & ~WS_GROUP & ~WS_TABSTOP);//无边框窗口
-
+	SetClassLong(Main.hWnd, GCL_STYLE, GetClassLong(Main.hWnd, GCL_STYLE) | CS_DROPSHADOW);
 	if (!slient)RegisterHotKey(Main.hWnd, 1, MOD_CONTROL, 'P');//显示 隐藏
 	RegisterHotKey(Main.hWnd, 2, MOD_CONTROL, 'B');//切换桌面
 	RegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
@@ -3311,9 +3314,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 
 	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
-	Cshadow.Initialize(hInst);
-	Cshadow.Create(Main.hWnd);
-	ShowWindow(Cshadow.m_hWnd, SW_SHOW);
 	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(621 * Main.DPI), (int)(550 * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 	Main.Redraw();//第一次创建窗口时全部重绘
 
@@ -3344,11 +3344,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		break;
 	case WM_CREATE://创建窗口
 	{
-		//if (Effect)
-	//	{//启动阴影特效
-
-
-	//	}
 		Main.tdc = GetDC(Main.hWnd);//创建bitmap
 		HDC h = CreateCompatibleDC(Main.tdc);
 		Main.Bitmap = CreateCompatibleBitmap(Main.tdc, 1330, 1100);
@@ -3392,13 +3387,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 1: {//隐藏 \ 显示
 			if (HideState == -1)break;//永久隐藏时不显示
 			ShowWindow(Main.hWnd, 5 * HideState);
-			if (Effect)
-			{
-				ShowWindow(Cshadow.m_hWnd, 5 * HideState);//切换shadow的显隐状态
-				SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI) + 1, (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//重设一下窗口大小，让shadow反应过来
-				SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//ps:可能优化
-				if (HideState)Main.Redraw();
-			}
 			HideState = !HideState;
 			break; }
 		case 2: {CreateThread(0, 0, SDThread, 0, 0, 0); break; }//切换桌面
@@ -3460,9 +3448,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_PAINT://绘图
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
-		RECT rc; bool f = false;
-		GetUpdateRect(hWnd, &rc, false);
-		if (rc.top != 0)f = true;
+		//RECT rc; bool f = false;
+		//GetUpdateRect(hWnd, &rc, false);
+		//if (rc.top != 0)f = true;
 		PAINTSTRUCT ps;
 		Main.tdc = BeginPaint(hWnd, &ps);
 		if (!Main.es.empty())//根据es来擦除区域
@@ -3502,7 +3490,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		Main.DrawEVERYTHING();//重绘全部
 
-		if (f == true)  goto finish;//xiaofei头像一般不需要重绘
+		//if (f == true)  goto finish;//xiaofei头像一般不需要重绘
 		//如果是区域绘制就直接跳过这部分
 		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI));
 		DrawIconEx(Main.hdc, (int)(20 * Main.DPI), (int)(10 * Main.DPI), hicon, (int)(32 * Main.DPI), (int)(32 * Main.DPI), 0, NULL, DI_NORMAL | DI_COMPAT);
@@ -3525,7 +3513,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			DeleteObject(BitmapBrush);
 		}
 	finish://贴图
-		BitBlt(Main.tdc, rc.left, rc.top, max((long)(Main.Width * Main.DPI), rc.right - rc.left), max((long)(Main.Height * Main.DPI), rc.bottom - rc.top), Main.hdc, rc.left, rc.top, SRCCOPY);
+		BitBlt(Main.tdc, 0, 0, (long)(Main.Width * Main.DPI), (long)(Main.Height * Main.DPI), Main.hdc, 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -4037,7 +4025,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 						case 13: {RegMouseKey(); break; }//键盘控制鼠标
 						case 14: {//低画质
 							Effect = false;
-							ShowWindow(Cshadow.m_hWnd, SW_HIDE);
 							Main.ButtonEffect = false;
 							KillTimer(Main.hWnd, 5);
 							break; }
@@ -4082,8 +4069,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 							Effect = true;
 							Main.ButtonEffect = true;
 							SetTimer(Main.hWnd, 5, 33, (TIMERPROC)TimerProc);
-							ShowWindow(Cshadow.m_hWnd, SW_SHOW); }
-							   break;
+							break; }
 						case 15: {//基本上就是把之前的过程反过来
 							CatchWnd.SetDPI(1.5);
 							Main.SetDPI(1.5);
