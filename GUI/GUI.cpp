@@ -1570,14 +1570,27 @@ bool GetTDVer(wchar_t* source)//获取极域版本.
 	return true;
 }
 
+void TDSearchDirect()
+{//直接调用SearchTool寻找studentmain.exe的函数
+	SearchTool(L"C:\\Program Files\\Mythware", 1);
+	SearchTool(L"C:\\Program Files\\TopDomain", 1);//先试着在专用目录里找
+	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);
+	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
+	if (*TDPath != NULL)return;
+	SearchTool(L"C:\\Program Files (x86)", 1);
+	if (*TDPath != NULL)return;//再试着再整个Program Files里找
+	SearchTool(L"C:\\Program Files", 1);
+	if (*TDPath != NULL)return;
+	SearchTool(L"D:\\", 1);//还不行就再其他盘里找
+	SearchTool(L"E:\\", 1);//再找不到就算了
+}
 DWORD WINAPI ReopenThread2(LPVOID pM)//尝试打开极域
 {
 	(pM);
 	if (!TDsearched)
 	{
 		TDsearched = true;
-		SearchTool(L"C:\\Program Files (x86)", 1);
-		if (*TDPath == NULL)SearchTool(L"C:\\Program Files", 1);//各种目录都找一遍就行了
+		TDSearchDirect();
 	}
 	wchar_t tmpstr[MY_MAX_PATH + 10];
 	wcscpy_s(tmpstr, Main.GetStr(L"_TPath"));
@@ -2111,41 +2124,47 @@ DWORD WINAPI DeleteThread(LPVOID pM)
 DWORD WINAPI GameThread(LPVOID pM)
 {
 	UNREFERENCED_PARAMETER(pM);
+	int cur = Main.GetNumbyID(L"Close");
 	if (Main.Width < 700)
 	{//展开窗口
 		GameLock = true;//自制线程锁
 		if (!Effect)//无特效
 		{
 			SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + 260) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
-			Main.Button[Main.GetNumbyID(L"Close")].Left += 260;
+			Main.Button[cur].Left += 260;
 			Main.Redraw();//直接展开游戏部分
 			goto next;
 		}
 		for (int j = 1; j <= 260; j += 20)
 		{
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
-			RECT Rc{ (long)(Main.Width * Main.DPI) ,0,(long)((Main.Width + j) * Main.DPI) ,(long)(Main.Height * Main.DPI) };
+			Main.Width += 20;
+			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((621 + j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+			RECT Rc{ (long)(621 * Main.DPI) ,0,(long)((621 + j) * Main.DPI) ,(long)(Main.Height * Main.DPI) };
 			Main.Redraw(Rc);//重绘展开部分
-			Rc = Main.GetRECT(Main.GetNumbyID(L"Close"));
+			Rc = Main.GetRECT(cur);
 			Rc.left -= (long)(20 * Main.DPI);
 			Main.Redraw(Rc);//重绘“关闭”按钮
-			Main.Button[Main.GetNumbyID(L"Close")].Left += 20;//右移“关闭按钮”
+			Main.Button[cur].Left += 20;//右移“关闭按钮”
 		}
-		Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
+		Main.Button[cur].Left -= 20;
 	next:
-		Main.Width += 260;
+		Main.Width = 881;
 	}
 	else
 	{
 		if (Effect)
 			for (int j = 1; j <= 260; j += 20)
 			{
-				::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);//经测试不能使用RedrawObject
-				Main.Redraw();//(效率低)
-				Main.Button[Main.GetNumbyID(L"Close")].Left -= 20;
+				::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);//经测试不能使用RedrawObject
+
+				RECT Rc = Main.GetRECT(cur);
+				Rc.right += (long)(20 * Main.DPI);
+				Main.Readd(2, cur);
+				Main.Redraw(Rc);
+				Main.Button[cur].Left -= 20;
 			}
 		Main.Width -= 260;
-		if (Effect)Main.Button[Main.GetNumbyID(L"Close")].Left += 20; else Main.Button[Main.GetNumbyID(L"Close")].Left -= 260;
+		if (Effect)Main.Button[cur].Left += 20; else Main.Button[cur].Left -= 260;
 		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
 	}
 	GameLock = false;//关闭线程锁
@@ -2521,7 +2540,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 DWORD WINAPI SDThread(LPVOID pM)
 {//useless?
 	(pM);
-	//s(L"swi");
 	if (hCurrentDesk == defaultDesk)//从原始桌面切换到新桌面
 	{
 		SetThreadDesktop(hVirtualDesk);
@@ -2565,8 +2583,9 @@ void BrowseFolder()//显示"打开文件夹"的对话框
 void ClearUp()//清理文件并退出
 {
 	wchar_t tmpFiles[12][21] = { L"kprocesshacker32.sys",L"kprocesshacker64.sys",L"arp.exe",L"psexec.exe",L"hook.exe",\
-	L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" }, tmp[301];
+	L"sethc.exe",L"games",L"x32",L"x64",L"language\\",L"deletefile.sys",L"C:\\SAtemp" }, tmp[MY_MAX_PATH];
 	KillProcess(L"hook.exe");
+	if (Admin)if (EnableTADeleter())Main.Check[CHK_T_A_].Value = TRUE;
 	DeleteFile(SethcPath);//恢复sethc
 	CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE);
 	for (int i = 0; i < 11; ++i)
@@ -2576,20 +2595,18 @@ void ClearUp()//清理文件并退出
 		AutoDelete(tmp, true);
 	}
 	AutoDelete(tmpFiles[12], true);//删除SAtemp文件夹
+	if (Main.Check[CHK_T_A_].Value)AutoDelete(Name, true);
 	MyExitProcess();
 }
-DWORD WINAPI SearchToolStarter(LPVOID pM)
-{//to be renamed
-	int cur = *(int*)pM;
-	if (cur == 2)
-	{
-		SearchTool(L"C:\\Program Files\\Mythware", 2);
-		SearchTool(L"C:\\Program Files\\TopDomain", 2);
-		SearchTool(L"C:\\Windows\\System32", 2);//仍然是各个目录寻找
-		SearchTool(L"C:\\Program Files (x86)\\Mythware", 2);
-		SearchTool(L"C:\\Program Files (x86)\\TopDomain", 2);
-		SearchTool(L"C:\\Windows\\SysNative", 2);//System目录删除时可能有点慢
-	}
+DWORD WINAPI ShutdownDeleter(LPVOID pM)
+{
+	(pM);
+	SearchTool(L"C:\\Program Files\\Mythware", 2);
+	SearchTool(L"C:\\Program Files\\TopDomain", 2);
+	SearchTool(L"C:\\Windows\\System32", 2);//仍然是各个目录寻找
+	SearchTool(L"C:\\Program Files (x86)\\Mythware", 2);
+	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 2);
+	SearchTool(L"C:\\Windows\\SysNative", 2);//System目录删除时可能有点慢
 	return 0;
 }
 
@@ -2632,8 +2649,7 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试打开极域
 			Main.Redraw(Main.GetRECT(num));
 		}
 		//各种目录都找一遍就行了
-		SearchTool(L"C:\\Program Files (x86)", 1);
-		if (*TDPath == NULL)SearchTool(L"C:\\Program Files", 1);
+		TDSearchDirect();
 		if (!slient)
 		{
 			Main.Button[num].Enabled = true;
@@ -2646,13 +2662,6 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试打开极域
 	return 0;
 }
 
-
-inline void DeleteShutdown()//尝试删除shutdown.exe.
-{//(仅用于创建线程)
-	int typ = 2;
-	CreateThread(NULL, 0, SearchToolStarter, &typ, 0, NULL);
-	Sleep(1);
-}
 bool RunHOOK()//运行hook.exe
 {
 	wchar_t tmp[501];
@@ -3009,7 +3018,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		CopyFile(L"C:\\SAtemp\\sethc.exe", SethcPath, FALSE); goto okreturn;
 	}
 	if (wcsstr(str, L"-viewpass") != NULL) { AutoViewPass(); goto okreturn; }
-	if (wcsstr(str, L"-antishutdown") != NULL) { DeleteShutdown(); goto okreturn; }
+	if (wcsstr(str, L"-antishutdown") != NULL) { CreateThread(NULL, 0, ShutdownDeleter, 0, 0, NULL); goto okreturn; }
 	if (wcsstr(str, L"-reopen") != NULL) { CreateThread(0, 0, ReopenThread, 0, 0, 0); goto noreturn; }//这些功能不细说了
 	if (wcsstr(str, L"-bsod") != NULL) { BSOD(); goto okreturn; }//看 关于&帮助.txt 里面有介绍
 	if (wcsstr(str, L"-restart") != NULL) { Restart(); goto okreturn; }
@@ -3448,9 +3457,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_PAINT://绘图
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
-		//RECT rc; bool f = false;
-		//GetUpdateRect(hWnd, &rc, false);
-		//if (rc.top != 0)f = true;
+		RECT rc; bool f = false;
+		GetUpdateRect(hWnd, &rc, false);
+		if (rc.top != 0)f = true;
 		PAINTSTRUCT ps;
 		Main.tdc = BeginPaint(hWnd, &ps);
 		if (!Main.es.empty())//根据es来擦除区域
@@ -3490,7 +3499,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		Main.DrawEVERYTHING();//重绘全部
 
-		//if (f == true)  goto finish;//xiaofei头像一般不需要重绘
+		if (f == true)  goto finish;//xiaofei头像一般不需要重绘
 		//如果是区域绘制就直接跳过这部分
 		hicon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_GUI));
 		DrawIconEx(Main.hdc, (int)(20 * Main.DPI), (int)(10 * Main.DPI), hicon, (int)(32 * Main.DPI), (int)(32 * Main.DPI), 0, NULL, DI_NORMAL | DI_COMPAT);
@@ -3513,7 +3522,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			DeleteObject(BitmapBrush);
 		}
 	finish://贴图
-		BitBlt(Main.tdc, 0, 0, (long)(Main.Width * Main.DPI), (long)(Main.Height * Main.DPI), Main.hdc, 0, 0, SRCCOPY);
+		BitBlt(Main.tdc, rc.left, rc.top, max((long)(Main.Width * Main.DPI), rc.right - rc.left), max((long)(Main.Height * Main.DPI), rc.bottom - rc.top), Main.hdc, rc.left, rc.top, SRCCOPY);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -3808,7 +3817,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}
 
-		BUTTON_IN(x, L"ANTI-") { DeleteShutdown(); break; }
+		BUTTON_IN(x, L"ANTI-") { CreateThread(NULL, 0, ShutdownDeleter, 0, 0, NULL); break; }
 		BUTTON_IN(x, L"desktop")
 		{//用paexec把自己运行在安全桌面上
 			wchar_t tmp[351] = { L"psexec.exe -x -i -s -d \"" }, tmp2[301];
