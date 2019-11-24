@@ -21,7 +21,6 @@
 // TODO: 在此处引用程序需要的其他头文件
 
 #include <locale.h>//设置语言区域等
-//#include <unordered_map>//map映射
 #include <TlHelp32.h>//遍历进程
 #include <commdlg.h>//包括"选择文件"对话框的头文件
 #include <shellapi.h>//用于接收文件拖拽
@@ -32,4 +31,4 @@
 #include <stack>//栈
 #include <Shlobj.h>//包括"选择文件夹"对话框的头文件
 #include <atlimage.h>//绘制.jpg
-#include <map>
+#include <map>//map映射
