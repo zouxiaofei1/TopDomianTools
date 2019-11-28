@@ -412,7 +412,6 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
 	wchar_t szDriverImagePath[256];
 	//得到完整的驱动路径
 	GetFullPathName(lpszDriverPath, 256, szDriverImagePath, NULL);
-	//s(szDriverImagePath);
 	BOOL bRet = FALSE;
 
 	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
