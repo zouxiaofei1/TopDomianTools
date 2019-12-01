@@ -1234,8 +1234,8 @@ public:
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
 		ExpPoint = point;//绘制这个Exp
-		if (ExpPoint.x > Width / 2)ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//自动选择注释的位置
-		if (ExpPoint.y > Height / 2)ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//防止打印到窗口外面
+		if (ExpPoint.x > (int)(Width*DPI / 2.0))ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//自动选择注释的位置
+		if (ExpPoint.y > (int)(Height*DPI / 2.0))ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//防止打印到窗口外面
 		RECT rc{ ExpPoint.x, ExpPoint.y, ExpPoint.x + ExpWidth, ExpPoint.y + ExpHeight };//注意这里的ExpPoint等都是真实坐标
 		Readd(6, 1);
 		Redraw(rc);
@@ -1555,7 +1555,7 @@ BOOL CALLBACK EnumBroadcastwnd(HWND hwnd, LPARAM lParam)//查找被监视窗口�
 	if (A == 0)return 1;
 	wchar_t title[301];
 	GetWindowText(hwnd, title, 300);
-	if (wcsstr(title, L"屏幕广播") != 0)
+	if (wcscmp(title, L"屏幕广播")==0)
 	{
 		BlackBoard = true;
 		if (FS) { FS = false; MyRegisterClass(hInst, ScreenProc, ScreenWindow); }
@@ -1563,6 +1563,26 @@ BOOL CALLBACK EnumBroadcastwnd(HWND hwnd, LPARAM lParam)//查找被监视窗口�
 		SetParent(hwnd, t);
 		tdhw2 = hwnd;
 		EnumChildWindows(hwnd, EnumChildwnd, NULL);
+		return 0;
+	}
+	return 1;
+}
+BOOL CALLBACK EnumBroadcastwndOld(HWND hwnd, LPARAM lParam)//查找被监视窗口的枚举函数.
+{
+	UNREFERENCED_PARAMETER(lParam);
+	LONG A;//遍历所有窗口
+	A = GetWindowLongW(hwnd, GWL_STYLE) & WS_VISIBLE;
+	if (A == 0)return 1;
+	wchar_t title[301];
+	GetWindowText(hwnd, title, 300);
+	if (wcsstr(title, L"屏幕演播室窗口") != 0|| wcsstr(title, L"屏幕广播窗口") != 0)
+	{
+		tdhw = hwnd; tdhw2 = (HWND)(-2);
+		SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS| WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		SetWindowLong(hwnd, GWL_EXSTYLE,WS_EX_WINDOWEDGE | WS_EX_TOPMOST | WS_EX_LEFT | WS_EX_CLIENTEDGE);
+		//SetWindowPos(hwnd, NULL, 0, 0, 400, 400, NULL);
+		SetParent(hwnd, CatchWnd);
+		EatList.push(hwnd);
 		return 0;
 	}
 	return 1;
@@ -2395,7 +2415,7 @@ void UpdateCatchedWindows()
 }
 void ReturnWindows()//归还窗口.
 {
-	if (tdhw != 0 && tdhw2 != 0)
+	if (tdhw != 0 && tdhw2 != 0 && tdhw2 != (HWND)-1)
 	{
 		KillTimer(Main.hWnd, TIMER_CATCHEDTD);
 		SetParent(tdhw, NULL);
@@ -3881,17 +3901,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			ReturnWindows();
 			FindMonitoredhWnd(tmpstr);
 			if (tdhcur != 0)displaycur = 1; else displaycur = 0;
-			SetTimer(Main.hWnd, TIMER_UPDATECATCH, 33, (TIMERPROC)TimerProc);//注意:这里的timerproc是绑定再Main上的
+			SetTimer(Main.hWnd, TIMER_UPDATECATCH, 33, (TIMERPROC)TimerProc);//注意:这里的timerproc是绑定在Main上的
 			RegisterHotKey(CatchWnd, 513, MOD_ALT, VK_LEFT);
 			RegisterHotKey(CatchWnd, 514, MOD_ALT, VK_RIGHT);
 			RegisterHotKey(CatchWnd, 515, NULL, VK_ESCAPE);//注册热键
 			RegisterHotKey(CatchWnd, 516, MOD_ALT, 'H');
 			break;
 		}
-		case BUT_RELS:
-		{
-			ReturnWindows(); break;
-		}
+		case BUT_RELS: {ReturnWindows(); break; }
 		case BUT_APPCH: { AutoChangeChannel(_wtoi(Main.Edit[Main.GetNumByIDe(L"E_ApplyCh")].str)); break; }//改变频道
 		case BUT_CLPSWD: { wchar_t tmp[10] = { 0 }; AutoChangePassword(tmp, 1);  break; }//A U T O
 		case BUT_VIPSWD: { AutoViewPass(); break; }
@@ -3917,17 +3934,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			for (int i = 513; i < 517; ++i)UnregisterHotKey(CatchWnd, i);
 			tdhw = tdhw2 = 0;
 			EnumWindows(EnumBroadcastwnd, NULL);
+			if (tdhw == 0)EnumWindows(EnumBroadcastwndOld, NULL);
 			if (tdhw == 0)Main.InfoBox(L"NoTDwnd");
 			else
 			{
-				SetTimer(Main.hWnd, TIMER_CATCHEDTD, 100, (TIMERPROC)TimerProc);
+				if (!Main.Check[CHK_NOHOOK].Value)SetTimer(hWnd, TIMER_ANTYHOOK, 100, (TIMERPROC)TimerProc), Main.Check[CHK_NOHOOK].Value = TRUE;
+				if (tdhw2 == (HWND)-2)
+				{
+					RECT rc;
+					GetClientRect(CatchWnd, &rc);
+					SetWindowPos(tdhw, 0, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOREDRAW);
+				}
+				else
+					SetTimer(Main.hWnd, TIMER_CATCHEDTD, 100, (TIMERPROC)TimerProc);
 				TOP = FALSE;
 				KillTimer(hWnd, TIMER_TOP);
+				Main.Check[CHK_TOP].Value = false;
 				if (CatchWnd != NULL)SetWindowPos(CatchWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);//取消置顶
 				SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
-				SetWindowPos(CatchWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
-				Main.Check[CHK_TOP].Value = false;
+				
 			}
+
 			break;
 		}
 		case BUT_SHUTD: { CreateThread(NULL, 0, ShutdownDeleter, 0, 0, NULL); break; }
