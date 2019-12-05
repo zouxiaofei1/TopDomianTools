@@ -20,7 +20,7 @@
 
 // TODO: 在此处引用程序需要的其他头文件
 
-#include <locale.h>//设置语言区域等
+//#include <locale.h>//设置语言区域等
 #include <TlHelp32.h>//遍历进程
 #include <commdlg.h>//包括"选择文件"对话框的头文件
 #include <shellapi.h>//用于接收文件拖拽
@@ -28,7 +28,8 @@
 #include <aclapi.h>//取得特权用
 #include <winsock.h>//用他来获取ip地址
 #include <WinBase.h>//包括一大堆api
-#include <stack>//栈
+//#include <stack>//栈
 #include <Shlobj.h>//包括"选择文件夹"对话框的头文件
-#include <atlimage.h>//绘制.jpg
+#include <OleCtl.h>
+//#include <atlimage.h>//绘制.jpg
 #include <map>//map映射
