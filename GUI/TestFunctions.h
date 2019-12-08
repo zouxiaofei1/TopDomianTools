@@ -3,6 +3,7 @@
 
 #pragma once
 #include "stdafx.h"
+#pragma warning(disable:4996)
 
 void charTowchar(const char* chr, wchar_t* wchar, int size);
 void s(LPCWSTR a)//调试用MessageBox
@@ -103,23 +104,7 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, dou
 	////    
 	int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
 	int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
-	//s(nWidth);
-	////    
-	////SetWindowPos(hwnd, HWND_TOP, 0,0,nWidth/2,nHeight/2,SWP_FRAMECHANGED);   
-	//if (nWidth < 600 && nHeight < 600)
-	//	//MoveWindow(hwnd, (600-nWidth)/2,(600-nHeight)/2, nWidth, nHeight, FALSE);   
-	//	SetWindowPos(hwnd, HWND_TOP, (600 - nWidth) / 2, (600 - nHeight) / 2, nWidth, nHeight, SWP_FRAMECHANGED);
-	//else
-	//{
-	//	int large = nWidth > nHeight ? nWidth : nHeight;
-	//	float k = 600;
-	//	float x = k / (large * 1.0);
-	//	int newx = (int)(x * nWidth);
-	//	int newy = (int)(x * nHeight);
-	//	SetWindowPos(hwnd, HWND_BOTTOM, 1, 50, newx, newy, SWP_FRAMECHANGED);
-	//}
-	//RECT rc;
-	//GetClientRect(hwnd, &rc);
+
 	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, NULL);
 
 	//  TransparentBlt(0,0, 0, rc.right-rc.left, rc.bottom-rc.top, hDC, 0, 0,  nWidth, nHeight, RGB(255,   255,   255));   
@@ -128,38 +113,4 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, dou
 	pstream->Release();
 	//ReleaseDC(hwnd, hdc);
 	CloseHandle(FileHandle);
-}
-BOOL GetOSDisplayString(wchar_t* pszOS)
-{//获取系统版本的函数
-	OSVERSIONINFOEX osvi;
-	BOOL bOsVersionInfoEx;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//据说GetVersionEx用来判断版本效果不好
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//用它来判断一台win10电脑
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果一般是6.2(9200)
-	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
-
-	wchar_t tmp[101];//对于win7以前的系统用GetVersionEx没有问题
-	_itow_s(osvi.dwMajorVersion, tmp, 10);//大版本号
-	wcscpy(pszOS, tmp); wcscat(pszOS, L".");
-	_itow_s(osvi.dwMinorVersion, tmp, 10);//小版本号
-	wcscat(pszOS, tmp); wcscat(pszOS, L".");
-	_itow_s(osvi.dwBuildNumber, tmp, 10);//build
-	wcscat(pszOS, tmp);
-
-	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
-	{//win7及以后
-		OSVERSIONINFOEXW ovi;
-		ZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
-		if (!GetVersionEx2((LPOSVERSIONINFOW)&ovi)) return FALSE;
-		osvi.dwMajorVersion = ovi.dwMajorVersion;
-		osvi.dwMinorVersion = ovi.dwMinorVersion;
-		osvi.dwBuildNumber = ovi.dwBuildNumber;
-		_itow_s(osvi.dwMajorVersion, tmp, 10);
-		wcscpy(pszOS, tmp); wcscat(pszOS, L".");
-		_itow_s(osvi.dwMinorVersion, tmp, 10);//拼接版本号
-		wcscat(pszOS, tmp); wcscat(pszOS, L".");
-		_itow_s(osvi.dwBuildNumber, tmp, 10);
-		wcscat(pszOS, tmp);
-	}
-	return true;
 }

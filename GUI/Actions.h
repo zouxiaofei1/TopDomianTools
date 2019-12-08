@@ -3,9 +3,7 @@
 
 #pragma once
 #include "stdafx.h"
-void s(int cathy);
-void s(LPCWSTR cathy);
-VOID GetInfo(__out LPSYSTEM_INFO lpSystemInfo);
+#include "GUI.h"
 #pragma warning(disable:4996)
 VOID RestartDirect();
 VOID LockCursor();
@@ -79,6 +77,42 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 	if (pRtlGetVersion)return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0;
 	return FALSE;
 }
+
+BOOL GetOSDisplayString(wchar_t* pszOS)
+{//获取系统版本的函数
+	OSVERSIONINFOEX osvi;
+	BOOL bOsVersionInfoEx;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//据说GetVersionEx用来判断版本效果不好
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//用它来判断一台win10电脑
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果一般是6.2(9200)
+	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
+
+	wchar_t tmp[101];//对于win7以前的系统用GetVersionEx没有问题
+	_itow_s(osvi.dwMajorVersion, tmp, 10);//大版本号
+	wcscpy(pszOS, tmp); wcscat(pszOS, L".");
+	_itow_s(osvi.dwMinorVersion, tmp, 10);//小版本号
+	wcscat(pszOS, tmp); wcscat(pszOS, L".");
+	_itow_s(osvi.dwBuildNumber, tmp, 10);//build
+	wcscat(pszOS, tmp);
+
+	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
+	{//win7及以后
+		OSVERSIONINFOEXW ovi;
+		ZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
+		if (!GetVersionEx2((LPOSVERSIONINFOW)&ovi)) return FALSE;
+		osvi.dwMajorVersion = ovi.dwMajorVersion;
+		osvi.dwMinorVersion = ovi.dwMinorVersion;
+		osvi.dwBuildNumber = ovi.dwBuildNumber;
+		_itow_s(osvi.dwMajorVersion, tmp, 10);
+		wcscpy(pszOS, tmp); wcscat(pszOS, L".");
+		_itow_s(osvi.dwMinorVersion, tmp, 10);//拼接版本号
+		wcscat(pszOS, tmp); wcscat(pszOS, L".");
+		_itow_s(osvi.dwBuildNumber, tmp, 10);
+		wcscat(pszOS, tmp);
+	}
+	return true;
+}
+
 
 BOOL AdjustPrivileges(const wchar_t* lpName)
 {//输入权限名，获取指定的权限
@@ -182,7 +216,7 @@ ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.style = 0;
 	wcex.lpfnWndProc = proc;
 	wcex.hInstance = h;
 	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
