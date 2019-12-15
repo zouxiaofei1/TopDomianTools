@@ -64,6 +64,18 @@ DWORD WINAPI RestartThread(LPVOID pM)
 	return 0;
 }
 
+bool MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些含有特殊字符的文件夹
+{//使得AutoDelete执行完毕后，可能会残留少许空的目录无法删除。这里尝试调用SHFileOperation删除它们
+	size_t len = wcslen(FilePath);
+	FilePath[len + 1] = FilePath[len + 1] = '\0';//SHFileOperation有一个bug,文件目录的最后 2 个字符都必须是NULL
+	SHFILEOPSTRUCT FileOp = { 0 };
+	FileOp.fFlags = FOF_NO_UI;
+	FileOp.pFrom = FilePath;
+	FileOp.pTo = NULL; //一定要是NULL
+	FileOp.wFunc = FO_DELETE; //删除操作
+	return SHFileOperation(&FileOp) == 0;//成功返回0
+}
+
 //typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
 typedef BOOL(WINAPI* PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 
@@ -212,11 +224,11 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
-ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName)
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName,bool Shadow)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = 0;
+	wcex.style = CS_DROPSHADOW* Shadow;
 	wcex.lpfnWndProc = proc;
 	wcex.hInstance = h;
 	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
