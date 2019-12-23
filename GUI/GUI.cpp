@@ -62,14 +62,13 @@ bool SethcInstallState = false;//Sethc方案状态
 bool HookState = false;//全局键盘钩子方案状态
 BOOL FirstFlag;//是否在这台电脑上第一次运行?(根据sethc是否备份过检测)
 wchar_t ExplorerPath[] = L"C:\\windows\\explorer";//符合系统位数的explorer路径
-HDESK hVirtualDesk, hCurrentDesk, defaultDesk;//虚拟桌面 & 当前桌面 & 默认桌面
 wchar_t szVDesk[] = L"TDTdesk", fBSODdesk[] = L"TDTBSOD";//虚拟桌面 & 蓝屏伪装窗口桌面的名称
 
 //第二、三页的全局变量
 bool GameMode;//游戏模式是否打开?
 constexpr int numGames = 6;// (游戏)数
 BOOL GameExist[numGames + 1];//标记的文件是否存在?
-wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
+const wchar_t GameName[numGames + 1][25] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
 L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
 bool GameLock = false;//Game按钮锁定
 const wchar_t GitGame[] = L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Games/";//游戏存储库目录
@@ -87,7 +86,7 @@ HANDLE DeleteFileHandle;//文件删除驱动句柄
 HBITMAP hZXFBitmap, hZXFsign;//头像 & 签名两个图片句柄
 int EasterEggState;//CopyLeft文字循环状态
 bool EasterEggFlag = false;//CopyLeft是否显示
-wchar_t EasterEggStr[11][8] = { L"Answer",L"Left" ,L"Left",L"Right",\
+const wchar_t EasterEggStr[11][8] = { L"Answer",L"Left" ,L"Left",L"Right",\
 L"Down",L"Up",L"In",L"On",L"Back",L"Front",L"Teacher" };//滚动显示的字符
 bool InfoChecked = false;//是否已经检查过系统信息
 
@@ -109,11 +108,11 @@ HWND EatList[101];//被捕捉的窗口的hWnd将被压入这个"栈"
 std::map<int, bool>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hWnd
 int sdl = 7;//(小声~)
-int QRcode[26] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
+const int QRcode[26] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
 bool FBoldFirst = true;
-wchar_t words[9][300] =
+const wchar_t words[9][300] =
 { L"A problem has been detected and windows has been shut down to prevent damage to your computer. ",
 L"IRQL_NOT_LESS_OR_EQUAL ",//win7及更旧版本的系统的蓝屏文字
 L"An executive worker thread is being terminated without having gone through the worker thread rundown code.work items queued to the Ex worker queue must not terminate their threads.A stack trace should indicate the culprit. ",
@@ -2693,26 +2692,20 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	}
 	}
 }
-
+bool NewDesktop = false;
 DWORD WINAPI SDThread(LPVOID pM)
 {//useless?
 	(pM);
-	if (hCurrentDesk == defaultDesk)//从原始桌面切换到新桌面
-	{
-		HDESK vdback = OpenDesktopW(szVDesk, DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
-		SetThreadDesktop(vdback);
-		SwitchDesktop(vdback);
-		hCurrentDesk = vdback;
-		while (hCurrentDesk == vdback)Sleep(100);
-	}
+	HDESK vdback; bool ndback = NewDesktop;
+	if (!NewDesktop)//从原始桌面切换到新桌面
+		vdback = OpenDesktopW(szVDesk, DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
+	
 	else//切换回来
-	{
-
-		SetThreadDesktop(defaultDesk);
-		SwitchDesktop(defaultDesk);
-		hCurrentDesk = defaultDesk;//设置当前桌面
-		while (hCurrentDesk == defaultDesk)Sleep(100);
-	}
+		vdback = OpenDesktopW(L"Default", DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
+	NewDesktop = !NewDesktop;
+	SetThreadDesktop(vdback);
+	SwitchDesktop(vdback);
+	while (NewDesktop!=ndback)Sleep(100);
 	return 0;
 }
 void openfile()//显示"打开文件"的对话框
@@ -3281,9 +3274,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	CreateStrs; //创建字符串
 	if (*lpCmdLine != 0) { if (RunCmdLine(lpCmdLine) == true)return 0; }
 
-	hVirtualDesk = CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);//创建虚拟桌面
-	defaultDesk = OpenDesktopW(L"Default", DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
-	hCurrentDesk = defaultDesk;
+	CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);//创建虚拟桌面
+
 	if (FirstFlag == TRUE)
 	{//未备份 -> 程序可能在这台电脑上第一次启动 -> 虚拟桌面中运行explorer
 		STARTUPINFO si = { 0 };
