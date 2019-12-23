@@ -6,7 +6,6 @@
 #include "GUI.h"
 #include "TestFunctions.h"
 #include "Actions.h"
-
 #pragma comment(lib, "urlmon.lib")//下载文件用的Lib
 #pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
@@ -103,23 +102,21 @@ wchar_t CurrentLanguage[351];//当前加载的语言文件的路径
 HWND CatchWnd;//捕捉窗口的窗口句柄
 HWND tdhw, tdhw2, tdhwscr;//极域广播窗口子窗口hWnd & 极域广播窗口hWnd
 int timerleft = -2;//捕捉窗口倒计时
-std::map<int, bool>Eatpid;//记录捕捉窗口hWnd的map
+Map<int, bool>Eatpid;//记录捕捉窗口hWnd的map
 HWND EatList[101];//被捕捉的窗口的hWnd将被压入这个"栈"
-std::map<int, bool>expid, tdpid;//explorer PID + 被监视窗口 PID
+Map<int, bool>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND tdh[101]; //被监视窗口hWnd
 int sdl = 7;//(小声~)
 const int QRcode[26] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
 bool FBoldFirst = true;
-const wchar_t words[9][300] =
-{ L"A problem has been detected and windows has been shut down to prevent damage to your computer. ",
-L"IRQL_NOT_LESS_OR_EQUAL ",//win7及更旧版本的系统的蓝屏文字
-L"An executive worker thread is being terminated without having gone through the worker thread rundown code.work items queued to the Ex worker queue must not terminate their threads.A stack trace should indicate the culprit. ",
-L"If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps: "
-,L"Check to make sure any new hardware of software is properly installed. If this is new installation, ask your hardware or software manufacturer for any windows updates you might need. "
-,L"If problems continue,disable or remove any newly installed hardware or software. Disable BIOS memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode. ",
-L"Technical information: ",L"*** STOP: 0x0000000A (0x00000000,0xD0000002, 0x00000001,0x8082C582)",L"*** wdf01000.sys - Address 97C141AC base at 97C0E000, DateStamp 4fd91f51 " };
+const char word1[] = "A problem has been detected and windows has been shut down to prevent damage to your computer. ", word2[] = "IRQL_NOT_LESS_OR_EQUAL ",
+word3[] = "An executive worker thread is being terminated without having gone through the worker thread rundown code.work items queued to the Ex worker queue must not terminate their threads.A stack trace should indicate the culprit. ",
+word4[] = "If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps: "
+, word5[] = "Check to make sure any new hardware of software is properly installed. If this is new installation, ask your hardware or software manufacturer for any windows updates you might need. "
+, word6[] = "If problems continue,disable or remove any newly installed hardware or software. Disable BIOS memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode. ",
+word7[] = "Technical information: ", word8[70]= "*** STOP: 0x0000000A (0x00000000,0xD0000002, 0x00000001,0x8082C582)",word9[] = "*** wdf01000.sys - Address 97C141AC base at 97C0E000, DateStamp 4fd91f51 ", * words[9] = { word1,word2,word3 ,word4 ,word5 ,word6 ,word7 ,word8,word9 };
 int tdhcur, displaycur;//被监视窗口数量 + 正在被监视的窗口编号
 int BSODstate;//蓝屏文字显示的标记
 HWND BSODhwnd;//蓝屏窗体的hWnd
@@ -1483,8 +1480,8 @@ public:
 	DWORD Timer;//exp开启的时间
 	bool ExpExist = false;//exp是否存在
 
-	std::map<unsigned int, wchar_t*> str;//GUIstr的ID ->编号(用于索引)
-	std::map<unsigned int, int>but;//button的ID -> 编号
+	Map<unsigned int, wchar_t*> str;//GUIstr的ID ->编号(用于索引)
+	Map<unsigned int, int>but;//button的ID -> 编号
 	HFONT DefFont;//默认的字体
 	int Msv;//鼠标移出检测变量
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;//各种控件的数量
@@ -1621,7 +1618,12 @@ BOOL CALLBACK EnumMonitoredwnd(HWND hwnd, LPARAM lParam)//查找被监视窗口�
 
 void FindMonitoredhWnd(wchar_t* ProcessName)//查找被监视的窗口.
 {
-	tdpid.clear();//清空映射
+	Map<int, bool>::Iterator it = tdpid.Begin();
+	if (it != 0)
+	while (it != tdpid.End()) {
+		(*it).second = false;
+		++it;
+	}
 	ProcessName[3] = 0;
 	_wcslwr(ProcessName);
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -1655,7 +1657,12 @@ skipped:
 }
 void KillFullScreen()//杀掉置顶窗口
 {
-	expid.clear();
+	Map<int, bool>::Iterator it = expid.Begin();
+	if (it != 0)
+	while (it != expid.End()) {
+		(*it).second = false;
+		++it;
+	}
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe;
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -2468,7 +2475,12 @@ bool CatchWindows()//经过延时后正式开始捕捉窗口
 	wchar_t tmp[4] = { 0 }, * a = Main.Edit[EDIT_PROCNAME].str;
 	for (int i = 0; i < 3; ++i)if (a[i] != 0)tmp[i] = a[i]; else break;
 	_wcslwr_s(tmp);
-	Eatpid.clear();//清空
+	Map<int, bool>::Iterator it = Eatpid.Begin();
+	if(it!=0)
+	while (it != Eatpid.End()) {
+		(*it).second = false;
+		++it;
+	}
 	PROCESSENTRY32 pe;
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	pe.dwSize = sizeof(PROCESSENTRY32);
@@ -3148,7 +3160,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		if (!Findquotations(tmp1, tmp)) {
 			FakeBSOD(); goto noreturn;
 		}
-		if (wcscmp(tmp, L"old") == 0)Main.Check[17].Value = true;
+		if (wcscmp(tmp, L"old") == 0)Main.Check[18].Value = true;
 		FakeBSOD();
 		goto noreturn;
 	}
@@ -3466,7 +3478,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"Game5");
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"Game6");//43
 	Main.CreateFrame(169, 69, 136, 171, 4, L"");
-
+	//s(words[7]);
 	Main.CreateArea(20, 10, 32, 32, 0);//极域图标
 	Main.CreateArea(170, 70, 135, 170, 4);//zxf头像
 	Main.CreateArea(170, 365, 80, 20, 4);
@@ -4372,7 +4384,7 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		LockCursor();
 		ldc = BeginPaint(hWnd, &ps);
-		if (Main.Check[17].Value == false)//false -> 新版蓝屏
+		if (Main.Check[18].Value == false)//false -> 新版蓝屏
 		{
 			SetTextColor(bdc, COLOR_WHITE);
 			SelectObject(bdc, BSODPen);
@@ -4417,7 +4429,7 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HFONT A = CreateFontW(14, 8, 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Lucida Console"));
 			SelectObject(bdc, A);
 			Rectangle(bdc, 0, 0, 640, 480);
-			for (int i = 0; i < 10; ++i)
+			for (int i = 0; i < 9; ++i)
 			{
 				if (ymax - 50 <= ybegin)break;
 				left = right = 0;
@@ -4428,10 +4440,10 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					while (words[i][right] != ' ' && words[i][right] != '\0')right++;
 					if (words[i][right] == '\0')break;//根据屏幕宽度自动换行打印
 					SIZE se;
-					GetTextExtentPoint32(bdc, &words[i][left], right - left + 1, &se);
+					GetTextExtentPoint32A(bdc, &words[i][left], right - left + 1, &se);
 					if (se.cx + xbegin <= xmax - 2 * s)
 					{
-						TextOut(bdc, xbegin, ybegin, &words[i][left], right - left + 1);
+						TextOutA(bdc, xbegin, ybegin, &words[i][left], right - left + 1);
 						xbegin += se.cx;
 						left = right + 1;
 						right = left;
@@ -4445,8 +4457,8 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				ybegin += (int)(s * 3.6);
 			}
-			if (BSODstate >= 4)TextOut(bdc, 2, ybegin, L"Collecting data for crash dump...", 33), ybegin += (int)(s * 1.8);
-			if (BSODstate >= 10)TextOut(bdc, 2, ybegin, L"Initializing disk for crash dump...", 35);
+			if (BSODstate >= 4)TextOutA(bdc, 2, ybegin, "Collecting data for crash dump...", 33), ybegin += (int)(s * 1.8);
+			if (BSODstate >= 10)TextOutA(bdc, 2, ybegin, "Initializing disk for crash dump...", 35);
 			//BitBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, SRCCOPY);
 			StretchBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, 640, 480, SRCCOPY);
 		}
