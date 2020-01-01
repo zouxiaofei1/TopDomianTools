@@ -2831,7 +2831,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 			UTrc.top = point.y - UTMpoint.y;
 			UTrc.right = point.x - UTMpoint.x + rcback.right - rcback.left;
 			UTrc.bottom = point.y - UTMpoint.y + rcback.bottom - rcback.top;
-			InvalidateRect(Deskwnd, &rcback, true);
+			InvalidateRect(Deskwnd, &rcback, false);
 		if (!KEY_DOWN(VK_LBUTTON))
 		{
 			KillTimer(Main.hWnd, TIMER_UT3);
@@ -3504,7 +3504,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateLine(2, 309, 139, 309, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(2, 374, 139, 374, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(861, 50, 861, 549, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(1, 549, 861, 549, 0, COLOR_DARKER_GREY);
+	Main.CreateLine(0, 549, 861, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(620, 50, 620, 549, 0, COLOR_DARKER_GREY);
 	
 	Main.CreateFrame(170, 75, 415, 95, 1, L" 进程方案 ");
@@ -4037,7 +4037,6 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wcscat_s(tmp2, L" -x -i -s -d ");
 		wcscat_s(tmp2, Name);
 		wcscat_s(tmp2, L" -top\"");
-		s(tmp2);
 		if (!RunEXE(tmp2, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
 		break;
 	}
@@ -4089,7 +4088,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{//可能多数人都读不懂，吧
 		wchar_t tmp[321] = L"Notepad ", tmp2[301];
 		wcscpy_s(tmp2, TempPath);
-		wcscat_s(tmp2, L"关于&帮助.txt");
+		wcscat_s(tmp2, L"help.txt");
 		ReleaseRes(tmp2, FILE_HELP, L"JPG");
 		wcscat_s(tmp, tmp2);
 		if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
@@ -4361,7 +4360,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			{
 				ShowWindow(UTLwnd, 5 * HideState);
 				HideState = !HideState;
-				InvalidateRect(Deskwnd, &UTrc, true);
+				InvalidateRect(Deskwnd, &UTrc, false);
 				break;
 			}
 			ShowWindow(Main.hWnd, 5 * HideState);
@@ -4679,20 +4678,20 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		cbmp = CreateCompatibleBitmap(ctdc, GetDeviceCaps(GetDC(NULL), HORZRES), GetDeviceCaps(GetDC(NULL), VERTRES));
 		SelectObject(chdc, cbmp);
 		ReleaseDC(hWnd, ctdc);
+		break;
 	}
 	case WM_CLOSE://关闭
-		KillTimer(Main.hWnd, TIMER_UPDATECATCH);
-		ReturnWindows();//自动归还窗口
-		tdhw = tdhw2 = 0;
-		DestroyWindow(CatchWnd);
-		CatchWnd = 0;
-		break;
+	{KillTimer(Main.hWnd, TIMER_UPDATECATCH);
+	ReturnWindows();//自动归还窗口
+	tdhw = tdhw2 = 0;
+	DestroyWindow(CatchWnd);
+	CatchWnd = 0;
+	break; }
 	case WM_PAINT:
 	{//窗口重绘
 		ctdc = BeginPaint(hWnd, &ps);
 		if (tdhcur != 0)//监视窗口贴图
 		{
-
 			HDC hdctd = GetDC(tdh[displaycur]);
 			RECT rc, rc2;
 			int left, width, top, height;
