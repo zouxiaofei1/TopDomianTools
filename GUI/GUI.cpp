@@ -2486,9 +2486,9 @@ void ULTRATopMost()
 	UTState = TRUE;
 	Deskwnd = GetDesktopWindow();
 	GetWindowRect(Main.hWnd, &UTrc);
+	Main.CreateFrame(180, 410, 264, 113, 5, L"");
 	if (FU == TRUE)//注册类
 	{
-		Main.CreateFrame(180, 410, 264, 113, 5, L"");
 		Main.CreateText(245, 455, 5, L"nolg", COLOR_DARKEST_GREY);
 		MyRegisterClass(hInst, NULLProc, UTLayerWindow, true);
 		UTLwnd = CreateWindowW(UTLayerWindow, Main.GetStr(L"Title"), WS_POPUP, UTrc.left, UTrc.top, UTrc.right - UTrc.left, UTrc.bottom - UTrc.left, nullptr, nullptr, hInst, nullptr);
@@ -2504,6 +2504,7 @@ void ULTRATopMost()
 void noULTRA()
 {
 	UTState = FALSE;
+	Main.CurFrame--;
 	if (UTEditHook != 0)UnhookWindowsHookEx(UTEditHook), UTEditHook = 0;
 	KillTimer(Main.hWnd, TIMER_UT1);
 	KillTimer(Main.hWnd, TIMER_UT2);
@@ -4199,7 +4200,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case CHK_RETD: {AutoRegisterHotKey(Main.hWnd, 14, MOD_CONTROL, 'Y'); break; }
 		case CHK_T_A_:
 		{//加载驱动删除文件
-			if (!EnableTADeleter())Main.Check[CHK_T_A_].Value = !Main.Check[CHK_T_A_].Value;
+			if (!EnableTADeleter())Main.InfoBox(L"360Fail"),Main.Check[CHK_T_A_].Value = !Main.Check[CHK_T_A_].Value;
 			break;
 		}
 		case CHK_TOP: {
@@ -4235,7 +4236,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break; }
 		case CHK_KPH:
 		{//使用KProcessHacker结束进程
-			if (!EnableKPH())Main.Check[CHK_KPH].Value = !Main.Check[CHK_KPH].Value;
+			if (!EnableKPH())Main.InfoBox(L"360Fail"), Main.Check[CHK_KPH].Value = !Main.Check[CHK_KPH].Value;
 			break; }
 		case CHK_UT:
 		{
@@ -4259,7 +4260,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case CHK_RETD: {UnregisterHotKey(Main.hWnd, 14); }
 		case CHK_TOP: {
 			TOP = FALSE;
-			noULTRA();
+			if(UTState)noULTRA();
 			KillTimer(hWnd, TIMER_TOP);
 			if (CatchWnd != NULL)SetWindowPos(CatchWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);//取消置顶
 			SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
