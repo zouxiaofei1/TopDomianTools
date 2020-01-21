@@ -41,6 +41,9 @@
     <ClCompile Include="GUI.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="myPaExec.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="GUI.rc">
@@ -69,7 +72,6 @@
     </None>
     <None Include="hook.zxf" />
     <None Include="sethc.zxf" />
-    <None Include="PsExec.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
     <None Include="cheat_old.zxf" />

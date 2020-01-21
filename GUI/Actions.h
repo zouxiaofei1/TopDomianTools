@@ -453,7 +453,7 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 //改编过的与Kprocesshacker驱动通信的一段代码
 
 
-BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
+BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath,bool Kernel)
 {
 	wchar_t szDriverImagePath[256];
 	//得到完整的驱动路径
@@ -473,7 +473,7 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
 	}
 
 	//创建驱动所对应的服务
-	hServiceDDK = CreateService(hServiceMgr,
+	if(Kernel)hServiceDDK = CreateService(hServiceMgr,
 		lpszDriverName, //驱动程序的在注册表中的名字  
 		lpszDriverName, // 注册表驱动程序的 DisplayName 值  
 		SERVICE_ALL_ACCESS, // 加载驱动程序的访问权限  
@@ -481,6 +481,15 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath)
 		SERVICE_DEMAND_START, // 注册表驱动程序的 Start 值  
 		SERVICE_ERROR_IGNORE, // 注册表驱动程序的 ErrorControl 值  
 		szDriverImagePath, // 注册表驱动程序的 ImagePath 值  
+		NULL, NULL, NULL, NULL, NULL);
+	else hServiceDDK = CreateService(hServiceMgr,
+		lpszDriverName,
+		lpszDriverName, 
+		SERVICE_ALL_ACCESS, 
+		SERVICE_WIN32_OWN_PROCESS,
+		SERVICE_DEMAND_START, 
+		SERVICE_ERROR_IGNORE,
+		szDriverImagePath,
 		NULL, NULL, NULL, NULL, NULL);
 
 	DWORD dwRtn;

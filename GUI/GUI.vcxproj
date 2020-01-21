@@ -198,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp" />
+    <ClCompile Include="myPaExec.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -228,7 +229,6 @@
     <None Include="jpg3.bin" />
     <None Include="kprocesshacker.zxf" />
     <None Include="kprocesshacker64.zxf" />
-    <None Include="PsExec.zxf" />
     <None Include="sethc.zxf" />
     <None Include="zxf1.zxf" />
     <None Include="关于&amp;帮助.zxf" />

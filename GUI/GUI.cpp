@@ -24,6 +24,7 @@ void Main_Redraw(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void Main_LBD(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 bool SearchTool(LPCWSTR lpPath, int type);
+void myPAExec(bool cmd);
 
 //自己定义的全局变量 有点乱
 
@@ -1901,7 +1902,7 @@ bool EnableTADeleter()
 	else
 		ReleaseRes(tmpstr, FILE_TAX64, L"JPG");
 	UnloadNTDriver(L"DeleteFile");//加载驱动
-	LoadNTDriver(L"DeleteFile", tmpstr);
+	LoadNTDriver(L"DeleteFile", tmpstr, true);
 	AdjustPrivileges(SE_DEBUG_NAME);
 
 	OBJECT_ATTRIBUTES objectAttributes;
@@ -1937,7 +1938,7 @@ bool EnableKPH()
 		ReleaseRes(tmp, FILE_KPH64, L"JPG");
 	UnloadNTDriver(L"KProcessHacker2");
 	AdjustPrivileges(SE_DEBUG_NAME);
-	return LoadNTDriver(L"KProcessHacker2", tmp);
+	return LoadNTDriver(L"KProcessHacker2", tmp, true);
 }
 
 /*  语言切换  */
@@ -2223,14 +2224,14 @@ LRESULT CALLBACK UTHookProc(int nCode, WPARAM wParam, LPARAM lParam)
 			int pos1 = Main.Edit[Main.CoverEdit].Pos1, pos2 = Main.Edit[Main.CoverEdit].Pos2;
 			if (pos2 != -1)
 				Main.EditDelete(Main.CoverEdit, min(pos1, pos2), max(pos1, pos2));
-			else Main.EditDelete(Main.CoverEdit, pos1-1, pos1);
+			else Main.EditDelete(Main.CoverEdit, pos1 - 1, pos1);
 			return 0;
 			}
 			default: {break; }
 			}
 			if (pkbhs->vkCode < 0x20 || pkbhs->vkCode == 160 || pkbhs->vkCode == 164)return 0;
 			wchar_t a[11] = { 0 }; _itow_s(pkbhs->vkCode, a, 10);
-			if ((65 <= pkbhs->vkCode)&&( pkbhs->vkCode <= 90))
+			if ((65 <= pkbhs->vkCode) && (pkbhs->vkCode <= 90))
 			{
 				if ((GetKeyState(VK_CAPITAL) == 1) ^ KEY_DOWN(VK_SHIFT))Main.EditCHAR((wchar_t)pkbhs->vkCode); else Main.EditCHAR((wchar_t)(pkbhs->vkCode + 32));
 			}
@@ -2710,6 +2711,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		Main.SetStr(CopyLeftstr, L"_Tleft");
 		_itow_s(rand() + 10, CopyLeftstr, 10);
 		DWORD col = 11 * Hash(CopyLeftstr) + 100;
+		if (((int)((byte)col) + (int)((byte)(col >> 8)) + (int)((byte)(col >> 16))) <= 384)
+			Main.Text[25].rgb = COLOR_WHITE; else Main.Text[25].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
 		DeleteObject(TitleBrush);
 		DeleteObject(TitlePen);
 		TitleBrush = CreateSolidBrush(col);
@@ -2825,18 +2828,18 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	}
 	case TIMER_UT3:
 	{
-	RECT rcback = UTrc;
-			POINT point;
-			GetCursorPos(&point);
-			UTrc.left = point.x - UTMpoint.x;
-			UTrc.top = point.y - UTMpoint.y;
-			UTrc.right = point.x - UTMpoint.x + rcback.right - rcback.left;
-			UTrc.bottom = point.y - UTMpoint.y + rcback.bottom - rcback.top;
-			InvalidateRect(Deskwnd, &rcback, false);
+		RECT rcback = UTrc;
+		POINT point;
+		GetCursorPos(&point);
+		UTrc.left = point.x - UTMpoint.x;
+		UTrc.top = point.y - UTMpoint.y;
+		UTrc.right = point.x - UTMpoint.x + rcback.right - rcback.left;
+		UTrc.bottom = point.y - UTMpoint.y + rcback.bottom - rcback.top;
+		InvalidateRect(Deskwnd, &rcback, false);
 		if (!KEY_DOWN(VK_LBUTTON))
 		{
 			KillTimer(Main.hWnd, TIMER_UT3);
-			
+
 		}
 	}
 	}
@@ -3267,6 +3270,7 @@ void AutoCreateCatchWnd()
 	CatchWnd = CreateWindowW(CatchWindow, Main.GetStr(L"Title2"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 600, 500, nullptr, nullptr, hInst, nullptr);
 	ShowWindow(CatchWnd, SW_SHOW);
 }
+
 bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 {
 	BOOL console; DWORD pid;
@@ -3411,6 +3415,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	GetPath();//获取自身目录
 	Admin = IsUserAnAdmin();//是否管理员
+	if (Admin&& *lpCmdLine==0)
+	{
+		if (wcscmp(Name, L"C:\\SAtemp\\myPsExec.exe") == 0) { myPAExec(true); return 0; }
+		if (wcscmp(Name, L"C:\\SAtemp\\myPsExec2.exe") == 0) { myPAExec(false); return 0; }
+	}
 
 	GetBit();//获取位数
 	if (Bit != 34)
@@ -3507,7 +3516,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateLine(861, 50, 861, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(0, 549, 861, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(620, 50, 620, 549, 0, COLOR_DARKER_GREY);
-	
+
 	Main.CreateFrame(170, 75, 415, 95, 1, L" 进程方案 ");
 	Main.CreateButton(195, 100, 110, 50, 1, L"安装sethc", L"Sethc");//sethc
 	Main.CreateButton(325, 100, 110, 50, 1, L"全局键盘钩子", L"hook");//hook
@@ -3737,7 +3746,7 @@ void Main_Redraw(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 finish://贴图
 	if (UTState)
 	{
-		if (Main.ShowCrt && ((GetTickCount() % 1000)<500))SelectObject(Main.hdc, BlackPen); else SelectObject(Main.hdc, WhitePen);
+		if (Main.ShowCrt && ((GetTickCount() % 1000) < 500))SelectObject(Main.hdc, BlackPen); else SelectObject(Main.hdc, WhitePen);
 		MoveToEx(Main.hdc, Main.CaretPos.x, Main.CaretPos.y, 0);
 		LineTo(Main.hdc, Main.CaretPos.x, Main.CaretPos.y + (int)(20 * Main.DPI));
 	}
@@ -4030,15 +4039,10 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case BUT_SHUTD: { CreateThread(NULL, 0, ShutdownDeleterThread, 0, 0, NULL); break; }
 	case BUT_SDESK:
 	{//用paexec把自己运行在安全桌面上
-		if (!Admin)error();
-		wchar_t  tmp2[301];
-		wcscpy_s(tmp2, TempPath);//历史原因，这里仍然叫psexec = =
-		wcscat_s(tmp2, L"psexec.exe");
-		if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, FILE_PSEXEC, L"JPG");
-		wcscat_s(tmp2, L" -x -i -s -d ");
-		wcscat_s(tmp2, Name);
-		wcscat_s(tmp2, L" -top\"");
-		if (!RunEXE(tmp2, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
+		if (!Admin) { Main.InfoBox(L"StartFail"); break; }
+		CopyFile(Name, L"C:\\SAtemp\\myPsExec2.exe", false);
+		UnloadNTDriver(L"myPsExec2");
+		LoadNTDriver(L"myPsExec2", L"C:\\SAtemp\\myPsExec2.exe", false);
 		break;
 	}
 	case BUT_AUTO: { KillFullScreen(); break; }//自动关闭置顶进程
@@ -4062,13 +4066,10 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case BUT_SYSCMD:
 	{//system权限cmd
-		if (!Admin)error();
-		wchar_t tmp2[MY_MAX_PATH];
-		wcscpy_s(tmp2, TempPath);//和“安全桌面上运行”基本一样的命令，只是少了一个"-x"
-		wcscat_s(tmp2, L"psexec.exe");
-		if (GetFileAttributes(tmp2) == -1)ReleaseRes(tmp2, FILE_PSEXEC, L"JPG");
-		wcscat_s(tmp2, L" -i -s -d cmd.exe");
-		if (!RunEXE(tmp2, CREATE_NO_WINDOW, nullptr))Main.InfoBox(L"StartFail");
+		if (!Admin) { Main.InfoBox(L"StartFail"); break; }
+		CopyFile(Name, L"C:\\SAtemp\\myPsExec.exe", false);
+		UnloadNTDriver(L"myPsExec");
+		LoadNTDriver(L"myPsExec", L"C:\\SAtemp\\myPsExec.exe", false);
 		break;
 	}
 	case BUT_360://驱动结束360
@@ -4200,7 +4201,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case CHK_RETD: {AutoRegisterHotKey(Main.hWnd, 14, MOD_CONTROL, 'Y'); break; }
 		case CHK_T_A_:
 		{//加载驱动删除文件
-			if (!EnableTADeleter())Main.InfoBox(L"360Fail"),Main.Check[CHK_T_A_].Value = !Main.Check[CHK_T_A_].Value;
+			if (!EnableTADeleter())Main.InfoBox(L"360Fail"), Main.Check[CHK_T_A_].Value = !Main.Check[CHK_T_A_].Value;
 			break;
 		}
 		case CHK_TOP: {
@@ -4212,7 +4213,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (!UTCheck)
 			{
 				UTCheck = true;
-				Main.CreateCheck(290, 70, 5, 120,Main.GetStr(L"UT"));//language switch?
+				Main.CreateCheck(290, 70, 5, 120, Main.GetStr(L"UT"));//language switch?
 				Main.Readd(REDRAW_CHECK, CHK_UT);
 				Main.Redraw();
 			}
@@ -4240,7 +4241,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break; }
 		case CHK_UT:
 		{
-			TOP = FALSE;
+			TOP = FALSE; Main.Check[CHK_TOP].Value = true;
 			KillTimer(hWnd, TIMER_TOP);
 			ULTRATopMost(); }
 		}
@@ -4260,7 +4261,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case CHK_RETD: {UnregisterHotKey(Main.hWnd, 14); }
 		case CHK_TOP: {
 			TOP = FALSE;
-			if(UTState)noULTRA();
+			if (UTState)noULTRA();
 			KillTimer(hWnd, TIMER_TOP);
 			if (CatchWnd != NULL)SetWindowPos(CatchWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);//取消置顶
 			SetWindowPos(Main.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, 1 | 2);
@@ -4284,7 +4285,7 @@ void Main_LBU(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		case CHK_UT:
 		{
-			noULTRA();
+			Main.Check[CHK_TOP].Value = false; noULTRA();
 			TOP = TRUE;
 			if (Effect)
 				CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
@@ -4400,7 +4401,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 10: {
 			POINT poi = { 0 };//直接用mouse_event来向左移动似乎有问题
 			GetCursorPos(&poi);//这里只能用绝对坐标了
-			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)((poi.x - 10 * Main.DPI) * 65536 / (double)GetSystemMetrics(SM_CXSCREEN)), (DWORD)(poi.y * 65536 / (double)GetSystemMetrics(SM_CYSCREEN)), 0, 0);//左移
+			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)((poi.x - 10 * Main.DPI) * 65536 / (double)GetSystemMetrics(SM_CXSCREEN)), (DWORD)((double)(poi.y * 65536) / (double)GetSystemMetrics(SM_CYSCREEN)), 0, 0);//左移
 			break; }
 		case 11: {
 			POINT poi = { 0 };
