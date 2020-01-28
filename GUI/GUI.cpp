@@ -4318,7 +4318,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					FakeNew = false;//释放图片
 					FakenewUp = false;
 					Main.Check[CHK_FTNEW].Value = false;
-					SetWindowPos(FakeWnd, HWND_TOPMOST, 200, 0, 82, 48, NULL);
+					SetWindowPos(FakeWnd, HWND_TOPMOST, GetSystemMetrics(SM_CXSCREEN)/2-41, 0, 82, 48, NULL);
 					KillTimer(FakeWnd, TIMER_TOOLBAR);
 				}
 				else
@@ -4330,7 +4330,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					FakeNew = true;
 					FakenewUp = false;//伪装(新)要开启伸展/缩回线程
 					Main.Check[CHK_FTOLD].Value = false;
-					SetWindowPos(FakeWnd, HWND_TOPMOST, 200, 0, 340, 63, NULL);
+					SetWindowPos(FakeWnd, HWND_TOPMOST, GetSystemMetrics(SM_CXSCREEN)/2-170, 0, 340, 63, NULL);
 					FakeTimer = GetTickCount();
 					SetTimer(FakeWnd, TIMER_TOOLBAR, 100, (TIMERPROC)TimerProc);
 				}
