@@ -1112,7 +1112,7 @@ public:
 		{
 			if (noMsgbox)
 			{
-				if (GUIStrExist)TextOut(hdc, 280, 17, GetStr(Str), (int)wcslen(GetStr(Str))); else TextOut(hdc, 300, 20, Str, (int)wcslen(Str));
+				if (GUIStrExist)TextOut(hdc, 200, 55, GetStr(Str), (int)wcslen(GetStr(Str))); else TextOut(hdc, 200, 55, Str, (int)wcslen(Str));
 			}
 			else {//to be removed if it is used for another programe
 				if (GUIStrExist)MessageBox(hWnd, GetStr(Str), GetStr(L"Info"), 0x40L); else MessageBox(hWnd, Str, GetStr(L"Info"), 0x40L);
@@ -1556,7 +1556,7 @@ BOOL CALLBACK EnumAllBroadcastwnds(HWND hwnd, LPARAM lParam)//查找"屏幕广�
 	if (A == 0)return 1;
 	wchar_t title[301];
 	GetWindowText(hwnd, title, 300);
-	if (wcscmp(title, L"屏幕广播") == 0|| wcsstr(title, L"屏幕演播室窗口") != 0 || wcsstr(title, L"屏幕广播窗口") != 0)
+	if (wcscmp(title, L"屏幕广播") == 0 || wcsstr(title, L"屏幕演播室窗口") != 0 || wcsstr(title, L"屏幕广播窗口") != 0)
 	{
 		EnumChildWindows(hwnd, EnumChildwnd, 1);
 		return 1;
@@ -2509,7 +2509,7 @@ void ULTRATopMost()
 }
 void noULTRA()
 {
-	UTState = FALSE;
+	UTState = FALSE; Main.noMsgbox = false;
 	Main.CurFrame--;
 	if (UTEditHook != 0)UnhookWindowsHookEx(UTEditHook), UTEditHook = 0;
 	KillTimer(Main.hWnd, TIMER_UT1);
@@ -2777,7 +2777,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		break;//200ms刷新一次，经测试效果不错
 	case TIMER_UPDATEBSOD://刷新伪装蓝屏窗口上的文字
 		BSODstate++;
-		if (BSODstate == 8 || BSODstate == 20 || BSODstate == 40)InvalidateRect(BSODhwnd, NULL, FALSE), UpdateWindow(BSODhwnd);
+		/*if (BSODstate == 1 || BSODstate == 10 || BSODstate == 20 || BSODstate == 30 || BSODstate == 40)*/
+		if (BSODstate % 50 == 0)InvalidateRect(BSODhwnd, NULL, FALSE), UpdateWindow(BSODhwnd);
 		break;
 	case TIMER_TOP://循环置顶(低画质时启用)
 		if (Main.ButtonEffect)CreateThread(NULL, 0, TopThread, NULL, 0, NULL), KillTimer(Main.hWnd, TIMER_TOP);
@@ -2816,11 +2817,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		}
 		break;
 	}
-	case TIMER_UT1:
-	{
-		SendMessage(hWnd, WM_PAINT, 0, (LPARAM)999);
-		break;
-	}
+	case TIMER_UT1: {SendMessage(hWnd, WM_PAINT, 0, UT_MESSAGE); break; }
 	case TIMER_UT2:
 	{
 		RECT tmprc;
@@ -2836,7 +2833,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		if (LButtonDown != LBnew && CSinside)
 		{
 			LButtonDown = LBnew;
-			if (LBnew) WndProc(Main.hWnd, WM_LBUTTONDOWN, 0, 0); else  WndProc(Main.hWnd, WM_LBUTTONUP, 0, 0);
+			if (LBnew) WndProc(Main.hWnd, WM_LBUTTONDOWN, 0, UT_MESSAGE); else  WndProc(Main.hWnd, WM_LBUTTONUP, 0, UT_MESSAGE);
 		}
 		break;
 	}
@@ -2853,14 +2850,14 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		if (!KEY_DOWN(VK_LBUTTON))KillTimer(Main.hWnd, TIMER_UT3);
 		break;
 	}
-	case TIMER_ONEKEY:{EnumWindows(EnumAllBroadcastwnds, NULL); break; }
+	case TIMER_ONEKEY: {EnumWindows(EnumAllBroadcastwnds, NULL); break; }
 	}
 }
 bool NewDesktop = false;
 DWORD WINAPI SDThread(LPVOID pM)
 {//useless?
 	(pM);
-	HDESK vdback; bool ndback = NewDesktop;
+	HDESK vdback; //bool ndback = NewDesktop;
 	if (!NewDesktop)//从原始桌面切换到新桌面
 		vdback = OpenDesktopW(szVDesk, DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
 
@@ -2868,8 +2865,7 @@ DWORD WINAPI SDThread(LPVOID pM)
 		vdback = OpenDesktopW(L"Default", DF_ALLOWOTHERACCOUNTHOOK, false, GENERIC_ALL);
 	NewDesktop = !NewDesktop;
 	SetThreadDesktop(vdback);
-	SwitchDesktop(vdback);
-	while (NewDesktop != ndback)Sleep(100);
+	SwitchDesktop(vdback);//while (NewDesktop != ndback)Sleep(100);
 	return 0;
 }
 void openfile()//显示"打开文件"的对话框
@@ -2976,11 +2972,11 @@ void FakeBSOD()//召唤伪装蓝屏的窗口.
 		MyRegisterClass(hInst, BSODProc, BSODWindow, false);
 	}
 	BSODhwnd = CreateWindow(BSODWindow, L"BSOD wnd", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
-	BSODstate = 0;//创建窗口
-	SetTimer(BSODhwnd, TIMER_UPDATEBSOD, 100, (TIMERPROC)TimerProc);
+	BSODstate = -1;//创建窗口
+	SetTimer(BSODhwnd, TIMER_UPDATEBSOD, 20, (TIMERPROC)TimerProc);
+	ShowWindow(BSODhwnd, SW_SHOW);
 	InvalidateRect(BSODhwnd, NULL, FALSE);
 	UpdateWindow(BSODhwnd);//之后的工作在BSODProc里
-	ShowWindow(BSODhwnd, SW_SHOW);
 }
 void BSOD()//尝试蓝屏.
 {
@@ -3321,11 +3317,11 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	//setlocale(LC_ALL, "chs");//这一行语句占30k大小，谨慎使用
 	slient = true;
 
-	if (wcsstr(str, L"-help") != NULL)//安装sethc
+	if (wcsstr(str, L"-help") != NULL)//显示帮助
 	{
 		wchar_t tmp2[301];
 		wcscpy_s(tmp2, TempPath);
-		wcscat_s(tmp2, L"关于&帮助.txt");
+		wcscat_s(tmp2, L"help.txt");
 		ReleaseRes(tmp2, FILE_HELP, L"JPG");
 		DWORD NumberOfBytesRead;
 		wchar_t AllTmp[10001], * point1, * point2;
@@ -3351,6 +3347,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		if (AutoSetupSethc())Main.InfoBox(L"suc");
 		goto okreturn;
 	}
+	if (wcsstr(str, L"-enablebut") != NULL) { SetTimer(0, TIMER_ONEKEY, 1500, (TIMERPROC)TimerProc); goto noreturn; }//一键安装
 	if (wcsstr(str, L"-auto") != NULL) { KillFullScreen(); Main.InfoBox(L"suc"); goto okreturn; }//自动结束置顶进程
 	if (wcsstr(str, L"-unsethc") != NULL) {
 		DeleteFile(SethcPath);
@@ -3378,7 +3375,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		AutoDelete(tmp, true);
 		goto okreturn;
 	}
-	if (wcsstr(str, L"-changewithpasswd") != NULL)//二者顺序不能调换
+	if (wcsstr(str, L"-changewithpasswd") != NULL)//前后二者顺序不能调换
 	{//因为changewithpasswd包括change这个字符串
 		wchar_t tmp[1001] = { 0 }, * tmp1 = wcsstr(str, L"-changewithpasswd");
 		if (!Findquotations(tmp1, tmp))goto error;
@@ -3520,7 +3517,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateLine(2, 374, 139, 374, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(861, 50, 861, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(0, 549, 861, 549, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(620, 50, 620, 549, 0, COLOR_DARKER_GREY);
+	Main.CreateLine(620, 0, 620, 549, 0, COLOR_DARKER_GREY);
 
 	Main.CreateFrame(170, 75, 415, 95, 1, L" 进程方案 ");
 	Main.CreateButton(195, 100, 110, 50, 1, L"安装sethc", L"Sethc");//sethc
@@ -3801,7 +3798,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
 		RECT rc = { 0 };
-		if (lParam == 999)goto finish;
+		if (lParam == UT_MESSAGE)goto finish;
 		if (hWnd != 0)GetUpdateRect(hWnd, &rc, false);
 		PAINTSTRUCT ps;
 		if (hWnd != 0)Main.tdc = BeginPaint(hWnd, &ps);
@@ -3913,6 +3910,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 	case WM_LBUTTONDOWN://点下鼠标左键时
 	{
+		if (UTState && lParam != UT_MESSAGE)break;
 		POINT point; GetCursorPos(&point); ScreenToClient(Main.hWnd, &point);
 		Main.EditGetNewInside(point);//试图预先确定一下是否点在某个控件内
 		if (Main.CoverEdit != 0 && UTState && UTEditHook == 0)UTEditHook = (HHOOK)SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)UTHookProc, hInst, 0);
@@ -3936,6 +3934,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_LBUTTONUP://抬起鼠标左键时
 	{
+		if (UTState && lParam != UT_MESSAGE)break;
 		if (Main.CoverButton != -1)//这时候就要做出相应的动作了
 		{
 			Main.Press = 0;
@@ -4431,7 +4430,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			}
 			case CHK_UT:
 			{
-				Main.Check[CHK_TOP].Value = false; noULTRA();
+				noULTRA();
 				TOP = TRUE;
 				if (Effect)
 					CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
@@ -4571,15 +4570,15 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SelectObject(bdc, A);//Century Gothic字体在win7及以前的系统中默认没有
 			TextOut(bdc, 180, 290, Main.GetStr(L"BSOD1"), (int)wcslen(Main.GetStr(L"BSOD1")));
 			wchar_t tmp[21];
-			if (BSODstate > 20)BSODstate = 20;
-			_itow_s(int(BSODstate * 2.5), tmp, 10);
+			if (BSODstate > 500)BSODstate = 500;
+			_itow_s(int(BSODstate / 5), tmp, 10);
 			wcscat_s(tmp, Main.GetStr(L"BSOD7"));//打印完成比例
 			TextOut(bdc, 180, 360, tmp, (int)wcslen(tmp));
 			SelectObject(bdc, WhiteBrush);
 			Rectangle(bdc, 180, 440, 180 + 141, 440 + 141);
 			SelectObject(bdc, BSODBrush);
 			for (int i = 0; i < 25; ++i)//打印二维码
-				for (int j = 0; j < 25; ++j)if ((QRcode[i] >> (24 - j)) % 2 == 1)Rectangle(bdc, 188 + 5 * j, 448 + 5 * i, 188 + 5 + 5 * j, 448 + 5 + 5 * i);
+				for (int j = 0; j < 25; ++j)if ((QRcode[i] >> (24 - j)) % 2)Rectangle(bdc, 188 + 5 * j, 448 + 5 * i, 188 + 5 + 5 * j, 448 + 5 + 5 * i);
 			SelectObject(bdc, C);
 
 			TextOut(bdc, 345, 440, Main.GetStr(L"BSOD2"), (int)wcslen(Main.GetStr(L"BSOD2")));
@@ -4630,9 +4629,8 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				ybegin += (int)(s * 3.6);
 			}
-			if (BSODstate >= 4)TextOutA(bdc, 2, ybegin, "Collecting data for crash dump...", 33), ybegin += (int)(s * 1.8);
-			if (BSODstate >= 10)TextOutA(bdc, 2, ybegin, "Initializing disk for crash dump...", 35);
-			//BitBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, SRCCOPY);
+			if (BSODstate >= 50)TextOutA(bdc, 2, ybegin, "Collecting data for crash dump...", 33), ybegin += s * 2;
+			if (BSODstate >= 150)TextOutA(bdc, 2, ybegin, "Initializing disk for crash dump...", 35);
 			StretchBlt(ldc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bdc, 0, 0, 640, 480, SRCCOPY);
 			DeleteObject(OBSODBrush);
 			DeleteObject(OBSODPen);
