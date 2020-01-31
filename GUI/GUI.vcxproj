@@ -223,7 +223,6 @@
     <None Include="English.zxf" />
     <None Include="fakenew.zxf" />
     <None Include="fakeold.zxf" />
-    <None Include="hook.zxf" />
     <None Include="jpg1.bin" />
     <None Include="jpg21.bin" />
     <None Include="jpg3.bin" />

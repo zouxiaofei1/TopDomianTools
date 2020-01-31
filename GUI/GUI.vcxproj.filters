@@ -70,7 +70,6 @@
     <None Include="jpg3.bin">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="hook.zxf" />
     <None Include="sethc.zxf" />
     <None Include="DeleteFile_x32.zxf" />
     <None Include="DeleteFile_x64.zxf" />
