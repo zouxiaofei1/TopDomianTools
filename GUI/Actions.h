@@ -19,7 +19,7 @@ void charTowchar(const char* chr, wchar_t* wchar, int size)
 
 const unsigned int Hash(const wchar_t* str)
 {
-	unsigned int seed = 131;
+	const unsigned int seed = 131;
 	unsigned int hash = 0;
 
 	while (*str)
@@ -124,41 +124,8 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 	}
 	return true;
 }
+bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-
-BOOL AdjustPrivileges(const wchar_t* lpName)
-{//输入权限名，获取指定的权限
-	HANDLE hToken = NULL;
-	TOKEN_PRIVILEGES tp = { 0 };
-	TOKEN_PRIVILEGES oldtp = { 0 };
-	DWORD dwSize = sizeof(TOKEN_PRIVILEGES);
-	LUID luid = { 0 };
-
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
-		if (GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
-			return TRUE;
-		else
-			return FALSE;
-	}
-	if (!LookupPrivilegeValueW(NULL, lpName, &luid)) {
-		CloseHandle(hToken);
-		return FALSE;
-	}
-
-	tp.PrivilegeCount = 1;
-	tp.Privileges[0].Luid = luid;
-	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-	/* Adjust Token Privileges */
-	if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), &oldtp, &dwSize)) {
-		CloseHandle(hToken);
-		return FALSE;
-	}
-
-	// close handles
-	CloseHandle(hToken);
-	return TRUE;
-}
 wchar_t* wip;
 __forceinline wchar_t* CheckIP()//取本机的ip地址  
 {
@@ -195,7 +162,7 @@ BOOL TakeOwner(LPWSTR FilePath)
 	EXPLICIT_ACCESS Ea;
 	BOOL Ret = FALSE;
 
-	if (AdjustPrivileges(SE_TAKE_OWNERSHIP_NAME) && AdjustPrivileges(SE_RESTORE_NAME))
+	if (EnablePrivilege(SE_TAKE_OWNERSHIP_NAME,0) && EnablePrivilege(SE_RESTORE_NAME,0))
 	{//要先申请SE_TAKE_OWNERSHIP特权
 		GetUserNameA(UserName, &cbUserName);
 		if (LookupAccountNameA(NULL, UserName, &Sid, &cbSid, DomainBuffer, &cbDomainBuffer, &eUse))
@@ -224,7 +191,7 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
-ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName,bool Shadow)
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName,BOOL Shadow)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -276,9 +243,9 @@ typedef LONG(__stdcall* PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 DWORD GetParentProcessID(DWORD dwProcessId)
 {//获取父进程的PID
-	LONG status;
+	LONG status=0;
 	DWORD dwParentPID = 0;
-	HANDLE hProcess;
+	HANDLE hProcess=0;
 	PROCESS_BASIC_INFORMATION pbi;
 
 	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(

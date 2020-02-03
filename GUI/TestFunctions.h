@@ -12,7 +12,7 @@ void s(LPCWSTR a)//调试用MessageBox
 }
 void s(int a)
 {
-	wchar_t tmp[34];
+	wchar_t tmp[34] = {0};
 	_itow_s(a, tmp, 10);
 	MessageBox(NULL, tmp, L"", NULL);
 }
@@ -34,7 +34,7 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引�
 	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 
-void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, double DPI)
+void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, float DPI)
 {
 	// 文件句柄   
 	HANDLE FileHandle;
@@ -73,7 +73,7 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, dou
 	{
 		CloseHandle(FileHandle);
 		GlobalUnlock(pBuffer);
-		free(pBuffer);
+		DeleteObject(pBuffer);
 		return;
 	}
 
@@ -84,24 +84,17 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, dou
 	if (CreateStreamOnHGlobal(pBuffer, true, &pstream) != S_OK)
 	{
 		CloseHandle(FileHandle);
-		free(pBuffer);
+		DeleteObject(pBuffer);
 		return;
 	}
 
 	// 创建一个新的图像并初始化   
 	if (!SUCCEEDED(OleLoadPicture(pstream, SizeL, true, IID_IPicture, (void**)&pPic)))return;
-	// 获取句柄   
-//  HWND hwnd=GetDlgItem(MainHwnd,PID_PICTURE);   
-	// 创建画布   
-	//HDC hdc = GetDC(hwnd);
-	// 高和宽   
 	long hmWidth;
 	long hmHeight;
 	// 从IPicture中获取高度与宽度   
 	pPic->get_Width(&hmWidth);
 	pPic->get_Height(&hmHeight);
-	//s(hmWidth);
-	////    
 	int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
 	int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
 

@@ -7,7 +7,7 @@
 #define WINVER          _WIN32_WINNT_WINXP
 #define _WIN32_WINNT    _WIN32_WINNT_WINXP
 #define _CRT_SECURE_NO_WARNINGS
-#include "targetver.h"
+//#include "targetver.h"
 
 #define WIN32_LEAN_AND_MEAN             // 从 Windows 头中排除极少使用的资料
 // Windows 头文件: 

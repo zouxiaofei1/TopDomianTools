@@ -13,8 +13,8 @@
 
 //部分(重要)函数的前向声明
 BOOL				InitInstance(HINSTANCE, int);//初始化
-LRESULT	CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);//主窗口
-LRESULT CALLBACK	CatchProc(HWND, UINT, WPARAM, LPARAM);//"捕捉窗口"的窗口
+LRESULT	CALLBACK	WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//主窗口
+LRESULT CALLBACK	CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//"捕捉窗口"的窗口
 LRESULT CALLBACK	ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//截图伪装窗口
 LRESULT CALLBACK	BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//蓝屏伪装窗口
 LRESULT CALLBACK	FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//伪装工具条窗口
@@ -34,7 +34,7 @@ BOOL Admin;//是否拥有管理员权限
 int Bit;//系统位数 32 34 64
 BOOL slient = FALSE;//是否命令行
 HANDLE hdlWrite;//命令行窗口的句柄
-wchar_t Path[MY_MAX_PATH], Name[MY_MAX_PATH], TempPath[] = L"C:\\SAtemp\\";//程序路径 and 路径+程序名 amd 缓存路径(Path最后有"\")
+wchar_t Path[MAX_PATH], Name[MAX_PATH], TempPath[] = L"C:\\SAtemp\\";//程序路径 and 路径+程序名 amd 缓存路径(Path最后有"\")
 
 //和绘图有关的全局变量
 HBRUSH DBlueBrush, LBlueBrush, WhiteBrush, NormalBlueBrush, TitleBrush, LGreyBrush, YellowBrush, DGreyBrush, BSODBrush, BlackBrush;//各色笔刷
@@ -62,8 +62,8 @@ POINT UTMpoint2;
 //第一页的全局变量
 
 bool OneClick;//一键安装状态
-wchar_t SethcPath[MY_MAX_PATH];//Sethc路径
-wchar_t TDPath[MY_MAX_PATH], TDName[MY_MAX_PATH];//极域路径 and 默认极域进程名
+wchar_t SethcPath[MAX_PATH];//Sethc路径
+wchar_t TDPath[MAX_PATH], TDName[MAX_PATH];//极域路径 and 默认极域进程名
 bool TDsearched = false;//是否已经寻找过极域?
 bool SethcState = true;//System32目录下sethc是否存在
 bool SethcInstallState = false;//Sethc方案状态
@@ -75,7 +75,7 @@ wchar_t szVDesk[] = L"TDTdesk", fBSODdesk[] = L"TDTBSOD";//虚拟桌面 & 蓝屏
 //第二、三页的全局变量
 bool GameMode;//游戏模式是否打开?
 constexpr int numGames = 6;// (游戏)数
-BOOL GameExist[numGames + 1];//标记的文件是否存在?
+bool GameExist[numGames + 1];//标记的文件是否存在?
 const wchar_t GameName[numGames + 1][18] = { L"Games\\xiaofei.exe", L"Games\\fly.exe",L"Games\\2048.exe",L"Games\\block.exe", \
 L"Games\\1.exe" , L"Games\\chess.exe" };//(游戏)名
 bool GameLock = false;//Game按钮锁定
@@ -105,7 +105,7 @@ BOOL HideState;//窗口是否隐藏
 HWND FileList;//语言选择hWnd
 BOOL TOP;//是否置顶
 BOOL BlackBoard;//是否用截图窗口显示黑屏(伪装蓝屏用) - 默认为false
-wchar_t CurrentLanguage[351];//当前加载的语言文件的路径
+wchar_t CurrentLanguage[MAX_PATH];//当前加载的语言文件的路径
 
 //捕捉窗口 & 伪装蓝屏窗体的全局变量
 HWND CatchWnd;//捕捉窗口的窗口句柄
@@ -150,7 +150,7 @@ public:
 	void SetStr(LPCWSTR Str, LPCWSTR ID)//通过ID设置字符串
 	{
 		unsigned int tmp = Hash(ID);
-		if (str[tmp] != 0)str[tmp] = 0;//删除当前ID中原有的字符串
+		if (str[tmp] != 0)delete[]str[tmp];//删除当前ID中原有的字符串
 		str[tmp] = new wchar_t[wcslen(Str) + 1];//申请相应的内存空间
 		wcscpy(str[tmp], Str);//复制新的
 	}
@@ -323,7 +323,7 @@ public:
 					goto colorok;
 				}
 				if (CoverButton == i && Button[i].DownTot == 0)//没有禁用 也没有渐变色 -> 默认颜色
-					if (Press == 1) {
+					if (Press) {
 						SelectObject(hdc, Button[i].Press);//按下按钮
 						SelectObject(hdc, Button[i].Press2);
 					}
@@ -906,9 +906,7 @@ public:
 	void EditDown(int cur)//鼠标左键在某个Edit上按下
 	{
 		EditRegHotKey();//先注册下热键再说
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
+		POINT point=GetPos();
 		if (CoverEdit != cur)Edit[CoverEdit].Pos1 = Edit[CoverEdit].Pos2 = -1, EditRedraw(CoverEdit);//如果直接从一个Edit点到
 		CoverEdit = cur;//														另一个Edit，那么先把之前的Pos和蓝框问题解决好
 		if (*Edit[cur].OStr != 0)//去掉灰色的提示文字
@@ -936,11 +934,26 @@ public:
 			(long)((Edit[cur].Left + Edit[cur].Width + 5) * DPI) >= point.x && (Edit[cur].Top + Edit[cur].Height) * DPI >= point.y);
 	}
 
-	void LeftButtonDown()//鼠标左键按下
+	POINT GetPos()
 	{
 		POINT point;
-		GetCursorPos(&point);//获取真实坐标
+		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
+		return point;
+	}
+	void LeftButtonUp()//鼠标左键抬起
+	{
+		if (Main.CoverButton != -1)
+		{
+			Main.Press = 0;//取消被按下按钮的颜色
+			Main.ButtonRedraw(Main.CoverButton);
+		}
+		Main.Edit[Main.CoverEdit].Press = false;
+	}
+
+	void LeftButtonDown()//鼠标左键按下
+	{
+		POINT point = GetPos();
 		if (CoverButton != -1)//当按钮按下 & 停留在按钮上时
 		{
 			Press = 1;//重绘这个按钮
@@ -1028,9 +1041,7 @@ public:
 	}
 	void MouseMove()//鼠标移动
 	{
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
+		POINT point = GetPos();
 		if (CoverButton == -1)ButtonGetNewInside(point);//原来不在按钮内 -> 看看现在是否移进按钮
 		else//原来在
 		{
@@ -1120,7 +1131,7 @@ public:
 		}
 		else
 		{
-			wchar_t tmpstr[MY_MAX_PATH];
+			wchar_t tmpstr[MAX_STR];
 			wcscpy_s(tmpstr, GetStr(L"TDT"));
 			if (GUIStrExist)wcscat_s(tmpstr, GetStr(Str)); else wcscat_s(tmpstr, Str);
 			WriteConsole(hdlWrite, tmpstr, (DWORD)wcslen(tmpstr), nullptr, nullptr);
@@ -1158,7 +1169,7 @@ public:
 		es[0].top = 0;
 		Redraw();//切换页面时当然需要全部重绘啦
 	}
-	void SetDPI(DOUBLE NewDPI)//改变窗口的缩放大小
+	void SetDPI(float NewDPI)//改变窗口的缩放大小
 	{//							(由于某历史原因，缩放大小的变量被我命名成了DPI)
 		if (DPI == NewDPI)return;
 		DPI = NewDPI;//创建新大小的字体
@@ -1166,7 +1177,7 @@ public:
 		DefFont = CreateFontW((int)(16 * DPI), (int)(8 * DPI), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("宋体"));
 		for (int i = 1; i <= CurEdit; ++i)SetEditStrOrFont(0, DefFont, i), RefreshXOffset(i);//设置字体
 		RefreshCaretByPos(CoverEdit);
-		if (Width != 0 && Height != 0)SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI), (int)(Height * DPI), SWP_NOMOVE | SWP_NOREDRAW);
+		if (Width != 0 && Height != 0)SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI - 0.5), (int)(Height * DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
 		DestroyCaret();//设置闪烁的光标
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 		Redraw();//全部重绘
@@ -1199,6 +1210,7 @@ public:
 	}
 	void Try2CreateExp()//尝试解析一个Exp的内容并绘制
 	{
+		SIZE se;
 		if (ExpExist == true || CoverButton == -1)return;//如果Exp已经存在，，或者Exp内容为空，那么就没他什么事了
 		if (Button[CoverButton].Exp == 0)return;
 		if (wcslen(Button[CoverButton].Exp) == 0)return;
@@ -1215,17 +1227,14 @@ public:
 			x = wcsstr(x + 1, L"\\n");//在Exp的字符串中寻找\n字符
 			if (x != 0)x[0] = '\0';//然后存储在一个二维数组内
 			if (ExpLine == 1)wcscpy(Exp[ExpLine], y); else wcscpy(Exp[ExpLine], y + 2);
-			SIZE* se = new SIZE;
-			if (ExpLine == 1)GetTextExtentPoint32(hdc, y, (int)wcslen(y), se); else GetTextExtentPoint32(hdc, y + 2, (int)wcslen(y + 2), se);//获取字符串的宽度
+			if (ExpLine == 1)GetTextExtentPoint32(hdc, y, (int)wcslen(y), &se); else GetTextExtentPoint32(hdc, y + 2, (int)wcslen(y + 2), &se);//获取字符串的宽度
 			if (x != 0)x[0] = '\\';
-			ExpHeight += se->cy;//计算这个Exp的宽和高
-			ExpWidth = max(ExpWidth - 8, se->cx) + 8;
+			ExpHeight += se.cy;//计算这个Exp的宽和高
+			ExpWidth = max(ExpWidth - 8, se.cx) + 8;
 			if (x == 0)break;
 			y = x;
 		}
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
+		POINT point = GetPos();
 		ExpPoint = point;//绘制这个Exp
 		if (ExpPoint.x > (int)(Width * DPI / 2.0))ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//自动选择注释的位置
 		if (ExpPoint.y > (int)(Height * DPI / 2.0))ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//防止打印到窗口外面
@@ -1308,7 +1317,7 @@ public:
 				if (gl.Width != -1)Button[cur].Width = gl.Width;
 				if (gl.Height != -1)Button[cur].Height = gl.Height;
 				if (gl.str1 != NULL)wcscpy_s(Button[cur].Name, gl.str1);
-				if (Button[cur].Exp != NULL)if (*Button[cur].Exp != NULL)
+				if (Button[cur].Exp != nullptr)if (*Button[cur].Exp != NULL)
 				{
 					ZeroMemory(Button[cur].Exp, wcslen(Button[cur].Exp) * sizeof(wchar_t));
 					Button[cur].Exp = 0;
@@ -1394,7 +1403,7 @@ public:
 		}//仍然是长但原理简单的代码
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
-			wchar_t tmpstr[MY_MAX_PATH] = L"error:";
+			wchar_t tmpstr[MAX_STR] = L"error:";
 			wcscat_s(tmpstr, ReadTmp);
 			InfoBox(tmpstr);
 		}
@@ -1467,7 +1476,7 @@ public:
 	HFONT DefFont;//默认的字体
 	int Msv;//鼠标移出检测变量
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;//各种控件的数量
-	double DPI = 1;
+	float DPI = 1;
 	int CoverButton, CoverCheck, CoverEdit, CoverArea;//当前被鼠标覆盖的东西
 	bool Obredraw = false;//是否启用ObjectRedraw技术
 	bool ButtonEffect = false;//是否开启渐变色
@@ -1512,10 +1521,10 @@ public://这些函数有些参数没有用到，会导致大量警告.
 	{
 		if (ulProgressMax != 0)//ulProgress：已下载的字节数
 		{//ulProgressMax：总字节数
-			double percentage;
+			float percentage;
 			int cur = Main.GetNumbyID(curi);
-			if (factmax == 0) percentage = double(ulProgress * 1.0 / ulProgressMax * 100);//计算下载百分比
-			else  percentage = double(ulProgress * 1.0 / factmax * 100);//注意！有时函数无法得到正确的ulProgressMax，虽然没有下完
+			if (factmax == 0) percentage = float(ulProgress * 1.0 / ulProgressMax * 100);//计算下载百分比
+			else  percentage = float(ulProgress * 1.0 / factmax * 100);//注意！有时函数无法得到正确的ulProgressMax，虽然没有下完
 			if (Main.Button[cur].Download != (int)percentage + 1)//percentage仍会等于100%，导致一系列错误
 			{//																		这时候应尽量传入正确大小(factmax)
 				if (!Effect && percentage <= 100)return S_OK;//低画质时不显示进度条
@@ -1727,22 +1736,21 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程.
 		if (wcsstr(MyProcessName, pe.szExeFile) != 0 || ProcessName == NULL)
 		{
 			NoProcess = FALSE;
-			DWORD dwProcessID = pe.th32ProcessID;
 			HANDLE hProcess = 0;
 			if (Main.Check[CHK_KPH].Value && ConnectSuccess)
 			{//连接成功->用驱动结束进程
 				if (Bit != 34)
 				{
 #pragma warning(disable:4312)//64位下这里会报HANDLE大于DWORD的警告
-					PhOpenProcess(&hProcess, 1, (HANDLE)dwProcessID, PhKphHandle);
+					PhOpenProcess(&hProcess, 1, (HANDLE)pe.th32ProcessID, PhKphHandle);
 #pragma warning(default:4312)
 					ReturnValue |= PhTerminateProcess(hProcess, 1, PhKphHandle) >= 0;
 				}
 				else
 				{
-					wchar_t cmdline[MY_MAX_PATH], tmpstr[20] = { 0 };
+					wchar_t cmdline[MAX_PATH], tmpstr[20] = { 0 };
 					wcscpy_s(cmdline, filepath);//使用Win64KPHcaller
-					_itow_s(dwProcessID, tmpstr, 10);
+					_itow_s(pe.th32ProcessID, tmpstr, 10);
 					wcscat_s(cmdline, L" ");
 					wcscat_s(cmdline, tmpstr);
 					ReturnValue |= RunEXE(cmdline, NULL, nullptr);
@@ -1750,7 +1758,7 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程.
 			}
 			else
 			{
-				hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, dwProcessID);
+				hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
 				ReturnValue |= TerminateProcess(hProcess, 1);//否则使用普通的OpenProcess和TerminateProcess
 			}
 			CloseHandle(hProcess);
@@ -1816,7 +1824,7 @@ void TDSearchDirect()
 }
 void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 {
-	wchar_t tmpstr[MY_MAX_PATH + 10];
+	wchar_t tmpstr[MAX_PATH + 10];
 	wcscpy_s(tmpstr, Main.GetStr(L"_TPath"));
 	if (*TDPath == 0)//找不到极域
 		wcscat_s(tmpstr, Main.GetStr(L"TPunk"));
@@ -1881,7 +1889,7 @@ void SetFrameColor()//根据是否有管理员权限的两种情况改变Frame�
 }
 void GetPath()//得到程序路径 & ( 程序路径 + 程序名 ).
 {
-	GetModuleFileName(NULL, Path, MY_MAX_PATH);//直接获取程序名
+	GetModuleFileName(NULL, Path, MAX_PATH);//直接获取程序名
 	wcscpy_s(Name, Path);
 	for (int i = (int)wcslen(Path) - 1; i >= 0; --i)
 		if (Path[i] == L'\\') {
@@ -1897,7 +1905,9 @@ void GetBit()//系统位数.
 	//32 means 32bit GUI on 32bit System
 	//34 means 32bit GUI on 64bit System
 	//64 means 64bit GUI on 64bit System
-	if (sizeof(int*) * 8 == 32 && Bit == 64)Bit = 34;//检测程序自身的位数
+#ifndef _WIN64
+	if (Bit == 64)Bit = 34;//检测程序自身的位数
+#endif
 }
 BOOL BackupSethc()//备份sethc.exe.
 {
@@ -1910,7 +1920,7 @@ BOOL BackupSethc()//备份sethc.exe.
 bool EnableTADeleter()
 {//尝试和DeleteFile驱动通信.
 	if (DeleteFileHandle != 0)return true;//已经连接上了 -> 退出
-	wchar_t tmpstr[MY_MAX_PATH];
+	wchar_t tmpstr[MAX_PATH];
 	wcscpy_s(tmpstr, TempPath);
 	wcscat_s(tmpstr, L"DeleteFile.sys");
 	if (Bit == 32)//释放驱动文件到程序目录里
@@ -1919,7 +1929,7 @@ bool EnableTADeleter()
 		ReleaseRes(tmpstr, FILE_TAX64, L"JPG");
 	UnloadNTDriver(L"DeleteFile");//加载驱动
 	LoadNTDriver(L"DeleteFile", tmpstr, true);
-	AdjustPrivileges(SE_DEBUG_NAME);
+	EnablePrivilege(SE_DEBUG_NAME, 0);
 
 	OBJECT_ATTRIBUTES objectAttributes;
 	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
@@ -1953,7 +1963,7 @@ bool EnableKPH()
 	else
 		ReleaseRes(tmp, FILE_KPH64, L"JPG");
 	UnloadNTDriver(L"KProcessHacker2");
-	AdjustPrivileges(SE_DEBUG_NAME);
+	EnablePrivilege(SE_DEBUG_NAME, 0);
 	return LoadNTDriver(L"KProcessHacker2", tmp, true);
 }
 
@@ -1966,10 +1976,10 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 		wcscpy_s(CurrentLanguage, name);//测试这段代码时工程崩溃了不下20次
 		bool Mainf = false;
 		int type = 0; DWORD NumberOfBytesRead;
-		wchar_t AllTmp[50001], * point1, * point2;
+		wchar_t AllTmp[30001], * point1, * point2;
 		HANDLE hf = CreateFile(name, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 		if (hf == 0)return;
-		ReadFile(hf, AllTmp, 50001, &NumberOfBytesRead, NULL);
+		if (!ReadFile(hf, AllTmp, 30001, &NumberOfBytesRead, NULL))return;
 		if (NumberOfBytesRead == 0)return;
 		point1 = AllTmp;
 		while (1)
@@ -2011,7 +2021,7 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 
 BOOL SetupSethc()//安装sethc
 {
-	wchar_t mySethcPath[MY_MAX_PATH];
+	wchar_t mySethcPath[MAX_PATH] = { 0 };
 	wcscpy_s(mySethcPath, TempPath);
 	wcscat_s(mySethcPath, L"mysethc.exe");
 	if (GetFileAttributes(mySethcPath) == -1)ReleaseRes(mySethcPath, FILE_SETHC, L"JPG");//文件不存在的话从资源里释放
@@ -2063,7 +2073,7 @@ bool DeleteSethc()//删除sethc(删不掉的话自动使用驱动).
 
 bool SearchTool(LPCWSTR lpPath, int type)//1 打开极域 2 删除shutdown 3 删除文件夹.
 {//有多个功能的函数，所以叫它"Tool"
-	wchar_t szFind[MY_MAX_PATH], szFile[MY_MAX_PATH];//因为都用的是同一段搜索代码，所以就干脆把三个按钮功能合起来了
+	wchar_t szFind[MAX_PATH] = { 0 }, szFile[MAX_PATH] = { 0 };//因为都用的是同一段搜索代码，所以就干脆把三个按钮功能合起来了
 	WIN32_FIND_DATA FindFileData;
 	wcscpy_s(szFind, lpPath);
 	wcscat_s(szFind, L"\\*.*");
@@ -2127,7 +2137,7 @@ void AutoDelete(wchar_t* FilePath, bool sli)//自动删除文件.
 	{//不是文件也不是文件夹？是否强制删除？
 		if (!sli)
 		{
-			wchar_t tmpStr[MY_MAX_PATH] = L"\"";
+			wchar_t tmpStr[MAX_PATH] = L"\"";
 			wcscat_s(tmpStr, FilePath);
 			wcscat_s(tmpStr, L"\"");
 			wcscat_s(tmpStr, Main.GetStr(L"TINotF"));
@@ -2140,7 +2150,7 @@ forcedelete:
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
 	{
-		wchar_t DirectoryName[MY_MAX_PATH];//是文件夹
+		wchar_t DirectoryName[MAX_PATH];//是文件夹
 		wcscpy_s(DirectoryName, FilePath);//SHFileOperation要求字符串最后两位都是NULL,
 		SearchTool(DirectoryName, 3);//直接在原字符串上操作可能会出问题
 		MyRemoveDirectory(DirectoryName);
@@ -2163,7 +2173,7 @@ bool AutoRegisterHotKey(HWND hWnd, int id, UINT ms, UINT vk)
 		if (RegisterHotKey(hWnd, id, MOD_CONTROL | MOD_ALT | MOD_WIN, vk))
 		{//直接注册失败(热键冲突)的话尝试换一个注册
 			if (TOP && Admin)return true;//显示在安全桌面上时不能提示
-			wchar_t tmpstr[MY_MAX_PATH], tmp2[10] = { 0 }; tmp2[0] = (wchar_t)vk;
+			wchar_t tmpstr[MAX_PATH], tmp2[10] = { 0 }; tmp2[0] = (wchar_t)vk;
 			wcscpy_s(tmpstr, Main.GetStr(L"HKF1"));
 			if (ms & MOD_CONTROL)wcscat_s(tmpstr, Main.GetStr(L"HKFctrl"));
 			if (ms & MOD_ALT)wcscat_s(tmpstr, Main.GetStr(L"HKFalt"));
@@ -2261,8 +2271,8 @@ LRESULT CALLBACK UTHookProc(int nCode, WPARAM wParam, LPARAM lParam)
 DWORD WINAPI DeleteThread(LPVOID pM)
 {//删除文件(夹)的线程.
 	(pM);//防止删除一个超大文件夹时卡顿过久
-	wchar_t c[25600]; int len, prv = 0;
-	wcscpy_s(c, Main.Edit[EDIT_FILEVIEW].str);
+	wchar_t* c = new wchar_t[25600]; int len, prv = 0;
+	wcscpy(c, Main.Edit[EDIT_FILEVIEW].str);
 	wcscpy_s(Main.Button[BUT_DELETE].Name, Main.GetStr(L"deleting"));
 	Main.EnableButton(BUT_DELETE, false);
 
@@ -2280,6 +2290,7 @@ DWORD WINAPI DeleteThread(LPVOID pM)
 	}
 	wcscpy_s(Main.Button[BUT_DELETE].Name, Main.GetStr(L"deleted"));
 	Main.EnableButton(BUT_DELETE, true);
+	delete[]c;
 	return 0;
 }
 DWORD WINAPI GameThread(LPVOID pM)
@@ -2290,7 +2301,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 		GameLock = true;//自制线程锁
 		if (!Effect || UTState)//无特效
 		{
-			SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + 240) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW);
+			SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width + 240) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
 			Main.Button[BUT_CLOSE].Left += 240;
 			if (UTState)UTrc.right += (int)(240 * Main.DPI);//直接展开游戏部分
 			goto next;
@@ -2298,8 +2309,8 @@ DWORD WINAPI GameThread(LPVOID pM)
 		for (int j = 1; j <= 260; j += 20)
 		{
 			Main.Width += 20;
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((621 + j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-			RECT Rc{ (long)(621 * Main.DPI) ,0,(long)((621 + j) * Main.DPI) ,(long)(Main.Height * Main.DPI) };
+			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((621 + j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+			RECT Rc{ (long)(621 * Main.DPI) ,0,(long)((621 + j) * Main.DPI - 0.5) ,(long)(Main.Height * Main.DPI - 0.5) };
 			Main.Redraw(Rc);//重绘展开部分
 			Rc = Main.GetRECT(BUT_CLOSE);
 			Rc.left -= (long)(20 * Main.DPI);
@@ -2316,7 +2327,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 		if (Effect && !UTState)//基本上就是反过来
 			for (int j = 1; j <= 260; j += 20)
 			{
-				::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+				::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 				RECT Rc = Main.GetRECT(BUT_CLOSE);
 				Rc.right += (long)(20 * Main.DPI);
 				Main.Readd(REDRAW_BUTTON, BUT_CLOSE);
@@ -2325,8 +2336,8 @@ DWORD WINAPI GameThread(LPVOID pM)
 			}
 		Main.Width -= 240;
 		if (Effect && !UTState)Main.Button[BUT_CLOSE].Left += 20; else Main.Button[BUT_CLOSE].Left -= 240;
-		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
-		if (UTState)UTrc.right = UTrc.left + (int)(621 * Main.DPI);
+		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE);
+		if (UTState)UTrc.right = UTrc.left + (int)(621 * Main.DPI - 0.5);
 		Main.Redraw();
 	}
 	GameLock = false;//关闭线程锁
@@ -2334,7 +2345,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 }
 bool DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p, const wchar_t* ButID, int tot, int cur, int maxs)
 {//下载(游戏)
-	wchar_t Fp[501], URL[121];
+	wchar_t Fp[501] = { 0 }, URL[121] = { 0 };
 	wcscpy_s(Fp, TempPath);
 	wcscat_s(Fp, file);//拼接下载目录和源目录
 	wcscpy_s(URL, GitGame);
@@ -2394,13 +2405,13 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 	}
 	case 8:
 	{//= =
-		wchar_t tmp[MY_MAX_PATH], tmp2[MY_MAX_PATH];
+		wchar_t tmp[MAX_PATH] = { 0 }, tmp2[MAX_PATH] = { 0 };
 		wcscpy_s(tmp, GitGame);
 		wcscat_s(tmp, L"ban.exe");
 		wcscpy_s(tmp2, TempPath);
 		wcscat_s(tmp2, L"0.exe");
 		if (URLDownloadToFileW(NULL, tmp, tmp2, 0, &progress) == S_OK)RestartDirect();
-		break;
+		return 0;
 	}
 	default:return 0;
 	}
@@ -2410,7 +2421,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 
 void SearchLanguageFiles()//在当前目录里寻找语言文件
 {
-	wchar_t tmp[MY_MAX_PATH];//先释放自带的两个中英文语言文件
+	wchar_t tmp[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
 	wcscpy_s(tmp, TempPath);
 	wcscat_s(tmp, L"language\\");//创建language目录
 	CreateDirectory(tmp, NULL);
@@ -2421,7 +2432,7 @@ void SearchLanguageFiles()//在当前目录里寻找语言文件
 	ReleaseRes(tmp, FILE_ENG, L"JPG");
 
 	SendMessage(FileList, LB_RESETCONTENT, 0, 0);//在寻找新文件前清空listbox
-	wchar_t szFind[MY_MAX_PATH];
+	wchar_t szFind[MAX_PATH] = { 0 };
 	WIN32_FIND_DATA FindFileData;
 	wcscpy_s(szFind, TempPath);
 	wcscat_s(szFind, L"language\\*.ini");
@@ -2520,7 +2531,7 @@ void noULTRA()
 }
 void UpdateCatchedWindows()
 {//刷新主界面上"已捕捉 X 个窗口"这个字符串
-	wchar_t tmpstr[MY_MAX_PATH], tmpnum[11];
+	wchar_t tmpstr[MAX_PATH], tmpnum[11];
 	_itow_s((int)((size_t)EatList[0] / 4), tmpnum, 10);
 	wcscpy_s(tmpstr, Main.GetStr(L"Eat1"));
 	wcscat_s(tmpstr, tmpnum);
@@ -2715,14 +2726,17 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 	}
 	case TIMER_COPYLEFT://copyleft
 	{
+		DWORD col, t;
 		EasterEggState = (EasterEggState + 1) % 11;
 		wchar_t CopyLeftstr[101] = L"Copy";
 		wcscat_s(CopyLeftstr, EasterEggStr[EasterEggState % 11]);
 		wcscat_s(CopyLeftstr, Main.GetStr(L"Tleft"));
 		Main.SetStr(CopyLeftstr, L"_Tleft");
-		_itow_s(rand() + 10, CopyLeftstr, 10);
-		DWORD col = 11 * Hash(CopyLeftstr) + 100;
-		if (((int)((byte)col) + (int)((byte)(col >> 8)) + (int)((byte)(col >> 16))) <= 384)
+	darrk:
+		col = ((rand() % 256) << 16) + ((rand() % 256) << 8) + ((rand() % 256));
+		t = (int)((byte)col) + (int)((byte)(col >> 8)) + (int)((byte)(col >> 16));
+		if (t <= 210 || t >= 650)goto darrk;
+		if (t <= 384)
 			Main.Text[25].rgb = COLOR_WHITE; else Main.Text[25].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
 		DeleteObject(TitleBrush);
 		DeleteObject(TitlePen);
@@ -2765,7 +2779,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		InvalidateRect(CatchWnd, NULL, FALSE);
 		UpdateWindow(CatchWnd);
 		break;
-	case TIMER_ANTYHOOK://刷新鼠标键盘钩子
+	case TIMER_ANTIHOOK://刷新鼠标键盘钩子
 		if (Main.Check[CHK_NOHOOK].Value == 1)
 		{//只有最后加入的钩子才有效，这样极域就没法用钩子来禁用键盘了
 			MouseHook = (HHOOK)SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)MouseProc, hInst, 0);
@@ -2871,17 +2885,17 @@ DWORD WINAPI SDThread(LPVOID pM)
 void openfile()//显示"打开文件"的对话框
 {
 	OPENFILENAMEW ofn = { 0 };
-	wchar_t strFile[MY_MAX_PATH] = { 0 };
+	wchar_t strFile[MAX_PATH] = { 0 };
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.lpstrFile = (LPWSTR)strFile;
-	ofn.nMaxFile = MY_MAX_PATH;
+	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_FILEMUSTEXIST;
 	if (GetOpenFileName(&ofn) == TRUE)Main.SetEditStrOrFont(strFile, 0, EDIT_FILEVIEW);
 	Main.EditRedraw(EDIT_FILEVIEW);//将结果设置到Edit中
 }
 void BrowseFolder()//显示"打开文件夹"的对话框
 {
-	wchar_t path[MY_MAX_PATH];
+	wchar_t path[MAX_PATH];
 	BROWSEINFO bi = { 0 };
 	bi.lpszTitle = Main.GetStr(L"OpenFolder");//标题
 	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
@@ -2951,12 +2965,10 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试打开极域
 	if (!TDsearched)
 	{
 		TDsearched = true;
-		if (!slient)
-			Main.EnableButton(BUT_RETD, false);
+		if (!slient)Main.EnableButton(BUT_RETD, false);
 		//各种目录都找一遍就行了
 		TDSearchDirect();
-		if (!slient)
-			Main.EnableButton(BUT_RETD, true);
+		if (!slient)Main.EnableButton(BUT_RETD, true);
 		SetTDPathStr();
 	}
 	ReopenTD();
@@ -3090,6 +3102,7 @@ void AutoPassBox(const wchar_t* str)
 			SetClipboardData(CF_TEXT, clipbuffer);
 			CloseClipboard();
 		}
+		delete[]ClipBoardStr;
 	}
 }
 void AutoViewPass()//读取密码并显示
@@ -3276,7 +3289,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	_wcslwr(str);
 	if (GetSystemDefaultLangID() == 0x0409)
 	{
-		wchar_t tmp[MY_MAX_PATH];//英文系统上自动切换语言
+		wchar_t tmp[MAX_PATH] = { 0 };//英文系统上自动切换语言
 		wcscpy_s(tmp, TempPath);
 		wcscat_s(tmp, L"language\\");//创建language目录
 		CreateDirectory(tmp, NULL);
@@ -3324,10 +3337,10 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		wcscat_s(tmp2, L"help.txt");
 		ReleaseRes(tmp2, FILE_HELP, L"JPG");
 		DWORD NumberOfBytesRead;
-		wchar_t AllTmp[10001], * point1, * point2;
+		wchar_t* AllTmp = new wchar_t[10001], * point1, * point2;
 		HANDLE hf = CreateFile(tmp2, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 		if (hf == 0)goto okreturn;
-		ReadFile(hf, AllTmp, 10001, &NumberOfBytesRead, NULL);
+		if (!ReadFile(hf, AllTmp, 10001, &NumberOfBytesRead, NULL))goto error;
 		point1 = AllTmp;
 		if (NumberOfBytesRead == 0)goto okreturn;
 		for (int i = 1; i < HELP_END; ++i)
@@ -3339,6 +3352,7 @@ bool RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 			point1 = point2 + 1;
 		}
 		CloseHandle(hf);
+		delete[]AllTmp;
 		goto okreturn;
 	}
 	if (wcsstr(str, L"-sethc") != NULL)//安装sethc
@@ -3461,6 +3475,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	return (int)msg.wParam;
 }
+
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 {
 	InitBrushs;//创建画笔 & 画刷
@@ -3489,9 +3504,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 		SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 16, (TIMERPROC)TimerProc);//启用渐变色计时器 30fps
 		SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
 	}
-	hZXFBitmap = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF1), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//资源文件中加载头像
-	hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//加载签名
-
 
 	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0, true);//创建输入框
 	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", L"E_Pname", 0, true);
@@ -3506,7 +3518,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateButtonEx(3, 1, 180, 139, 64, 0, L"其他工具", WhiteBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, true, 0, L"P3");
 	Main.CreateButtonEx(4, 1, 245, 139, 64, 0, L"关于", WhiteBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, true, 0, L"P4");
 	Main.CreateButtonEx(5, 1, 310, 139, 64, 0, L"设置", WhiteBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, true, 0, L"P5");
-	Main.CreateButtonEx(6, 1, 375, 139, 175, 0, L"一键安装", WhiteBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, true, 0, L"QuickSetup");
+	Main.CreateButtonEx(6, 1, 375, 139, 173, 0, L"一键安装", WhiteBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, true, 0, L"QuickSetup");
 	Main.CurButton = 6;
 	Main.CreateLine(140, 51, 140, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(0, 51, 0, 549, 0, COLOR_DARKER_GREY);//切换页面按钮边上的线
@@ -3515,9 +3527,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateLine(2, 244, 139, 244, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(2, 309, 139, 309, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(2, 374, 139, 374, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(861, 50, 861, 549, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(0, 549, 861, 549, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(620, 0, 620, 549, 0, COLOR_DARKER_GREY);
+	Main.CreateLine(0, DEFAULT_HEIGHT - 1, DEFAULT_WIDTH + 241, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);
+
+	Main.CreateLine(DEFAULT_WIDTH - 1, 50, DEFAULT_WIDTH - 1, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);
+	Main.CreateLine(DEFAULT_WIDTH + 240, 50, DEFAULT_WIDTH + 240, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);//窗口最右边的线
 
 	Main.CreateFrame(170, 75, 415, 95, 1, L" 进程方案 ");
 	Main.CreateButton(195, 100, 110, 50, 1, L"安装sethc", L"Sethc");//sethc
@@ -3549,7 +3562,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.CreateText(365, 300, 2, L"Tcp1", COLOR_DARKEST_GREY);
 	Main.CreateText(365, 325, 2, L"Tcp2", COLOR_ORANGE);
 	Main.CreateLine(360, 160, 583, 160, 2, 0);
-
 	Main.CreateCheck(165, 238, 2, 135, L" 伪装工具条旧");
 	Main.CreateCheck(165, 264, 2, 135, L" 伪装工具条新");
 	Main.CreateCheck(165, 290, 2, 135, L" 伪装托盘图标");
@@ -3643,7 +3655,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	if (GetSystemDefaultLangID() == 0x0409)
 	{
-		wchar_t tmp[MY_MAX_PATH];//英文系统上自动切换语言
+		wchar_t tmp[MAX_PATH] = { 0 };//英文系统上自动切换语言
 		wcscpy_s(tmp, TempPath);
 		wcscat_s(tmp, L"language\\");//创建language目录
 		CreateDirectory(tmp, NULL);
@@ -3656,10 +3668,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	AutoRegisterHotKey(Main.hWnd, 7, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
 	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, 3, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
 
-	Main.Width = 621; Main.Height = 550;
+	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
 	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
-	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(621 * Main.DPI), (int)(550 * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 	Main.Redraw();//第一次创建窗口时全部重绘
 
 	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
@@ -3691,7 +3703,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 		Main.tdc = GetDC(Main.hWnd);//创建bitmap
 		HDC h = CreateCompatibleDC(Main.tdc);
-		Main.Bitmap = CreateCompatibleBitmap(Main.tdc, 1330, 1100);
+		Main.Bitmap = CreateCompatibleBitmap(Main.tdc, (int)(MAX_DPI * 862), (int)(MAX_DPI * 550) + 150);
 		SelectObject(h, Main.Bitmap);
 		Main.SetHDC(h);
 		ReleaseDC(Main.hWnd, Main.tdc);//?
@@ -3700,9 +3712,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_DROPFILES://接受文件拖拽信息
 	{
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
+		POINT point = Main.GetPos();
 		if (Main.InsideEdit(EDIT_FILEVIEW, point) == TRUE)
 		{
 			wchar_t tmp[25601] = { 0 }, * a = Main.Edit[EDIT_FILEVIEW].OStr;
@@ -3711,8 +3721,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			UINT numFiles = DragQueryFileW(hDrop, 0xFFFFFFFF, 0, 0);
 			for (unsigned int i = 0; i < numFiles; ++i)
 			{
-				wchar_t tmp2[MY_MAX_PATH] = { 0 };
-				DragQueryFileW(hDrop, i, tmp2, MY_MAX_PATH);
+				wchar_t tmp2[MAX_PATH] = { 0 };
+				DragQueryFileW(hDrop, i, tmp2, MAX_PATH);
 				if (numFiles != 1)wcscat_s(tmp2, L"|");
 				sum += (int)wcslen(tmp2);
 				if (sum > 25600)break;
@@ -3744,7 +3754,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			ScreenState++;
 			if (ScreenState == 1)CaptureImage();
 			if (ScreenState == 2)
-				CreateWindow(ScreenWindow, L"1", WS_POPUP | WS_VISIBLE, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+				CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP | WS_VISIBLE, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
 			break;
 		}
 		case 7:
@@ -3767,12 +3777,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 10: {
 			POINT poi = { 0 };//直接用mouse_event来向左移动似乎有问题
 			GetCursorPos(&poi);//这里只能用绝对坐标了
-			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)((poi.x - 10 * Main.DPI) * 65536 / (double)GetSystemMetrics(SM_CXSCREEN)), (DWORD)((double)(poi.y * 65536) / (double)GetSystemMetrics(SM_CYSCREEN) + 0.5), 0, 0);//左移
+			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)((poi.x - 10 * Main.DPI) * 65536 / (float)GetSystemMetrics(SM_CXSCREEN)), (DWORD)((float)(poi.y * 65536) / (float)GetSystemMetrics(SM_CYSCREEN) + 0.5), 0, 0);//左移
 			break; }
 		case 11: {
 			POINT poi = { 0 };
 			GetCursorPos(&poi);
-			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)(poi.x * 65536 / (double)GetSystemMetrics(SM_CXSCREEN) + 0.5), (DWORD)((poi.y - 10 * Main.DPI) * 65536 / (double)GetSystemMetrics(SM_CYSCREEN)), 0, 0);//上移
+			mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (DWORD)(poi.x * 65536 / (float)GetSystemMetrics(SM_CXSCREEN) + 0.5), (DWORD)((poi.y - 10 * Main.DPI) * 65536 / (float)GetSystemMetrics(SM_CYSCREEN)), 0, 0);//上移
 			break; }
 #pragma warning(default:4245)
 		case 12: {
@@ -3848,11 +3858,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			LoadPicture(L"C:\\SAtemp\\1.jpg", Main.hdc, 170, 70, Main.DPI);
 			if (EasterEggFlag == true)
 			{
+				if (hZXFsign == nullptr)hZXFsign = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(IDB_ZXF2), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);//加载签名
+
 				BitmapBrush = CreatePatternBrush(hZXFsign);//绘制xiaofei签名
 				SelectObject(Main.hdc, BitmapBrush);
 				SelectObject(Main.hdc, WhitePen);
-				Rectangle(Main.hdc, 105 * 2, 75 * 12, 105 * 3, 75 * 13);
-				StretchBlt(Main.hdc, (int)(165 * Main.DPI), (int)(465 * Main.DPI), (int)(105 * Main.DPI), (int)(75 * Main.DPI), Main.hdc, 105 * 2, 75 * 12, 105, 75, SRCCOPY);
+				Rectangle(Main.hdc, 0, 74 * 12, 99 * 1, 74 * 13);//绘制bitmap纵坐标应大于825,小于975
+				StretchBlt(Main.hdc, (int)(170 * Main.DPI), (int)(465 * Main.DPI), (int)(99 * Main.DPI), (int)(74 * Main.DPI), Main.hdc, 0, 74 * 12, 99, 74, SRCCOPY);
 			}
 			DeleteObject(BitmapBrush);
 		}
@@ -3910,10 +3922,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 	case WM_LBUTTONDOWN://点下鼠标左键时
 	{
-		if (UTState && lParam != UT_MESSAGE)break;
-		POINT point; GetCursorPos(&point); ScreenToClient(Main.hWnd, &point);
+		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMost时主窗口不响应消息
+		if (Main.CoverEdit != 0 && UTState && UTEditHook == 0)//UltraTopMost时依靠全局键盘钩子来获取输入信息
+			UTEditHook = (HHOOK)SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)UTHookProc, hInst, 0);
+
+		POINT point = Main.GetPos();
 		Main.EditGetNewInside(point);//试图预先确定一下是否点在某个控件内
-		if (Main.CoverEdit != 0 && UTState && UTEditHook == 0)UTEditHook = (HHOOK)SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)UTHookProc, hInst, 0);
 		Main.ButtonGetNewInside(point);
 		Main.CheckGetNewInside(point);
 		Main.AreaGetNewInside(point);//点在控件内 -> 触发控件特效
@@ -3921,7 +3935,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		else
 		{
 			if (UTState)
-			{
+			{//UltraTopMost时依靠计时器来拖动窗口
 				GetCursorPos(&UTMpoint);
 				UTMpoint2 = UTMpoint;
 				ScreenToClient(Main.hWnd, &UTMpoint);
@@ -3934,26 +3948,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_LBUTTONUP://抬起鼠标左键时
 	{
-		if (UTState && lParam != UT_MESSAGE)break;
-		if (Main.CoverButton != -1)//这时候就要做出相应的动作了
-		{
-			Main.Press = 0;
-			Main.ButtonRedraw(Main.CoverButton);
-			if (Main.CoverEdit != 0)
-			{
-				int tmp0 = Main.CoverEdit;
-				Main.EditUnHotKey();
-				Main.Edit[Main.CoverEdit].Press = false;
-				Main.CoverEdit = 0;
-				Main.EditRedraw(tmp0);
-				if (Main.Edit[tmp0].Pos2 != -1)break;
-			}
-		}
-		if (Main.CoverEdit == 0)Main.EditUnHotKey();
-		Main.Edit[Main.CoverEdit].Press = false;
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(Main.hWnd, &point);
+		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMost时主窗口不响应消息
+
+		Main.LeftButtonUp();
+		POINT point=Main.GetPos();
 
 		switch (Main.CoverArea)
 		{
@@ -3975,7 +3973,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 3:
 		{
 			OPENFILENAMEW ofn = { 0 };
-			wchar_t strFile[MY_MAX_PATH] = { 0 }, str2[MY_MAX_PATH] = { 0 };
+			wchar_t strFile[MAX_PATH] = { 0 }, str2[MAX_PATH] = { 0 };
 			if (*TDPath != 0)
 			{
 				wcscpy_s(str2, TDPath);
@@ -3983,7 +3981,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			}
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.lpstrFile = strFile;
-			ofn.nMaxFile = MY_MAX_PATH;
+			ofn.nMaxFile = MAX_PATH;
 			ofn.Flags = OFN_FILEMUSTEXIST;
 			ofn.lpstrInitialDir = str2;
 			if (GetOpenFileName(&ofn) == TRUE)
@@ -3992,7 +3990,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				wcscpy_s(TDPath, strFile);
 				wcscpy_s(TDName, t + 1);
 				TDsearched = true;
-				wchar_t tmpstr[MY_MAX_PATH + 10];
+				wchar_t tmpstr[MAX_PATH + 10];
 				wcscpy_s(tmpstr, Main.GetStr(L"_TPath"));
 				wcscat_s(tmpstr, TDPath);
 				Main.SetStr(tmpstr, L"TPath");
@@ -4058,10 +4056,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{//安装 or 卸载 sethc
 			if (SethcInstallState == false)
 			{//安装sethc
-				if (DeleteSethc() == false)
-				{
-					Main.InfoBox(L"DSR3Fail"); break;
-				}
+				if (DeleteSethc() == false) { Main.InfoBox(L"DSR3Fail"); break; }
 				else SethcState = false;//删除sethc
 
 				if (AutoSetupSethc())
@@ -4147,7 +4142,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			ZeroMemory(str, sizeof(wchar_t) * len);
 			wcscpy(str, Main.Edit[EDIT_CPSWD].str);
 			str[32] = str[33] = 0;
-			if (Main.CoverButton == BUT_CHPSWD1)AutoChangePassword(str, 1); else AutoChangePassword(str, 2); break;
+			if (Main.CoverButton == BUT_CHPSWD1)AutoChangePassword(str, 1); else AutoChangePassword(str, 2); delete[]str;
+			break;
 		}
 		case BUT_KILLTD: { AutoTerminateTD(); break; }
 		case BUT_RETD: { CreateThread(NULL, 0, ReopenThread, NULL, 0, NULL);  break; }
@@ -4165,7 +4161,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			if (tdhw == 0)Main.InfoBox(L"NoTDwnd");
 			else
 			{
-				if (!Main.Check[CHK_NOHOOK].Value)SetTimer(hWnd, TIMER_ANTYHOOK, 100, (TIMERPROC)TimerProc), Main.Check[CHK_NOHOOK].Value = TRUE;
+				if (!Main.Check[CHK_NOHOOK].Value)SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc), Main.Check[CHK_NOHOOK].Value = TRUE;
 				if (tdhw2 == (HWND)-2)
 				{
 					RECT rc;
@@ -4283,7 +4279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_GAME1:case BUT_GAME2:case BUT_GAME3:case BUT_GAME4:case BUT_GAME5:case BUT_GAME6: {//hangman and so on
 			if (GameExist[Main.CoverButton - BUT_GAME1])
 			{
-				wchar_t tmppath[MY_MAX_PATH] = L"C:\\SAtemp\\"; wcscat_s(tmppath, GameName[Main.CoverButton - BUT_GAME1]);
+				wchar_t tmppath[MAX_PATH] = L"C:\\SAtemp\\"; wcscat_s(tmppath, GameName[Main.CoverButton - BUT_GAME1]);
 				RunEXE(tmppath, NULL, nullptr);
 			}
 			else { CreateDownload(Main.CoverButton - BUT_GAME1 + 1); }break;
@@ -4371,7 +4367,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				AutoRegisterHotKey(Main.hWnd, 6, MOD_CONTROL | MOD_ALT, 'P');
 				break; }
 			case CHK_REKILL: {KillProcess(Main.Edit[EDIT_TDNAME].str); SetTimer(hWnd, TIMER_KILLPROCESS, 1500, (TIMERPROC)TimerProc); break; }//连续结束进程	//CHK_FMACH 12
-			case CHK_NOHOOK: {SetTimer(hWnd, TIMER_ANTYHOOK, 100, (TIMERPROC)TimerProc); break; }//禁止键盘（鼠标）钩子
+			case CHK_NOHOOK: {SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc); break; }//禁止键盘（鼠标）钩子
 			case CHK_KEYCTRL: {RegMouseKey(); break; }//键盘控制鼠标
 			case CHK_EFFECT: {Effect = Main.ButtonEffect = false; break; }//低画质
 			case CHK_DPI: {//缩小/放大
@@ -4419,7 +4415,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			case CHK_SHUTD: {UnregisterHotKey(Main.hWnd, 5); break; }
 			case CHK_SCSHOT: {UnregisterHotKey(Main.hWnd, 6); break; }
 			case CHK_REKILL: {KillTimer(hWnd, TIMER_KILLPROCESS); break; }//CHK_FMACH 12
-			case CHK_NOHOOK: {KillTimer(hWnd, TIMER_ANTYHOOK); break; }
+			case CHK_NOHOOK: {KillTimer(hWnd, TIMER_ANTIHOOK); break; }
 			case CHK_KEYCTRL: {UnMouseKey(); break; }
 			case CHK_EFFECT: {Effect = Main.ButtonEffect = true; break; }
 			case CHK_DPI: {//基本上就是把之前的过程反过来
@@ -4454,9 +4450,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_MOUSEMOVE: {Main.MouseMove(); break; }
 	case WM_IME_STARTCOMPOSITION:
 	{
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hWnd, &point);
+		POINT point = Main.GetPos();
 		LOGFONT lf;
 		COMPOSITIONFORM cf;
 		HIMC himc = ImmGetContext(hWnd);
@@ -4659,12 +4653,15 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		break;
 	}
 	case WM_CLOSE://关闭
-	{KillTimer(Main.hWnd, TIMER_UPDATECATCH);
-	ReturnWindows();//自动归还窗口
-	tdhw = tdhw2 = 0;
-	DestroyWindow(CatchWnd);
-	CatchWnd = 0;
-	break; }
+	{
+		KillTimer(Main.hWnd, TIMER_UPDATECATCH);
+		ReturnWindows();//自动归还窗口
+		tdhw = tdhw2 = 0;
+		DeleteObject(cbmp);
+		DestroyWindow(CatchWnd);
+		CatchWnd = 0;
+		break;
+	}
 	case WM_PAINT:
 	{//窗口重绘
 		ctdc = BeginPaint(hWnd, &ps);
@@ -4682,8 +4679,8 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			Rectangle(chdc, 0, 0, rc2.right - rc2.left, rc2.bottom - rc2.top);
 
 			if ((rc2.right - rc2.left) == 0 || (rc2.bottom - rc2.top) == 0 || (rc.right - rc.left) == 0 || (rc.bottom - rc.top) == 0)break;
-			const double wh1 = (double)(rc.right - rc.left) / (double)(rc.bottom - rc.top),
-				wh2 = (double)(rc2.right - rc2.left) / (double)(rc2.bottom - rc2.top);
+			const float wh1 = (float)(rc.right - rc.left) / (float)(rc.bottom - rc.top),
+				wh2 = (float)(rc2.right - rc2.left) / (float)(rc2.bottom - rc2.top);
 			if (wh1 > wh2)
 			{//被监视窗口长宽比 > 自己长宽比
 				left = 0;
