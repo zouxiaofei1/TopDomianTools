@@ -1,14 +1,8 @@
-ï»¿//è¿™æ˜¯TopDomainToolså·¥ç¨‹æºä»£ç ä¸­PaExecéƒ¨åˆ†
-//ç²¾ç®€è‡ª https://github.com/poweradminllc/PAExec
-//ç”¨äºè¿è¡Œsystemæƒé™cmd&å°†ç¨‹åºæ˜¾ç¤ºäºå®‰å…¨æ¡Œé¢
-
+//ÕâÊÇTopDomainTools¹¤³ÌÔ´´úÂëÖĞPaExec²¿·Ö
+//¾«¼ò×Ô https://github.com/poweradminllc/PAExec
+//ÓÃÓÚÔËĞĞsystemÈ¨ÏŞcmd&½«³ÌĞòÏÔÊ¾ÓÚ°²È«×ÀÃæ
+#pragma once
 #include "stdafx.h"
-#include <time.h>
-#include <WinSvc.h>
-#include <ProfInfo.h>
-#include <UserEnv.h>
-#include <sddl.h>
-#include <Psapi.h>
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_RAND_S
@@ -21,7 +15,7 @@ typedef struct
 	HANDLE hUser;
 	bool bPreped;
 }CleanupInteractive;
-#include <WtsApi32.h>
+
 void CleanUpInteractiveProcess(CleanupInteractive* pCI)
 {
 	SetTokenInformation(pCI->hUser, TokenSessionId, &pCI->origSessionID, sizeof(pCI->origSessionID));
@@ -116,7 +110,7 @@ public:
 #pragma comment(lib, "Wtsapi32.lib")
 #pragma comment(lib, "psapi.lib")
 
-wchar_t name[300];
+wchar_t GetTokenUserSIDname[300];
 void GetTokenUserSID(HANDLE hToken)
 {
 	DWORD tmp = 0;
@@ -129,7 +123,7 @@ void GetTokenUserSID(HANDLE hToken)
 	{
 		WCHAR* pSidString = NULL;
 		if (ConvertSidToStringSid(userToken->User.Sid, &pSidString))
-			wcscpy_s(name, pSidString);
+			wcscpy_s(GetTokenUserSIDname, pSidString);
 		if (NULL != pSidString)
 			LocalFree(pSidString);
 	}
@@ -155,7 +149,7 @@ HANDLE GetLocalSystemProcessToken()
 				try
 				{
 					GetTokenUserSID(hToken);
-					if (wcscmp(name, L"S-1-5-18") == 0) //Well known SID for Local System
+					if (wcscmp(GetTokenUserSIDname, L"S-1-5-18") == 0) //Well known SID for Local System
 					{
 						CloseHandle(hProcess);
 						return hToken;
@@ -169,7 +163,7 @@ HANDLE GetLocalSystemProcessToken()
 		}
 		else
 			gle = GetLastError();
-		CloseHandle(hProcess);
+		if(hProcess)CloseHandle(hProcess);
 	}
 	return NULL;
 }
@@ -179,7 +173,7 @@ void Duplicate(HANDLE& h)
 	HANDLE hDupe = NULL;
 	if (DuplicateTokenEx(h, MAXIMUM_ALLOWED, NULL, SecurityImpersonation, TokenPrimary, &hDupe))
 	{
-		CloseHandle(h);
+		if(h)CloseHandle(h);
 		h = hDupe;
 		hDupe = NULL;
 	}
@@ -217,7 +211,7 @@ DWORD GetInteractiveSessionID()
 
 	return SessionId;
 }
-wchar_t a[] = L"WinSta0\\Default", b2[] = L"winsta0\\Winlogon";
+
 BOOL PrepForInteractiveProcess(Settings& settings, CleanupInteractive* pCI, DWORD sessionID)
 {
 	pCI->bPreped = true;
@@ -265,7 +259,7 @@ void GetUserDomain(LPCWSTR userIn, wchar_t* user, wchar_t* domain)
 bool StartProcess(Settings& settings)
 {
 	settings.hUser = GetLocalSystemProcessToken();
-	//
+	wchar_t tmpstr1[] = L"WinSta0\\Default", tmpstr2[] = L"winsta0\\Winlogon";
 	PROCESS_INFORMATION pi = { 0 };
 	STARTUPINFO si = { 0 };
 	si.cb = sizeof(si);
@@ -300,9 +294,9 @@ bool StartProcess(Settings& settings)
 		PrepForInteractiveProcess(settings, &ci, settings.sessionToInteractWith);
 
 		if (NULL == si.lpDesktop)
-			si.lpDesktop = a;
+			si.lpDesktop = tmpstr1;
 		if (settings.bShowUIOnWinLogon)
-			si.lpDesktop = b2;
+			si.lpDesktop = tmpstr2;
 	}
 
 	DWORD dwFlags = CREATE_SUSPENDED | CREATE_NEW_CONSOLE;

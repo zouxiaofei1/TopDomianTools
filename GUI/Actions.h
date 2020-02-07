@@ -201,7 +201,7 @@ ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName,BOOL Shadow)
 	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_GUI);
+	wcex.lpszMenuName =nullptr;
 	wcex.lpszClassName = ClassName;//自定义ClassName和WndProc
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
 	return RegisterClassExW(&wcex);
@@ -270,8 +270,7 @@ DWORD GetParentProcessID(DWORD dwProcessId)
 
 int CaptureImage()
 {//截图并放在C:\SAtemp内
-	HDC hdcScreen;
-	HDC hdcMemDC = NULL;
+	HDC hdcScreen,hdcMemDC = NULL;
 	HBITMAP hbmScreen = NULL;
 	BITMAP bmpScreen;
 	BITMAPFILEHEADER bmfHeader;
@@ -280,8 +279,7 @@ int CaptureImage()
 	HANDLE hDIB;
 	CHAR* lpbitmap;
 	HANDLE hFile;
-	DWORD dwSizeofDIB;
-	DWORD dwBytesWritten = 0;
+	DWORD dwSizeofDIB,dwBytesWritten = 0;
 	hdcScreen = GetDC(NULL); // ????DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
 	DEVMODE curDevMod = { 0 };
@@ -407,6 +405,7 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 
 	// 查找资源文件中、加载资源到内存、得到资源大小  
 	HRSRC   hrsc = FindResource(NULL, MAKEINTRESOURCE(wResID), strFileType);
+	if (!hrsc)return FALSE;
 	HGLOBAL hG = LoadResource(NULL, hrsc);
 	DWORD   dwSize = SizeofResource(NULL, hrsc);
 
