@@ -154,11 +154,15 @@
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <Profile>true</Profile>
+      <Profile>false</Profile>
       <UACUIAccess>true</UACUIAccess>
       <ShowProgress>NotSet</ShowProgress>
       <EntryPointSymbol>
       </EntryPointSymbol>
+      <Version>193</Version>
+      <LargeAddressAware>true</LargeAddressAware>
+      <IgnoreEmbeddedIDL>true</IgnoreEmbeddedIDL>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Manifest>
       <VerboseOutput>false</VerboseOutput>
@@ -166,6 +170,9 @@
     <ResourceCompile>
       <ShowProgress>true</ShowProgress>
     </ResourceCompile>
+    <Xdcmake>
+      <DocumentLibraryDependencies>false</DocumentLibraryDependencies>
+    </Xdcmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -230,12 +237,14 @@
     <None Include="English.zxf" />
     <None Include="fakenew.zxf" />
     <None Include="fakeold.zxf" />
+    <None Include="help.zxf" />
     <None Include="jpg1.bin" />
     <None Include="jpg21.bin" />
     <None Include="jpg3.bin" />
     <None Include="kprocesshacker.zxf" />
     <None Include="kprocesshacker64.zxf" />
     <None Include="sethc.zxf" />
+    <None Include="Win64KPHcaller.zxf" />
     <None Include="zxf1.zxf" />
     <None Include="关于&amp;帮助.zxf" />
   </ItemGroup>

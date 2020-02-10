@@ -1,6 +1,13 @@
 //这是TopDomainTools工程源代码中PaExec部分
 //精简自 https://github.com/poweradminllc/PAExec
 //用于运行system权限cmd&将程序显示于安全桌面
+//
+//具体原理咱也不懂(因为是抄来的)
+//因此这段代码暂时没有注释，详细内容还请问原作者
+//
+//大体思路:以服务方式运行，申请一些权限，然后调用
+//CreateProcessWithLogon 或 CreateProcessAsUser 这两个函数
+
 #pragma once
 #include "stdafx.h"
 

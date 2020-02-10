@@ -8,24 +8,14 @@
 VOID RestartDirect();
 VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
+#define SE_SHUTDOWN_PRIVILEGE  0x13
 
-void charTowchar(const char* chr, wchar_t* wchar, int size)
-{
-	MultiByteToWideChar(CP_ACP,
-		0, chr, (int)strlen(chr) + 1,
-		wchar,
-		size / sizeof(wchar[0]));
-}
-
-const unsigned int Hash(const wchar_t* str)
+const unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
 {
 	const unsigned int seed = 131;
 	unsigned int hash = 0;
 
-	while (*str)
-	{
-		hash = hash * seed + (*str++);
-	}
+	while (*str)hash = hash * seed + (*str++);
 
 	return (hash & 0x7FFFFFFF);
 }
@@ -38,14 +28,14 @@ VOID LockCursor()//锁住鼠标
 	ClipCursor(&rect);//但是按windows键或者ctrl+alt+del就会恢复
 }
 
-__forceinline VOID RestartDirect()
-{//创建线程
+__forceinline VOID RestartDirect()//创建快速重启的线程
+{
 	CreateThread(0, 0, RestartThread, 0, 0, 0);
 }
-DWORD WINAPI RestartThread(LPVOID pM)
-{
+
+DWORD WINAPI RestartThread(LPVOID pM)//快速重启
+{//不应直接调用，否则主线程会卡一会儿
 	(pM);
-	constexpr auto SE_SHUTDOWN_PRIVILEGE = 0x13;
 	typedef int(__stdcall* PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
 	typedef int(__stdcall* PFN_ZwShutdownSystem)(int);
 	HMODULE hModule = ::LoadLibrary(_T("ntdll.dll"));
@@ -57,17 +47,17 @@ DWORD WINAPI RestartThread(LPVOID pM)
 		{//申请SE_SHUTDOWN_PRIVILEGE提权？
 			int en = 0;//有趣的是这个权限在非管理员下就能得到
 			int nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, TRUE, &en);
-			if (nRet == 0x0C000007C) nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, FALSE, &en); //SH_SHUTDOWN = 0; //SH_RESTART = 1; //SH_POWEROFF = 2;
-			nRet = pfnShutdown(1);
+			if (nRet == 0x0C000007C) nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, FALSE, &en);
+			nRet = pfnShutdown(1);//SH_SHUTDOWN = 0; //SH_RESTART = 1; //SH_POWEROFF = 2;
 		}
 	}
 	return 0;
 }
 
-bool MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些含有特殊字符的文件夹
+BOOL MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些含有特殊字符的文件夹
 {//使得AutoDelete执行完毕后，可能会残留少许空的目录无法删除。这里尝试调用SHFileOperation删除它们
 	size_t len = wcslen(FilePath);
-	FilePath[len + 1] = FilePath[len + 1] = '\0';//SHFileOperation有一个bug,文件目录的最后 2 个字符都必须是NULL
+	FilePath[len + 1] = FilePath[len + 1] = 0;//SHFileOperation有一个bug,文件目录的最后 2 个字符都必须是NULL
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.fFlags = FOF_NO_UI;
 	FileOp.pFrom = FilePath;
@@ -75,9 +65,6 @@ bool MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些
 	FileOp.wFunc = FO_DELETE; //删除操作
 	return SHFileOperation(&FileOp) == 0;//成功返回0
 }
-
-//typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
-typedef BOOL(WINAPI* PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 
 BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 {//用内部一点的函数获取系统版本
@@ -94,12 +81,12 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 {//获取系统版本的函数
 	OSVERSIONINFOEX osvi;
 	BOOL bOsVersionInfoEx;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//据说GetVersionEx用来判断版本效果不好
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//用它来判断一台win10电脑
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果一般是6.2(9200)
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//GetVersionEx用来判断版本效果一般不好
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//例如用它来判断一台win10电脑
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果总是6.2(9200)
 	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
 
-	wchar_t tmp[101];//对于win7以前的系统用GetVersionEx没有问题
+	wchar_t tmp[MAX_STR];//(不过对于win7以前的系统用GetVersionEx没有问题)
 	_itow_s(osvi.dwMajorVersion, tmp, 10);//大版本号
 	wcscpy(pszOS, tmp); wcscat(pszOS, L".");
 	_itow_s(osvi.dwMinorVersion, tmp, 10);//小版本号
@@ -108,7 +95,7 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 	wcscat(pszOS, tmp);
 
 	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
-	{//win7及以后
+	{//win7及以后则使用RtlGetVersion更好
 		OSVERSIONINFOEXW ovi;
 		ZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
 		if (!GetVersionEx2((LPOSVERSIONINFOW)&ovi)) return FALSE;
@@ -126,28 +113,27 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 }
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-wchar_t* wip;
 __forceinline wchar_t* CheckIP()//取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
 	char* ip;
-	wip=new wchar_t[60];
+	static wchar_t wip[20];//声明为static即表示这一变量有较长的生命周期
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{//具体原理不太清楚，详见百科
 		if (gethostname(name, sizeof(name)) == 0)
 			if ((hostinfo = gethostbyname(name)) != NULL)
-			{//wip存ip地址字符串
+			{
 				ip = inet_ntoa(*(struct in_addr*) * hostinfo->h_addr_list);
-				charTowchar(ip, wip, sizeof(wip) * 60);
+				MultiByteToWideChar(CP_ACP, 0, ip, -1, wip, 20);
 			}//清理
 		WSACleanup();
 	}
 	return wip;
 }
 
-BOOL TakeOwner(LPWSTR FilePath)
+BOOL TakeOwner(LPCWSTR FilePath)
 {//获取指定文件的所有权，在删除sethc等时要用
 	CHAR UserName[36];
 	DWORD cbUserName = sizeof(UserName);
@@ -162,21 +148,19 @@ BOOL TakeOwner(LPWSTR FilePath)
 	EXPLICIT_ACCESS Ea;
 	BOOL Ret = FALSE;
 
-	if (EnablePrivilege(SE_TAKE_OWNERSHIP_NAME,0) && EnablePrivilege(SE_RESTORE_NAME,0))
+	if (EnablePrivilege(SE_TAKE_OWNERSHIP_NAME, 0) && EnablePrivilege(SE_RESTORE_NAME, 0))
 	{//要先申请SE_TAKE_OWNERSHIP特权
 		GetUserNameA(UserName, &cbUserName);
 		if (LookupAccountNameA(NULL, UserName, &Sid, &cbSid, DomainBuffer, &cbDomainBuffer, &eUse))
 		{
 			ZeroMemory(&Ea, sizeof(EXPLICIT_ACCESS));
-			wchar_t x[] = L"everyone";
-			BuildExplicitAccessWithName(&Ea, x, GENERIC_ALL, GRANT_ACCESS, SUB_CONTAINERS_AND_OBJECTS_INHERIT);
+			wchar_t tmp[] = L"everyone";
+			BuildExplicitAccessWithName(&Ea, tmp, GENERIC_ALL, GRANT_ACCESS, SUB_CONTAINERS_AND_OBJECTS_INHERIT);
 			if (SetEntriesInAclW(1, &Ea, OldDacl, &Dacl) == ERROR_SUCCESS)
 			{//直接不复制旧的ace,不然无法去除文件的拒绝权
-				SetNamedSecurityInfoW(FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &Sid, NULL, NULL, NULL);
-				if (SetNamedSecurityInfoW(FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &Sid, NULL, Dacl, NULL) == ERROR_SUCCESS)
-				{
+				SetNamedSecurityInfoW((LPWSTR)FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &Sid, NULL, NULL, NULL);
+				if (SetNamedSecurityInfoW((LPWSTR)FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &Sid, NULL, Dacl, NULL) == ERROR_SUCCESS)
 					Ret = TRUE;
-				}
 			}
 
 		}
@@ -191,17 +175,17 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
-ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName,BOOL Shadow)
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, BOOL Shadow)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_DROPSHADOW* Shadow;
+	wcex.style = CS_DROPSHADOW * Shadow;
 	wcex.lpfnWndProc = proc;
 	wcex.hInstance = h;
 	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName =nullptr;
+	wcex.lpszMenuName = nullptr;
 	wcex.lpszClassName = ClassName;//自定义ClassName和WndProc
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//小图标
 	return RegisterClassExW(&wcex);
@@ -243,9 +227,9 @@ typedef LONG(__stdcall* PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 DWORD GetParentProcessID(DWORD dwProcessId)
 {//获取父进程的PID
-	LONG status=0;
+	LONG status = 0;
 	DWORD dwParentPID = 0;
-	HANDLE hProcess=0;
+	HANDLE hProcess = 0;
 	PROCESS_BASIC_INFORMATION pbi;
 
 	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(
@@ -270,7 +254,7 @@ DWORD GetParentProcessID(DWORD dwProcessId)
 
 int CaptureImage()
 {//截图并放在C:\SAtemp内
-	HDC hdcScreen,hdcMemDC = NULL;
+	HDC hdcScreen, hdcMemDC = NULL;
 	HBITMAP hbmScreen = NULL;
 	BITMAP bmpScreen;
 	BITMAPFILEHEADER bmfHeader;
@@ -279,7 +263,7 @@ int CaptureImage()
 	HANDLE hDIB;
 	CHAR* lpbitmap;
 	HANDLE hFile;
-	DWORD dwSizeofDIB,dwBytesWritten = 0;
+	DWORD dwSizeofDIB, dwBytesWritten = 0;
 	hdcScreen = GetDC(NULL); // ????DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
 	DEVMODE curDevMod = { 0 };
@@ -415,11 +399,85 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 	return TRUE;
 }
 
+void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, float DPI)
+{
+	// 文件句柄   
+	HANDLE FileHandle;
+	// 高位数据、低位数据   
+	DWORD SizeH, SizeL, ReadCount;
 
+	IStream* pstream = NULL;
+	IPicture* pPic = NULL;
+	// 以读的方式打开图像   
+	FileHandle = CreateFile(lpFilePath,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL
+	);
+	// 打开失败   
+	if (FileHandle == INVALID_HANDLE_VALUE)
+		return;
+	// 获取图像文件大小   
+	SizeL = GetFileSize(FileHandle, &SizeH);
+	// 为图像文件   
+	// 分配一个可移动的全局的堆内存   
+	HGLOBAL pBuffer = GlobalAlloc(GMEM_MOVEABLE, SizeL);
+	// 分配对内存失败   
+	if (pBuffer == NULL)
+	{
+		CloseHandle(FileHandle);
+		return;
+	}
+	// 指向堆内存的指针转换为通用的指针类型相当于解锁   
+	LPVOID pDes = GlobalLock(pBuffer);
+
+	// 读入数据进堆内存   
+	if (ReadFile(FileHandle, pDes, SizeL, &ReadCount, NULL) == 0)
+	{
+		CloseHandle(FileHandle);
+		GlobalUnlock(pBuffer);
+		DeleteObject(pBuffer);
+		return;
+	}
+
+	// 堆内存上锁   
+	GlobalUnlock(pBuffer);
+
+	// 在全局存储器的堆中分配一个流对象   
+	if (CreateStreamOnHGlobal(pBuffer, true, &pstream) != S_OK)
+	{
+		CloseHandle(FileHandle);
+		DeleteObject(pBuffer);
+		return;
+	}
+
+	// 创建一个新的图像并初始化   
+	if (!SUCCEEDED(OleLoadPicture(pstream, SizeL, true, IID_IPicture, (void**)&pPic)))return;
+	long hmWidth;
+	long hmHeight;
+	// 从IPicture中获取高度与宽度   
+	pPic->get_Width(&hmWidth);
+	pPic->get_Height(&hmHeight);
+	int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
+	int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
+
+	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, NULL);
+
+	//  TransparentBlt(0,0, 0, rc.right-rc.left, rc.bottom-rc.top, hDC, 0, 0,  nWidth, nHeight, RGB(255,   255,   255));   
+		// 释放空间   
+	pPic->Release();
+	pstream->Release();
+	//ReleaseDC(hwnd, hdc);
+	CloseHandle(FileHandle);
+}
+
+//
 //改编过的与Kprocesshacker驱动通信的一段代码
+//
 
-
-BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath,bool Kernel)
+BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath, bool Kernel)
 {
 	wchar_t szDriverImagePath[256];
 	//得到完整的驱动路径
@@ -439,24 +497,16 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath,bool Kernel)
 	}
 
 	//创建驱动所对应的服务
-	if(Kernel)hServiceDDK = CreateService(hServiceMgr,
+	hServiceDDK = CreateService(hServiceMgr,
 		lpszDriverName, //驱动程序的在注册表中的名字  
 		lpszDriverName, // 注册表驱动程序的 DisplayName 值  
 		SERVICE_ALL_ACCESS, // 加载驱动程序的访问权限  
-		SERVICE_KERNEL_DRIVER,// 表示加载的服务是驱动程序  
+		Kernel ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS,// 表示加载的服务是驱动程序还是服务
 		SERVICE_DEMAND_START, // 注册表驱动程序的 Start 值  
 		SERVICE_ERROR_IGNORE, // 注册表驱动程序的 ErrorControl 值  
 		szDriverImagePath, // 注册表驱动程序的 ImagePath 值  
 		NULL, NULL, NULL, NULL, NULL);
-	else hServiceDDK = CreateService(hServiceMgr,
-		lpszDriverName,
-		lpszDriverName, 
-		SERVICE_ALL_ACCESS, 
-		SERVICE_WIN32_OWN_PROCESS,
-		SERVICE_DEMAND_START, 
-		SERVICE_ERROR_IGNORE,
-		szDriverImagePath,
-		NULL, NULL, NULL, NULL, NULL);
+
 
 	DWORD dwRtn;
 

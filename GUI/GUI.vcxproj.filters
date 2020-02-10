@@ -81,5 +81,7 @@
     <None Include="fakenew.zxf" />
     <None Include="kprocesshacker.zxf" />
     <None Include="kprocesshacker64.zxf" />
+    <None Include="help.zxf" />
+    <None Include="Win64KPHcaller.zxf" />
   </ItemGroup>
 </Project>
