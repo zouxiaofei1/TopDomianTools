@@ -5,7 +5,6 @@
 #include "stdafx.h"
 #pragma warning(disable:4996)
 #pragma warning(disable:26812)
-//void charTowchar(const char* chr, wchar_t* wchar, int size);
 
 void s(LPCWSTR a)//调试用MessageBox
 {
@@ -17,16 +16,16 @@ void s(int a)
 	_itow_s(a, tmp, 10);
 	MessageBox(NULL, tmp, L"", NULL);
 }
-//void s2(LPCWSTR a)//调试用OutputDebugString
-//{
-//	OutputDebugString(a);
-//}
-//void s2(int a)
-//{
-//	wchar_t tmp[34] = { 0 };
-//	_itow_s(a, tmp, 10); wcscat(tmp, L"\n");
-//	OutputDebugString(tmp);
-//}
+void s2(LPCWSTR a)//调试用OutputDebugString
+{
+	OutputDebugString(a);
+}
+void s2(int a)
+{
+	wchar_t tmp[34] = { 0 };
+	_itow_s(a, tmp, 10); wcscat(tmp, L"\n");
+	OutputDebugString(tmp);
+}
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
