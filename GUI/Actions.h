@@ -175,11 +175,11 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 }
 
-ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, BOOL Shadow)
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, int style)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_DROPSHADOW * Shadow;
+	wcex.style = style;
 	wcex.lpfnWndProc = proc;
 	wcex.hInstance = h;
 	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//这个函数不支持自定义窗体图标
@@ -264,7 +264,7 @@ int CaptureImage()
 	CHAR* lpbitmap;
 	HANDLE hFile;
 	DWORD dwSizeofDIB, dwBytesWritten = 0;
-	hdcScreen = GetDC(NULL); // ????DC
+	hdcScreen = GetDC(NULL); // 获取桌面DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
 	DEVMODE curDevMod = { 0 };
 	curDevMod.dmSize = sizeof(DEVMODE);

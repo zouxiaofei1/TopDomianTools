@@ -6,26 +6,22 @@
 #pragma warning(disable:4996)
 #pragma warning(disable:26812)
 
-void s(LPCWSTR a)//调试用MessageBox
-{
-	MessageBox(NULL, a, L"", NULL);
-}
-void s(int a)
+void s() { MessageBox(NULL, 0, 0, NULL); }
+void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
+void s(int a)//当程序正式发布时可以去掉这几个函数
 {
 	wchar_t tmp[34] = { 0 };
 	_itow_s(a, tmp, 10);
 	MessageBox(NULL, tmp, L"", NULL);
 }
-void s2(LPCWSTR a)//调试用OutputDebugString
-{
-	OutputDebugString(a);
-}
+void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
 {
 	wchar_t tmp[34] = { 0 };
 	_itow_s(a, tmp, 10); wcscat(tmp, L"\n");
 	OutputDebugString(tmp);
 }
+
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
