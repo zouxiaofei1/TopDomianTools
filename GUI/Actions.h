@@ -113,12 +113,12 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 }
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-__forceinline wchar_t* CheckIP()//取本机的ip地址  
+__forceinline void CheckIP(wchar_t *a)//取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
 	char* ip;
-	static wchar_t wip[20];//声明为static即表示这一变量有较长的生命周期
+	wchar_t wip[20];
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{//具体原理不太清楚，详见百科
@@ -130,7 +130,7 @@ __forceinline wchar_t* CheckIP()//取本机的ip地址
 			}//清理
 		WSACleanup();
 	}
-	return wip;
+	wcscat(a, wip);
 }
 
 BOOL TakeOwner(LPCWSTR FilePath)

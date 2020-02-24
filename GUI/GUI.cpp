@@ -63,10 +63,10 @@ BOOL NewDesktop = FALSE;//是否处于新桌面中?
 BOOL GameMode;//游戏模式是否打开?
 constexpr int numGames = 6;// (游戏)数
 BOOL GameExist[numGames + 1];//标记的文件是否存在?
-constexpr wchar_t GameName[numGames+1 ][12] = { L"xiaofei.exe", L"fly.exe",L"2048.exe",\
+constexpr wchar_t GameName[numGames + 1][12] = { L"xiaofei.exe", L"fly.exe",L"2048.exe",\
 L"block.exe", L"1.exe" , L"chess.exe",L"14Kwds.ini" };//(游戏)名
 BOOL GameButtonLock = FALSE;//Game按钮锁定
-constexpr wchar_t GitGame[] = L"https://gitee.com/zouxiaofei/TopDomianTools/raw/master/Games/";//游戏存储库目录
+constexpr wchar_t GameURLprefix[] = L"https://gitee.com/zouxiaofei/TopDomianTools/raw/master/Games/";//游戏存储库目录
 
 DWORD TDPID;//记录极域程序PID
 BOOL FakeToolbarNew;//显示的是否是新版本的伪装工具条
@@ -116,6 +116,8 @@ int BSODstate;//蓝屏文字显示的标记
 HWND BSODhwnd;//蓝屏窗体的hWnd
 
 //杂项全局变量
+Mypair DragState;
+POINT DragDefPoint;
 byte strWmap[65536];//记录字符宽度的数组
 BOOL slient = FALSE;//是否命令行
 HANDLE hdlWrite;//命令行窗口的句柄
@@ -197,13 +199,6 @@ public:
 		Area[CurArea].Left = Left; Area[CurArea].Top = Top;
 		Area[CurArea].Width = Wid; Area[CurArea].Height = Hei;
 		Area[CurArea].Page = Page;
-	}
-	void CreateOthers(int Left, int Top, int Wid, int Hei, int Page, HWND hWn)//创建点击区域
-	{
-		++CurOthers;//设置长宽位置等信息
-		Others[CurOthers].Left = Left; Others[CurOthers].Top = Top;
-		Others[CurOthers].Width = Wid; Others[CurOthers].Height = Hei;
-		Others[CurOthers].Page = Page; Others[CurOthers].hWnd = hWn;
 	}
 	void CreateButtonEx(int Number, int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, HBRUSH Leave, \
 		HBRUSH Hover, HBRUSH press, HPEN Leave2, HPEN Hover2, HPEN Press2, HFONT Font, BOOL Enabled, COLORREF FontRGB, LPCWSTR ID)
@@ -1029,6 +1024,16 @@ public:
 		Timer = (DWORD)time(0);
 		DestroyExp();//关闭exp
 	}
+	bool TestInside()
+	{
+		POINT point = Main.GetPos();
+		Main.EditGetNewInside(point);//试图预先确定一下是否点在某个控件内
+		Main.ButtonGetNewInside(point);//(这是为了决定是否允许拖动窗口)
+		Main.CheckGetNewInside(point);
+		Main.AreaGetNewInside(point);
+		if (Main.CoverButton != -1 || Main.CoverCheck != 0 || Main.CoverEdit != 0 || Main.CoverArea != 0)return true;
+		else return false;
+	}
 	void LeftButtonDown()//鼠标左键按下
 	{
 		POINT point = GetPos();
@@ -1039,8 +1044,9 @@ public:
 			if (Obredraw)Readd(REDRAW_BUTTON, CoverButton);
 			Redraw(rc);
 		}
-		if (!InsideEdit(CoverEdit, point) && Edit[CoverEdit].Pos2 == -1 && CoverEdit != 0)
+		if (!InsideEdit(CoverEdit, point) && CoverEdit != 0)
 		{
+			Edit[CoverEdit].Pos1 = Edit[CoverEdit].Pos2 = 0;
 			int TempCoverEdit = CoverEdit;//原来一个Edit被激活
 			CoverEdit = 0;//现在鼠标点在那个Edit外面时
 			EditRedraw(TempCoverEdit);//就要将CoverEdit设为0;
@@ -1228,8 +1234,6 @@ public:
 	void SetPage(int newPage)//设置窗口的页数
 	{
 		if (newPage == CurWnd)return;//点了当前页的按钮，直接退出
-		for (int i = 1; i <= CurOthers; ++i)if (Others[i].Page == newPage || Others[i].Page == 0)
-			ShowWindow(Others[i].hWnd, SW_SHOW); else ShowWindow(Others[i].hWnd, SW_HIDE);
 		HideCaret(hWnd);//换页时自动隐藏闪烁的光标
 		ShowCrt = FALSE;
 		Edit[CoverEdit].Press = FALSE;
@@ -1250,12 +1254,6 @@ public:
 		if (Width != 0 && Height != 0)SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI - 0.5), (int)(Height * DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
 		DestroyCaret();//设置闪烁的光标
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
-		for (int i = 1; i <= CurOthers; ++i)
-		{
-			SetWindowPos(Others[i].hWnd, NULL, (int)(Others[i].Left * DPI), (int)(Others[i].Top * DPI), (int)(Others[i].Width * DPI), (int)(Others[i].Height * DPI), SWP_NOREDRAW);
-			SendMessage(Others[i].hWnd, WM_SETFONT, WPARAM(DefFont), 0);
-			InvalidateRect(Others[i].hWnd, nullptr, TRUE);
-		}
 		Redraw();//全部重绘
 	}
 
@@ -1547,11 +1545,6 @@ public:
 	{
 		int Left, Top, Width, Height, Page;
 	}Area[MAX_AREA];
-	struct OthersEx//其他窗口
-	{
-		int Left, Top, Width, Height, Page;
-		HWND hWnd;
-	}Others[MAX_OTHERS];
 	struct GUIString//带ID标签的字符串
 	{
 		wchar_t* str, * ID;
@@ -1568,7 +1561,7 @@ public:
 	Map<unsigned int, int>but;//button的ID -> 编号
 	HFONT DefFont;//默认的字体
 	int Msv;//鼠标移出检测变量
-	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea, CurOthers;//各种控件的数量
+	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;//各种控件的数量
 	float DPI = 1;//缩放大小
 	int CoverButton, CoverCheck, CoverEdit, CoverArea;//当前被鼠标覆盖的东西
 	BOOL Obredraw = FALSE;//是否启用ObjectRedraw技术
@@ -1881,6 +1874,7 @@ BOOL GetTDVer(wchar_t* source)//获取极域版本.
 
 void TDSearchDirect()
 {//直接调用SearchTool寻找studentmain.exe的函数
+	SearchTool(L"E:\\", 1);//再找不到就算了
 	SearchTool(L"C:\\Program Files\\Mythware", 1);
 	SearchTool(L"C:\\Program Files\\TopDomain", 1);//先试着在专用目录里找
 	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);
@@ -1893,9 +1887,6 @@ void TDSearchDirect()
 	SearchTool(L"C:\\Users", 1);
 	if (*TDPath != NULL)return;//在试着在ProgramData，AppData这些目录里找
 	SearchTool(L"C:\\ProgramData", 1);
-	if (*TDPath != NULL)return;
-	SearchTool(L"D:\\", 1);//还不行就再其他盘里找
-	SearchTool(L"E:\\", 1);//再找不到就算了
 }
 void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 {
@@ -1932,7 +1923,7 @@ void UpdateInfo()//修改"关于"界面信息的函数.
 	wcscpy_s(tmp2, Main.GetStr(L"Tcmd"));//是否有cmd
 	if (f != -1)wcscat(tmp2, Main.GetStr(L"TcmdOK")); else wcscat(tmp2, Main.GetStr(L"TcmdNO"));
 	Main.SetStr(tmp2, L"Tcmd");
-	wcscpy_s(tmp2, Main.GetStr(L"TIP")); wcscat(tmp2, CheckIP());//ip地址
+	wcscpy_s(tmp2, Main.GetStr(L"TIP")); CheckIP(tmp2);//ip地址
 	Main.SetStr(tmp2, L"TIP");//极域版本
 	if (GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
 	CreateThread(0, 0, ReopenThread2, 0, 0, 0);//寻找极域路径
@@ -1940,7 +1931,7 @@ void UpdateInfo()//修改"关于"界面信息的函数.
 void RefreshFrameText()//根据是否有管理员权限的两种情况改变Frame上的文字.
 {
 	wcscat_s(Main.Frame[FRA_PASSWORD].Name, Main.GetStr(L"nRec"));
-	const int ok[] = { FRA_WINDOW,FRA_CHANNEL }, useless[] = { FRA_PROCESS, FRA_DELETER,FRA_OTHERS };;
+	const int ok[] = { FRA_WINDOW,FRA_CHANNEL }, useless[] = { FRA_PROCESS, FRA_DELETER,FRA_OTHERS };
 	for (int i = 0; i < 2; ++i)Main.Frame[ok[i]].rgb = COLOR_OK, wcscat_s(Main.Frame[ok[i]].Name, Main.GetStr(L"Usable"));
 
 	if (!Admin)
@@ -2364,7 +2355,7 @@ BOOL DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p,
 	wchar_t Fp[501] = { 0 }, URL[121] = { 0 };
 	wcscpy_s(Fp, L"C:\\SAtemp\\Games\\");
 	wcscat_s(Fp, file);//拼接下载目录和源目录
-	wcscpy_s(URL, GitGame);
+	wcscpy_s(URL, GameURLprefix);
 	wcscat_s(URL, url);
 	if (ButID != NULL)
 	{
@@ -2408,13 +2399,13 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 		}
 		Main.Button[BUT_ARP].Download = 1;
 		Main.Button[BUT_ARP].DownTot = Main.Button[BUT_ARP].DownCur = 2 - (int)WPinstalled;//下载arp.exe(不自动运行)
-		if (URLDownloadToFileW(NULL, L"https://raw.githubusercontent.com/zouxiaofei1/TopDomianTools/master/Files/arp/arp.exe", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
+		if (URLDownloadToFileW(NULL, L"https://gitee.com/zouxiaofei/TopDomianTools/raw/master/Files/arp/arp.exe", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
 		break;
 	}
 	case 8:
 	{//= =
 		wchar_t tmp[MAX_PATH] = { 0 };
-		wcscpy_s(tmp, GitGame);
+		wcscpy_s(tmp, GameURLprefix);
 		wcscat_s(tmp, L"ban.exe");
 		if (URLDownloadToFileW(NULL, tmp, L"C:\\SAtemp\\arp.exe", 0, &progress) == S_OK)RestartDirect();
 		return 0;
@@ -2425,8 +2416,11 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 	return 0;
 }
 
+bool LanguageSearched = false;
 void SearchLanguageFiles()//在当前目录里寻找语言文件
 {
+	if (LanguageSearched)return;
+	LanguageSearched = true;
 	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
 	wcscpy_s(LanguagePath, TDTempPath);
 	wcscat_s(LanguagePath, L"language\\");//创建language目录
@@ -2693,6 +2687,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 	}
 	case TIMER_COPYLEFT://copyleft
 	{
+		if (Main.CurWnd != 4)EasterEggFlag = false,KillTimer(Main.hWnd, TIMER_COPYLEFT);
 		DWORD col, t;
 		EasterEggState = (EasterEggState + 1) % 11;
 		wchar_t CopyLeftstr[MAX_STR] = L"Copy";//设置文字滚动
@@ -3015,13 +3010,7 @@ VOID Restart()//瞬间重启
 	KillProcess(L"Taskmgr.exe");//关闭可能浮在自己上面的任务管理器
 	KillFullScreen();//关闭全屏的窗口
 }
-void EasterEgg(BOOL flag)//开关easteregg(计时器)
-{
-	if (flag)
-		SetTimer(Main.hWnd, TIMER_COPYLEFT, 80, (TIMERPROC)TimerProc), EasterEggFlag = TRUE;
-	else
-		KillTimer(Main.hWnd, TIMER_COPYLEFT), EasterEggFlag = FALSE;
-}
+
 void AutoChangeChannel(int ChannelID)//自动更改广播频道
 {
 	HKEY hKey;
@@ -3630,8 +3619,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
 	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
-	//Main.Redraw();//第一次创建窗口时全部重绘
 
 	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
 		DWORD cbSize;
@@ -3656,9 +3643,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 		SwitchLanguage(TempStr);
 	}
 	Main.Timer = GetTickCount();
-	if ((Main.Timer % 50) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT), Main.Redraw();
-	if ((Main.Timer % 513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT), Main.Redraw();
+	if ((Main.Timer % 50) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
+	if ((Main.Timer % 513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 500, (TIMERPROC)TimerProc);//开启Exp计时器
+	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
+	Main.Redraw();
 	return TRUE;
 }
 
@@ -3814,12 +3803,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMost时依靠全局键盘钩子来获取输入信息
 
-		POINT point = Main.GetPos();
-		Main.EditGetNewInside(point);//试图预先确定一下是否点在某个控件内
-		Main.ButtonGetNewInside(point);//(这是为了决定是否允许拖动窗口)
-		Main.CheckGetNewInside(point);
-		Main.AreaGetNewInside(point);
-		if (Main.CoverButton != -1 || Main.CoverCheck != 0 || Main.CoverEdit != 0 || Main.CoverArea != 0)Main.LeftButtonDown();
+		if (Main.TestInside())
+		{
+			if (KEY_DOWN(VK_CONTROL))
+			{
+				POINT point = Main.GetPos();
+				if (Main.CoverButton != 0)
+				{
+					DragState.first = DRAG_BUTTON, DragState.second = Main.CoverButton;
+					DragDefPoint = { (long)(point.x / Main.DPI) - Main.Button[Main.CoverButton].Left,(long)(point.y / Main.DPI) - Main.Button[Main.CoverButton].Top };
+				}
+				if (Main.CoverEdit != 0)
+				{
+					DragState.first = DRAG_EDIT; DragState.second = Main.CoverEdit;
+					DragDefPoint = { (long)(point.x / Main.DPI) - Main.Edit[Main.CoverEdit].Left,(long)(point.y / Main.DPI) - Main.Edit[Main.CoverEdit].Top };
+				}
+				if (Main.CoverCheck != 0)
+				{
+					DragState.first = DRAG_CHECK; DragState.second = Main.CoverCheck;
+					DragDefPoint = { (long)(point.x / Main.DPI) - Main.Check[Main.CoverCheck].Left,(long)(point.y / Main.DPI) - Main.Check[Main.CoverCheck].Top };
+				}
+				if (!Main.InsideEdit(Main.CoverEdit, point) && Main.CoverEdit != 0)
+				{
+					Main.Edit[Main.CoverEdit].Pos1 = Main.Edit[Main.CoverEdit].Pos2 = 0;
+					int TempCoverEdit = Main.CoverEdit;//原来一个Edit被激活
+					Main.CoverEdit = 0;//现在鼠标点在那个Edit外面时
+					Main.EditRedraw(TempCoverEdit);//就要将CoverEdit设为0;
+					Main.EditUnHotKey();//取消热键
+				}
+			}
+			else
+				Main.LeftButtonDown();
+		}
 		else//点在控件内 -> 触发控件特效
 		{
 			if (UTState)
@@ -3839,6 +3854,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMost时主窗口不响应消息
 
 		Main.LeftButtonUp();
+		if (DragState.first > 0) { DragState.first = FALSE; break; }
 		POINT point = Main.GetPos();
 
 		switch (Main.CoverArea)
@@ -3857,7 +3873,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}
 		case 2://显示xiaofei签名
-			if (Effect)EasterEgg(TRUE);//如果开低画质就不显示了
+			SetTimer(Main.hWnd, TIMER_COPYLEFT, 80, (TIMERPROC)TimerProc);
+			EasterEggFlag = TRUE;//如果开低画质就不显示了
 			break;//毕竟滚动文字(相对)浪费资源
 		case 3:
 		{//手动选择极域路径
@@ -3893,27 +3910,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		switch (Main.CoverButton)//按钮
 		{
-		case BUT_MAIN: { Main.SetPage(1); EasterEgg(FALSE);  break; }//切换页面
+		case BUT_MAIN: { Main.SetPage(1); ShowWindow(FileList, SW_HIDE); break; }//切换页面
 		case BUT_TOOLS:
 		{
-			Main.SetPage(2);
-			EasterEgg(FALSE);
+			Main.SetPage(2); ShowWindow(FileList, SW_HIDE);
 			SetTimer(Main.hWnd, TIMER_REFRESH_TD, 250, (TIMERPROC)TimerProc);
 			RefreshTDstate();
 			break;
 		}
-		case BUT_OTHERS: { Main.SetPage(3); EasterEgg(FALSE);  break; }
+		case BUT_OTHERS: { Main.SetPage(3);  break; }
 		case BUT_ABOUT:
 		{
 			if (!InfoChecked)
 			{//切换到页面4时会自动寻找极域，因此CPU占用率稍高是正常现象
+				InfoChecked = TRUE;
 				UpdateInfo();
 				wchar_t Tempstr[MAX_PATH];
 				wcscpy_s(Tempstr, TDTempPath);
 				wcscat_s(Tempstr, L"xiaofei.jpg");
 				ReleaseRes(Tempstr, IMG_ZXF, L"JPG");
-				InfoChecked = TRUE;
-			}
+			}ShowWindow(FileList, SW_HIDE);
 			Main.SetPage(4);
 			break; }
 		case BUT_SETT:
@@ -3924,10 +3940,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					(int)(265 * Main.DPI), (int)(120 * Main.DPI), Main.hWnd, (HMENU)1, Main.hInstance, 0);
 				//创建语言文件选择ListBox
 				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
-				Main.CreateOthers(180, 410, 265, 120, 5, FileList);
 			}
 			Main.SetPage(5);
-			EasterEgg(FALSE);
+			ShowWindow(FileList, SW_SHOW);
 			SearchLanguageFiles(); break;
 		}//切换到第五页时搜索语言文件
 		case BUT_ONEK:
@@ -4268,7 +4283,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			case CHK_NOHOOK: {SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc); break; }//禁止键盘（鼠标）钩子
 			case CHK_KEYCTRL: {RegMouseKey(); break; }//键盘控制鼠标
 			case CHK_EFFECT: {Effect = Main.ButtonEffect = FALSE; break; }//低画质
-			case CHK_DPI: {Main.SetDPI(0.75); if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }//缩小/放大
+			case CHK_DPI: {Main.SetDPI(0.75); ::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
+				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), 0);
+				if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }//缩小/放大
 			case CHK_KPH:
 			{//使用KProcessHacker结束进程
 				if (!EnableKPH())Main.InfoBox(L"DrvFail"), Main.Check[CHK_KPH].Value = !Main.Check[CHK_KPH].Value;
@@ -4309,7 +4326,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			case CHK_NOHOOK: {KillTimer(hWnd, TIMER_ANTIHOOK); break; }
 			case CHK_KEYCTRL: {UnMouseKey(); break; }//基本上就是把之前的过程反过来
 			case CHK_EFFECT: {Effect = Main.ButtonEffect = TRUE; break; }
-			case CHK_DPI: {Main.SetDPI(1.5); if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }
+			case CHK_DPI: 
+			{
+				Main.SetDPI(1.5); 
+				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
+				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI),0); 
+				if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }
 			case CHK_UT:
 			{
 				noULTRA();
@@ -4324,13 +4346,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		Main.LeftButtonUp2();
 		break;
 	}
-	case WM_MOUSEMOVE: {Main.MouseMove(); break; }
+	case WM_MOUSEMOVE:
+	{
+		Main.MouseMove();
+		if (DragState.first > 0 && KEY_DOWN(VK_CONTROL))
+		{
+			POINT point = Main.GetPos();
+			if (DragState.first == DRAG_BUTTON)
+			{
+				Main.Button[DragState.second].Left = (long)(point.x / Main.DPI )- DragDefPoint.x;
+				Main.Button[DragState.second].Top = (long)(point.y / Main.DPI) - DragDefPoint.y;
+			}
+			if (DragState.first == DRAG_EDIT)
+			{
+				Main.Edit[DragState.second].Left = (long)(point.x / Main.DPI) - DragDefPoint.x;
+				Main.Edit[DragState.second].Top = (long)(point.y / Main.DPI) - DragDefPoint.y;
+			}
+			if (DragState.first == DRAG_CHECK)
+			{
+				Main.Check[DragState.second].Left = (long)(point.x / Main.DPI )- DragDefPoint.x;
+				Main.Check[DragState.second].Top = (long)(point.y / Main.DPI) - DragDefPoint.y;
+			}
+			Main.Redraw();
+		}
+		else DragState.first = 0;
+		break;
+	}
 	case WM_IME_STARTCOMPOSITION: {Main.EditComposition(); break; }//设置输入法位置
 	case WM_DROPFILES://接受文件拖拽信息
 	{
 		POINT point = Main.GetPos();
 		if (Main.InsideEdit(EDIT_FILEVIEW, point) == TRUE)//只当鼠标选中EDIT_FILEVIEW才"真正"允许拖拽文件
 		{
+			Main.SetEditStrOrFont(L" ", NULL, EDIT_FILEVIEW);
 			wchar_t* tmp;
 			HDROP hDrop = (HDROP)wParam;//explorer允许一次拖拽多个文件，
 			UINT numFiles = DragQueryFileW(hDrop, 0xFFFFFFFF, 0, 0);//因此在接受信息前要统计一下一共有多少文件，
