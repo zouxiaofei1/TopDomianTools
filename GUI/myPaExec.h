@@ -129,8 +129,9 @@ void GetTokenUserSID(HANDLE hToken)
 	if (GetTokenInformation(hToken, TokenUser, userToken, userTokenSize, &tmp))
 	{
 		WCHAR* pSidString = NULL;
-		if (ConvertSidToStringSid(userToken->User.Sid, &pSidString))
-			wcscpy_s(GetTokenUserSIDname, pSidString);
+		if (userToken->User.Sid)
+			if (ConvertSidToStringSid(userToken->User.Sid, &pSidString))
+				wcscpy_s(GetTokenUserSIDname, pSidString);
 		if (NULL != pSidString)
 			LocalFree(pSidString);
 	}
@@ -170,7 +171,7 @@ HANDLE GetLocalSystemProcessToken()
 		}
 		else
 			gle = GetLastError();
-		if(hProcess)CloseHandle(hProcess);
+		if (hProcess)CloseHandle(hProcess);
 	}
 	return NULL;
 }
@@ -180,7 +181,7 @@ void Duplicate(HANDLE& h)
 	HANDLE hDupe = NULL;
 	if (DuplicateTokenEx(h, MAXIMUM_ALLOWED, NULL, SecurityImpersonation, TokenPrimary, &hDupe))
 	{
-		if(h)CloseHandle(h);
+		if (h)CloseHandle(h);
 		h = hDupe;
 		hDupe = NULL;
 	}
@@ -260,7 +261,7 @@ void GetUserDomain(LPCWSTR userIn, wchar_t* user, wchar_t* domain)
 		}
 	}
 	wcscpy(user, userStr);
-	wcscpy(domain, domainStr);
+	if (domainStr)wcscpy(domain, domainStr);
 }
 
 bool StartProcess(Settings& settings)

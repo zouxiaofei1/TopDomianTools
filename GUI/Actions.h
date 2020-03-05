@@ -113,13 +113,13 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 }
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-__forceinline void CheckIP(wchar_t *a)//取本机的ip地址  
+__forceinline void CheckIP(wchar_t* a)//取本机的ip地址  
 {
 	WSADATA wsaData;
 	char name[155];
 	char* ip;
-	wchar_t wip[20];
-	PHOSTENT hostinfo;
+	wchar_t wip[20]= {0};
+	PHOSTENT hostinfo ;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{//具体原理不太清楚，详见百科
 		if (gethostname(name, sizeof(name)) == 0)
@@ -232,8 +232,9 @@ DWORD GetParentProcessID(DWORD dwProcessId)
 	HANDLE hProcess = 0;
 	PROCESS_BASIC_INFORMATION pbi;
 
-	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(
-		GetModuleHandle(L"ntdll"), "NtQueryInformationProcess");
+	HMODULE hm = GetModuleHandle(L"ntdll");
+	PROCNTQSIP NtQueryInformationProcess = 0;
+	if (hm)NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(hm, "NtQueryInformationProcess");
 
 	if (NULL == NtQueryInformationProcess)return 0;
 	// Get process handle
@@ -304,6 +305,14 @@ int CaptureImage()
 	return 0;
 }
 
+void SetProcessAware()
+{
+	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
+	SEtProcessDPIAware SetProcessDPIAware = 0;
+	HMODULE huser = LoadLibrary(L"user32.dll");//显示界面时需要关闭系统的DPI缩放
+	if (huser)SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
+	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
+}
 #pragma warning(disable:4244)
 #pragma warning(disable:4312)
 void change(void* Src, bool wow)
@@ -465,16 +474,29 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 
 	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, NULL);
 
-	//  TransparentBlt(0,0, 0, rc.right-rc.left, rc.bottom-rc.top, hDC, 0, 0,  nWidth, nHeight, RGB(255,   255,   255));   
-		// 释放空间   
 	pPic->Release();
 	pstream->Release();
 	//ReleaseDC(hwnd, hdc);
 	CloseHandle(FileHandle);
 }
 
+void ReleaseLanguageFiles(const wchar_t* Path,int tag,wchar_t* str)
+{
+	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
+	wcscpy_s(LanguagePath, Path);
+	wcscat_s(LanguagePath, L"language\\");//创建language目录
+	CreateDirectory(LanguagePath, NULL);
+	wcscat_s(LanguagePath, L"Chinese.ini");
+	ReleaseRes(LanguagePath, FILE_CHN, L"JPG");
+	if (tag == 1)wcscpy(str, LanguagePath);
+	wcscpy_s(LanguagePath, Path);
+	wcscat_s(LanguagePath, L"language\\EnglishANSI.ini");
+	ReleaseRes(LanguagePath, FILE_ENG, L"JPG");
+	if (tag == 2)wcscpy(str, LanguagePath);
+}
+
 //
-//改编过的与Kprocesshacker驱动通信的一段代码
+//改编过的与KProcessHacker驱动通信的一段代码
 //
 
 BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath, bool Kernel)

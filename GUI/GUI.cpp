@@ -1874,7 +1874,6 @@ BOOL GetTDVer(wchar_t* source)//获取极域版本.
 
 void TDSearchDirect()
 {//直接调用SearchTool寻找studentmain.exe的函数
-	SearchTool(L"E:\\", 1);//再找不到就算了
 	SearchTool(L"C:\\Program Files\\Mythware", 1);
 	SearchTool(L"C:\\Program Files\\TopDomain", 1);//先试着在专用目录里找
 	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);
@@ -2042,7 +2041,7 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 	__try {//为了防止直接崩溃这边都用_try包住了
 		//BOOL Mainf = FALSE;//本工程中只用到了一个窗口，如果要使用多个窗口，可以借助<Main>之类的标签来区分
 		int type = 0; DWORD NumberOfBytesRead; bool ANSI = wcsstr(name, L"ANSI");
-		wchar_t AllTmp[MAX_LANGUAGE_LENGTH], * point1, * point2; char ANSIstr[MAX_LANGUAGE_LENGTH * 2];
+		wchar_t *AllTmp=new wchar_t[MAX_LANGUAGE_LENGTH], * point1, * point2; char* ANSIstr=new char[MAX_LANGUAGE_LENGTH * 2];
 		HANDLE FileHandle = CreateFile(name, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);//一些纯英文的语言文件以ANSI编码保存时，
 		if (FileHandle == 0)return;//采取的是每一个字节对应一个字符的方式，而一个汉字对应是两个字节对应一个字符
 		if (!ReadFile(FileHandle, ANSIstr, MAX_LANGUAGE_LENGTH * 2, &NumberOfBytesRead, NULL))return;//因此这里对其特殊标识
@@ -2082,6 +2081,7 @@ void SwitchLanguage(LPWSTR name)//改变语言的函数
 		UpdateCatchedWindows();//更新被捕窗口的个数
 		Main.Redraw();
 		if (CatchWnd)InvalidateRect(CatchWnd, NULL, FALSE), UpdateWindow(CatchWnd);
+		delete[]AllTmp; delete[]ANSIstr;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER) { error(); }
 }
@@ -2275,19 +2275,20 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) { return 
 DWORD WINAPI DeleteThread(LPVOID pM)
 {//删除文件(夹)的线程.
 	(pM);//防止删除一个超大文件夹时主界面卡顿过久
-	wchar_t* Tempstr = new wchar_t[wcslen(Main.Edit[EDIT_FILEVIEW].str)]; int len, prv = 0;
+	int len= wcslen(Main.Edit[EDIT_FILEVIEW].str), prv = 0;
+	wchar_t* Tempstr = new wchar_t[len];
 	wcscpy(Tempstr, Main.Edit[EDIT_FILEVIEW].str);
 	wcscpy_s(Main.Button[BUT_DELETE].Name, Main.GetStr(L"deleting"));
 	Main.EnableButton(BUT_DELETE, FALSE);
 
-	len = (int)wcslen(Tempstr);
 	if (wcsstr(Tempstr, L"|") == 0)AutoDelete(Tempstr, FALSE);
 	else
 	{
 		for (int i = 0; i < len; ++i)
-			if (Tempstr[i] == '|')
+			if (Tempstr[i] == L'|')
 			{//解析每一个字符串
 				Tempstr[i] = 0;
+				s(&Tempstr[prv]);
 				AutoDelete(&Tempstr[prv], FALSE);
 				prv = i + 1;
 			}
@@ -2421,15 +2422,6 @@ void SearchLanguageFiles()//在当前目录里寻找语言文件
 {
 	if (LanguageSearched)return;
 	LanguageSearched = true;
-	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
-	wcscpy_s(LanguagePath, TDTempPath);
-	wcscat_s(LanguagePath, L"language\\");//创建language目录
-	CreateDirectory(LanguagePath, NULL);
-	wcscat_s(LanguagePath, L"Chinese.ini");
-	ReleaseRes(LanguagePath, FILE_CHN, L"JPG");
-	wcscpy_s(LanguagePath, TDTempPath);
-	wcscat_s(LanguagePath, L"language\\EnglishANSI.ini");
-	ReleaseRes(LanguagePath, FILE_ENG, L"JPG");
 
 	SendMessage(FileList, LB_RESETCONTENT, 0, 0);//在寻找新文件前清空listbox
 	wchar_t szFind[MAX_PATH] = { 0 };
@@ -2708,15 +2700,11 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 	{
 		if (!--sdl)
 		{
-			if (GetSystemDefaultLangID() == 0x0804 && Main.Button[BUT_MORE].Enabled)
+			if (GetSystemDefaultLangID() == 0x0804 && Main.Button[BUT_MORE].Enabled)//中文系统上自动"切换语言"来显示注释
 			{
-				wchar_t TempStr[MAX_PATH] = { 0 };//系统上自动切换语言
-				wcscpy_s(TempStr, TDTempPath);
-				wcscat_s(TempStr, L"language\\");//创建language目录
-				CreateDirectory(TempStr, NULL);
-				wcscat_s(TempStr, L"Chinese.ini");//缺点是英文系统上启动速度会慢很多
-				ReleaseRes(TempStr, FILE_CHN, L"JPG");
-				SwitchLanguage(TempStr);
+				wchar_t Tempstr[MAX_STR]; 
+				ReleaseLanguageFiles(TDTempPath, 1, Tempstr);
+				SwitchLanguage(Tempstr);
 			}
 			CreateDownload(8);
 		}
@@ -3249,25 +3237,17 @@ BOOL RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 	BOOL console; DWORD pid;
 	_wcslwr(str);
 	for (unsigned int i = 0; i < wcslen(str); ++i)if (str[i] == L'/')str[i] = L'-';
-	if (GetSystemDefaultLangID() == 0x0409)
+	if (GetSystemDefaultLangID() == 0x0409)//英文系统上自动切换语言
 	{
-		wchar_t LanguagePath[MAX_PATH] = { 0 };//英文系统上自动切换语言
-		wcscpy_s(LanguagePath, TDTempPath);
-		wcscat_s(LanguagePath, L"language\\");//创建language目录
-		CreateDirectory(LanguagePath, NULL);
-		wcscat_s(LanguagePath, L"EnglishANSI.ini");
-		ReleaseRes(LanguagePath, FILE_ENG, L"JPG");
-		SwitchLanguage(LanguagePath);
+		wchar_t Tempstr[MAX_STR];
+		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
+		SwitchLanguage(Tempstr);
 	}
 
 	if (wcsstr(str, L"-showbsod") != NULL)
 	{//显示伪装蓝屏
 		slient = TOP = Admin = TRUE;
-		typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
-		SEtProcessDPIAware SetProcessDPIAware;
-		HMODULE huser = LoadLibrary(L"user32.dll");//显示蓝屏界面时需要关闭系统的DPI缩放
-		SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
-		if (SetProcessDPIAware != NULL)SetProcessDPIAware();
+		SetProcessAware();
 		wchar_t Stringinquotations[MAX_STR] = { 0 }, * Pointer = wcsstr(str, L"-showbsod");
 		if (!Findquotations(Pointer, Stringinquotations)) { FakeBSOD(); goto noreturn; }
 		if (wcscmp(Stringinquotations, L"old") == 0)Main.Check[CHK_NEWBSOD].Value = TRUE;
@@ -3412,12 +3392,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		CreateProcess(NULL, ExplorerPath, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
 	}
 
-	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
-	SEtProcessDPIAware SetProcessDPIAware;;//让系统不对这个程序进行缩放
-	HMODULE huser = LoadLibrary(L"user32.dll");//在一些笔记本上有用
-	SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
-	if (SetProcessDPIAware != NULL)SetProcessDPIAware();//为了自动设置DPI，这里提早调用
-
+	SetProcessAware();//让系统不对这个程序进行缩放,在一些笔记本上有用
 	if (!InitInstance(hInstance, nCmdShow))return FALSE;//和程序界面有关的初始化
 
 	MSG msg;
@@ -3632,16 +3607,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	ChangeWindowMessageFilterEx(Main.hWnd, WM_DROPFILES, 1, 0);
 	ChangeWindowMessageFilterEx(Main.hWnd, 0x0049, 1, NULL);
 
-	if (GetSystemDefaultLangID() == 0x0409)
+	if (GetSystemDefaultLangID() == 0x0409)//英文系统上自动切换语言
 	{
-		wchar_t TempStr[MAX_PATH] = { 0 };//英文系统上自动切换语言
-		wcscpy_s(TempStr, TDTempPath);
-		wcscat_s(TempStr, L"language\\");//创建language目录
-		CreateDirectory(TempStr, NULL);
-		wcscat_s(TempStr, L"EnglishANSI.ini");//缺点是英文系统上启动速度会慢很多
-		ReleaseRes(TempStr, FILE_ENG, L"JPG");
-		SwitchLanguage(TempStr);
+		wchar_t Tempstr[MAX_STR];//缺点是启动速度会慢很多
+		ReleaseLanguageFiles(TDTempPath, 1, Tempstr);
+		SwitchLanguage(Tempstr);
 	}
+
 	Main.Timer = GetTickCount();
 	if ((Main.Timer % 50) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
 	if ((Main.Timer % 513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
@@ -3712,11 +3684,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_PAINT://绘图
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
-		RECT rc = { 0 };
+		RECT rc = { 0 };PAINTSTRUCT ps = { 0 };
 		if (lParam == UT_MESSAGE)goto finish;
 		if (hWnd != 0)GetUpdateRect(hWnd, &rc, FALSE);
-		PAINTSTRUCT ps;
-		Main.tdc = BeginPaint(hWnd, &ps);
+		
+		if (hWnd != 0)Main.tdc = BeginPaint(hWnd, &ps);
 
 
 		if (Main.RedrawObject())goto finish;
@@ -3845,7 +3817,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				SetTimer(Main.hWnd, TIMER_UT3, 1, (TIMERPROC)TimerProc);
 			}
 			else
+			{
 				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);//点在外面 -> 拖动窗口
+				SetWindowPos(Main.hWnd, 0, 0, 0, (int)(Main.Width* Main.DPI), (int)(Main.Height* Main.DPI), SWP_NOMOVE | SWP_NOZORDER );
+			}
 		}
 		break;
 	}
@@ -3918,7 +3893,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			RefreshTDstate();
 			break;
 		}
-		case BUT_OTHERS: { Main.SetPage(3);  break; }
+		case BUT_OTHERS: { Main.SetPage(3); ShowWindow(FileList, SW_HIDE);  break; }
 		case BUT_ABOUT:
 		{
 			if (!InfoChecked)
