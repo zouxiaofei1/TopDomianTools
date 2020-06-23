@@ -356,6 +356,12 @@ public:
 				Rectangle(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + 0.5),
 					(int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + Button[i].Height * DPI));//绘制方框
 
+				if (Button[i].DownTot != 0)//下载进度条
+				{
+					SelectObject(hdc, Button[i].Hover);
+					Rectangle(hdc, (int)(Button[i].Left * DPI), (int)(Button[i].Top * DPI),
+						(int)(Button[i].Left * DPI + Button[i].Width * DPI * (Button[i].Download - 1) / 100), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
+				}
 				if (Button[i].Shadow)
 				{
 					//right
@@ -373,12 +379,6 @@ public:
 					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + Button[i].Height * DPI) +1);
 					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2, 0),
 					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2);
-				}
-				if (Button[i].DownTot != 0)//下载进度条
-				{
-					SelectObject(hdc, Button[i].Hover);
-					Rectangle(hdc, (int)(Button[i].Left * DPI), (int)(Button[i].Top * DPI),
-						(int)(Button[i].Left * DPI + Button[i].Width * DPI * (Button[i].Download - 1) / 100), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
 				}
 
 				RECT rc = GetRECT(i);
@@ -3392,12 +3392,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	GetPath();//获取自身目录
 	Admin = IsUserAnAdmin();//是否管理员
-	FirstFlag = BackupSethc();//备份sethc
+	FirstFlag = (GetFileAttributes(TDTempPath) == -1);
+	BackupSethc();//备份sethc
 
 	if (Admin && *lpCmdLine == 0)
 	{//判断是否为服务程序
-		if (wcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); UnloadNTDriver(L"myPaExec"); return 0; }
-		if (wcscmp(Name, L"C:\\SAtemp\\myPaExec.exe2") == 0) { myPAExec(FALSE); UnloadNTDriver(L"myPaExec2"); return 0; }
+		if (wcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
+		if (wcscmp(Name, L"C:\\SAtemp\\myPaExec2.exe") == 0) { myPAExec(FALSE); return 0; }
 	}
 
 	GetBit();//获取位数
@@ -3924,10 +3925,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					(int)(265 * Main.DPI), (int)(120 * Main.DPI), Main.hWnd, (HMENU)1, Main.hInstance, 0);
 				//创建语言文件选择ListBox
 				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
+				ReleaseLanguageFiles(TDTempPath,0,0);
 			}
+			SearchLanguageFiles();
 			Main.SetPage(5);
 			ShowWindow(FileList, SW_SHOW);
-			SearchLanguageFiles(); break;
+			break;
 		}//切换到第五页时搜索语言文件
 		case BUT_ONEK:
 		{//一键安装

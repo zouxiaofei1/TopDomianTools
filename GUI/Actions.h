@@ -480,8 +480,8 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 	CloseHandle(FileHandle);
 }
 
-void ReleaseLanguageFiles(const wchar_t* Path,int tag,wchar_t* str)
-{
+void ReleaseLanguageFiles(const wchar_t* Path,int tag,wchar_t* str)//tag 和 str 可不填
+{//当tag填1或2时函数将语言文件路径保存在str中
 	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
 	wcscpy_s(LanguagePath, Path);
 	wcscat_s(LanguagePath, L"language\\");//创建language目录
