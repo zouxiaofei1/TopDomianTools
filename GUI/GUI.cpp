@@ -795,18 +795,18 @@ public:
 	}
 	void EditUnHotKey()//取消注册Edit的热键
 	{//在点击一个Edit外部时自动执行
-		for (int i = 34; i < 41; ++i)UnregisterHotKey(hWnd, i);
+		for (int i = 34; i < 41; ++i)AutoUnregisterHotKey(hWnd, i);
 		HideCaret(hWnd);//隐藏闪烁的光标
 	}
 	void EditRegHotKey()//注册Edit的热键
 	{//在点击一个Edit时自动执行
-		RegisterHotKey(hWnd, 34, NULL, VK_LEFT);//<-
-		RegisterHotKey(hWnd, 35, NULL, VK_RIGHT);//->
-		RegisterHotKey(hWnd, 36, MOD_CONTROL, 'V');//粘贴
-		RegisterHotKey(hWnd, 37, MOD_CONTROL, 'C');//复制
-		RegisterHotKey(hWnd, 38, MOD_CONTROL, 'X');//剪切
-		RegisterHotKey(hWnd, 39, MOD_CONTROL, 'A');//全选
-		RegisterHotKey(hWnd, 40, NULL, VK_DELETE);//Delete键
+		AutoRegisterHotKey(hWnd, 34, NULL, VK_LEFT);//<-
+		AutoRegisterHotKey(hWnd, 35, NULL, VK_RIGHT);//->
+		AutoRegisterHotKey(hWnd, 36, MOD_CONTROL, 'V');//粘贴
+		AutoRegisterHotKey(hWnd, 37, MOD_CONTROL, 'C');//复制
+		AutoRegisterHotKey(hWnd, 38, MOD_CONTROL, 'X');//剪切
+		AutoRegisterHotKey(hWnd, 39, MOD_CONTROL, 'A');//全选
+		AutoRegisterHotKey(hWnd, 40, NULL, VK_DELETE);//Delete键
 		DestroyCaret();//在点击的地方创建闪烁的光标
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 	}
@@ -2254,30 +2254,7 @@ BOOL UninstallSethc()//恢复原来的sethc.
 	else { Main.InfoBox(L"suc"); SethcState = TRUE; return TRUE; }
 }
 
-BOOL AutoRegisterHotKey(HWND hWnd, int id, UINT ms, UINT vk)
-{//自动注册热键
-	if (!RegisterHotKey(hWnd, id, ms, vk))
-	{//先尝试直接注册热键
-		if (RegisterHotKey(hWnd, id, MOD_CONTROL | MOD_ALT | MOD_WIN, vk))
-		{//直接注册失败(热键冲突)的话尝试换一个注册
-			if (TOP && Admin)return TRUE;//显示在安全桌面上时不能弹出MessageBox
-			wchar_t tmpstr[MAX_STR], TempNumber[MAX_STR] = { 0 };
-			TempNumber[0] = (wchar_t)vk;
-			wcscpy_s(tmpstr, Main.GetStr(L"HKF1"));
-			if (ms & MOD_CONTROL)wcscat_s(tmpstr, L"Ctrl +");
-			if (ms & MOD_ALT)wcscat_s(tmpstr, L"Alt +");
-			if (ms & MOD_SHIFT)wcscat_s(tmpstr, L"Shift +");
-			if (vk > 125 || vk < 45)_itow_s(vk, TempNumber, 10);
-			wcscat_s(tmpstr, TempNumber);//提示用户热键已更改
-			wcscat_s(tmpstr, Main.GetStr(L"HKF2"));
-			wcscat_s(tmpstr, L"Ctrl + Alt + Win + ");
-			if (vk > 125 || vk < 45)_itow_s(vk, TempNumber, 10);
-			wcscat_s(tmpstr, TempNumber);
-			Main.InfoBox(tmpstr); return TRUE;
-		}
-		else { Main.InfoBox(L"HKF3"); return FALSE; }
-	}return TRUE;
-}
+
 void RegMouseKey()//注册键盘控制鼠标的热键.
 {
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_LEFTKEY, MOD_CONTROL, 188);//左键
@@ -2287,7 +2264,7 @@ void RegMouseKey()//注册键盘控制鼠标的热键.
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVERIGHT, MOD_CONTROL, VK_RIGHT);//右移
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVEDOWN, MOD_CONTROL, VK_DOWN);//下移
 }
-__forceinline void UnMouseKey() { for (int i = MAIN_HOTKEY_LEFTKEY; i <= MAIN_HOTKEY_MOVEDOWN; ++i)UnregisterHotKey(Main.hWnd, i); }//注销热键.
+__forceinline void UnMouseKey() { for (int i = MAIN_HOTKEY_LEFTKEY; i <= MAIN_HOTKEY_MOVEDOWN; ++i)AutoUnregisterHotKey(Main.hWnd, i); }//注销热键.
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(MouseHook, nCode, wParam, lParam); }//空的全局钩子函数
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(KeyboardHook, nCode, wParam, lParam); }//防止极域钩住这些
@@ -3401,6 +3378,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 
+	InitHotKey();
 	int yLength = GetSystemMetrics(SM_CYSCREEN);
 	if (yLength >= 1400)Main.DPI = 1.5;//根据屏幕高度预先设定缩放
 	if (yLength <= 1000)Main.DPI = 0.75;
@@ -3519,9 +3497,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	RefreshFrameText();//改变Frame颜色和文字
 
 	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
+	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
-	if (FirstFlag)RegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
+	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
 
 	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
@@ -3614,13 +3592,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_HOTKEY://热键
 	{
+		
 		switch (wParam)
 		{
 		case MAIN_HOTKEY_SHOW: {//隐藏 \ 显示
 			if (HideState == -1)break;//永久隐藏时不显示
 			ShowWindow(Main.hWnd, 5 * HideState);
+			if(CatchWnd)ShowWindow(CatchWnd, 5 * HideState);
 			HideState = !HideState;
-			Main.Redraw();
+			//Main.Redraw();
 			break; }
 		case MAIN_HOTKEY_VDESKTOP: {CreateThread(0, 0, SDThread, 0, 0, 0); break; }//切换桌面
 		case MAIN_HOTKEY_AUTOKILLTD: {if (HookState)AutoTerminateTD(); break; }//Scroll Lock结束极域
@@ -4021,7 +4001,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			ReturnWindows();//归还已经被捕捉的窗口
 			MonitorTot = 0;
 			KillTimer(hWnd, TIMER_UPDATECATCH);//关闭窗口监视
-			for (int i = CATCH_HOTKEY_WNDLEFT; i < CATCH_HOTKEY_WNDSHOW + 1; ++i)UnregisterHotKey(CatchWnd, i);
+			for (int i = CATCH_HOTKEY_WNDLEFT; i < CATCH_HOTKEY_WNDSHOW + 1; ++i)AutoUnregisterHotKey(CatchWnd, i);
 			TDhWndChild = TDhWndParent = 0;
 			EnumWindows(EnumBroadcastwnd, NULL);//首先寻找2016版的极域
 			if (TDhWndChild == 0)EnumWindows(EnumBroadcastwndOld, NULL);//找不到的话再寻找旧版
@@ -4109,7 +4089,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			if (!RunEXE(TempPath, NULL, nullptr))Main.InfoBox(L"StartFail");
 			break;
 		}
-		case BUT_HIDEST: { HideState = -1; ShowWindow(Main.hWnd, SW_HIDE); break; }//永久隐藏
+		case BUT_HIDEST:
+		{ 
+			HideState = -1; 
+			if (CatchWnd)
+			{
+				ReturnWindows();
+				ShowWindow(CatchWnd, SW_HIDE);
+			}
+			ShowWindow(Main.hWnd, SW_HIDE); 
+			break; 
+		}//永久隐藏
 		case BUT_CLEAR: { ClearUp(); break; }//清理文件并退出
 		case BUT_GAMES:
 		{
@@ -4258,7 +4248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				tnd.uID = 1;
 				Shell_NotifyIcon(NIM_DELETE, &tnd);
 				break; }//CHK_TDINVD 4
-			case CHK_RETD: {UnregisterHotKey(Main.hWnd, MAIN_HOTKEY_RESTART_TD); }
+			case CHK_RETD: {AutoUnregisterHotKey(Main.hWnd, MAIN_HOTKEY_RESTART_TD); }
 			case CHK_TOP: {
 				TOP = FALSE;
 				if (UTState)noULTRA();
@@ -4267,7 +4257,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				Main.Redraw(Main.GetRECTc(CHK_UT));
 				break;
 			}
-			case CHK_BSOD:case CHK_SHUTD: case CHK_SCSHOT: {UnregisterHotKey(Main.hWnd, Main.CoverCheck - 4); break; }
+			case CHK_BSOD:case CHK_SHUTD: case CHK_SCSHOT: {AutoUnregisterHotKey(Main.hWnd, Main.CoverCheck - 4); break; }
 			case CHK_REKILL: {KillTimer(hWnd, TIMER_KILLPROCESS); break; }//CHK_FMACH 12
 			case CHK_NOHOOK: {KillTimer(hWnd, TIMER_ANTIHOOK); break; }
 			case CHK_KEYCTRL: {UnMouseKey(); break; }//基本上就是把之前的过程反过来
@@ -4359,11 +4349,11 @@ LRESULT CALLBACK ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	case WM_CREATE:
 		stdc = GetDC(hWnd);//创建缓存DC(但不创建缓存bitmap)
 		shdc = CreateCompatibleDC(stdc);
-		RegisterHotKey(hWnd, SCREEN_HOTKEY_ESCAPE, NULL, VK_ESCAPE);//注册Esc为关闭热键
+		AutoRegisterHotKey(hWnd, SCREEN_HOTKEY_ESCAPE, NULL, VK_ESCAPE);//注册Esc为关闭热键
 		SwitchToThisWindow(hWnd, NULL);
 		break;
 	case WM_HOTKEY:
-		UnregisterHotKey(hWnd, SCREEN_HOTKEY_ESCAPE);
+		AutoUnregisterHotKey(hWnd, SCREEN_HOTKEY_ESCAPE);
 		ScreenState = 0;//按下热键时关闭窗口
 		DestroyWindow(hWnd);
 		break;
@@ -4571,12 +4561,12 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		break;
 	}
 	case WM_KILLFOCUS: {
-		for (int i = CATCH_HOTKEY_WNDLEFT; i < CATCH_HOTKEY_WNDSHOW + 1; ++i)UnregisterHotKey(hWnd, i);
+		for (int i = CATCH_HOTKEY_WNDLEFT; i < CATCH_HOTKEY_WNDSHOW + 1; ++i)AutoUnregisterHotKey(hWnd, i);
 		break; }
 	case WM_HOTKEY: {
 		if (wParam == CATCH_HOTKEY_WNDLEFT)  --MonitorCur;
 		if (wParam == CATCH_HOTKEY_WNDRIGHT) ++MonitorCur;
-		if (wParam == CATCH_HOTKEY_ESCAPE) { MonitorTot = 0, KillTimer(hWnd, TIMER_UPDATECATCH); for (int i = 513; i < 517; ++i)UnregisterHotKey(hWnd, i); }
+		if (wParam == CATCH_HOTKEY_ESCAPE) { MonitorTot = 0, KillTimer(hWnd, TIMER_UPDATECATCH); for (int i = 513; i < 517; ++i)AutoUnregisterHotKey(hWnd, i); }
 		if (wParam == CATCH_HOTKEY_WNDSHOW)
 			if (IsWindowVisible(MonitorList[MonitorCur]))ShowWindow(MonitorList[MonitorCur], SW_HIDE); else ShowWindow(MonitorList[MonitorCur], SW_SHOW);
 		if (MonitorCur == 0)MonitorCur = MonitorTot;
