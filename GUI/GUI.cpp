@@ -484,7 +484,7 @@ public:
 		Rectangle(hdc, ExpPoint.x, ExpPoint.y, ExpWidth + ExpPoint.x, ExpHeight + ExpPoint.y);
 		SetTextColor(hdc, COLOR_BLACK);//逐行打印
 		for (int i = 1; i <= ExpLine; ++i)//注意这里的ExpPoint , ExpWidth等都是缩放后坐标
-			TextOutW(hdc, ExpPoint.x + 4, (int)(ExpPoint.y - 12 * DPI + 16 * i * DPI), Exp[i], (int)wcslen(Exp[i]));
+			TextOutW(hdc, ExpPoint.x + 4, (int)(ExpPoint.y - 12 * DPI + 18 * i * DPI), Exp[i], (int)wcslen(Exp[i]));
 	}
 	void DrawEdits(int cur)//绘制输入框
 	{//(全Class最复杂的一个控件)
@@ -1327,7 +1327,7 @@ public:
 			if (ExpLine == 1)wcscpy(Exp[ExpLine], y); else wcscpy(Exp[ExpLine], y + 2);
 			if (ExpLine == 1)GetTextExtentPoint32(hdc, y, (int)wcslen(y), &se); else GetTextExtentPoint32(hdc, y + 2, (int)wcslen(y + 2), &se);//获取字符串的宽度
 			if (x != 0)x[0] = '\\';
-			ExpHeight += se.cy;//计算这个Exp的宽和高
+			ExpHeight += se.cy+2;//计算这个Exp的宽和高
 			ExpWidth = max(ExpWidth - 8, se.cx) + 8;
 			if (x == 0)break;
 			y = x;
@@ -2254,15 +2254,14 @@ BOOL UninstallSethc()//恢复原来的sethc.
 	else { Main.InfoBox(L"suc"); SethcState = TRUE; return TRUE; }
 }
 
-
 void RegMouseKey()//注册键盘控制鼠标的热键.
 {
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_LEFTKEY, MOD_CONTROL, 188);//左键
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_RIGHTKEY, MOD_CONTROL, 190);//右键
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVELEFT, MOD_CONTROL, VK_LEFT);//左移
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVEUP, MOD_CONTROL, VK_UP);//上移
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVERIGHT, MOD_CONTROL, VK_RIGHT);//右移
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVEDOWN, MOD_CONTROL, VK_DOWN);//下移
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_LEFTKEY, MOD_ALT, 188);//左键
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_RIGHTKEY, MOD_ALT, 190);//右键
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVELEFT, MOD_ALT, VK_LEFT);//左移
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVEUP, MOD_ALT, VK_UP);//上移
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVERIGHT, MOD_ALT, VK_RIGHT);//右移
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_MOVEDOWN, MOD_ALT, VK_DOWN);//下移
 }
 __forceinline void UnMouseKey() { for (int i = MAIN_HOTKEY_LEFTKEY; i <= MAIN_HOTKEY_MOVEDOWN; ++i)AutoUnregisterHotKey(Main.hWnd, i); }//注销热键.
 
@@ -2295,44 +2294,49 @@ DWORD WINAPI DeleteThread(LPVOID pM)
 	delete[]Tempstr;
 	return 0;
 }
+#define GAMINGSPEED 5
 DWORD WINAPI GameThread(LPVOID pM)
 {
 	UNREFERENCED_PARAMETER(pM);
 	if (Main.Width < 700)
 	{//展开窗口
 		GameButtonLock = TRUE;//自制线程锁
-		for (int j = 1; j <= 260; j += 20)
+		for (int j = 1; j <= 240; j += GAMINGSPEED)
 		{
-			Main.Width += 20;
+			Main.Width += GAMINGSPEED;
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((621 + j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 			RECT Rc{ (long)(621 * Main.DPI) ,0,(long)((621 + j) * Main.DPI - 0.5) ,(long)(Main.Height * Main.DPI - 0.5) };
+			for (int k = BUT_GAME1; k <= BUT_GAME6; ++k)Main.Readd(1, k);
 			Main.Redraw(Rc);//重绘展开部分
+			Main.Readd(REDRAW_BUTTON, BUT_CLOSE);
 			Rc = Main.GetRECT(BUT_CLOSE);
-			Rc.left -= (long)(20 * Main.DPI);
+			Rc.left -= (long)(40 * Main.DPI);
 			Main.Redraw(Rc);//重绘"关闭"按钮
-			Main.Button[BUT_CLOSE].Left += 20;//右移"关闭按钮"
-			if (UTState)UTrc.right += (int)(20 * Main.DPI);
+			Main.Button[BUT_CLOSE].Left += GAMINGSPEED;//右移"关闭按钮"
+			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
+			//Sleep(1);
 		}
-		Main.Button[BUT_CLOSE].Left -= 20;
-		if (UTState)UTrc.right -= (int)(20 * Main.DPI);
+		Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
+		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		Main.Width = DEFAULT_WIDTH + 240;
+		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
 		Main.Redraw();
 	}
 	else
 	{//缩回游戏部分
 		//基本上就是反过来
-		for (int j = 1; j <= 260; j += 20)
+		for (int j = 1; j <= 240; j += GAMINGSPEED)
 		{
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 			RECT Rc = Main.GetRECT(BUT_CLOSE);
-			Rc.right += (long)(20 * Main.DPI);
+			Rc.right += (long)(60 * Main.DPI);
 			Main.Readd(REDRAW_BUTTON, BUT_CLOSE);
 			Main.Redraw(Rc);
-			Main.Button[BUT_CLOSE].Left -= 20;
-			if (UTState)UTrc.right -= (int)(20 * Main.DPI);
+			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
+			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		}
 		Main.Width = DEFAULT_WIDTH;
-		Main.Button[BUT_CLOSE].Left += 20;
+		Main.Button[BUT_CLOSE].Left += GAMINGSPEED;
 		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
 		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
 		Main.Redraw();
@@ -2789,6 +2793,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 		if (LButtonDown != LBnew && CSinside)
 		{//判断点击信号是LBUTTONDOWN还是LBUTTONUP
 			LButtonDown = LBnew;//然后正常将信号发送给WndProc，之后的处理和平常一样
+			//s();
 			if (LBnew) WndProc(Main.hWnd, WM_LBUTTONDOWN, 0, UT_MESSAGE); else  WndProc(Main.hWnd, WM_LBUTTONUP, 0, UT_MESSAGE);
 		}
 		break;
@@ -3496,7 +3501,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.Frame[FRA_TOPDOMAIN].rgb = COLOR_DARKER_BLUE;
 	RefreshFrameText();//改变Frame颜色和文字
 
-	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
+	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, VK_LCONTROL, 'P');//注册热键显示 隐藏
 	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
 	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
@@ -3592,13 +3597,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_HOTKEY://热键
 	{
-		
+
 		switch (wParam)
 		{
 		case MAIN_HOTKEY_SHOW: {//隐藏 \ 显示
 			if (HideState == -1)break;//永久隐藏时不显示
 			ShowWindow(Main.hWnd, 5 * HideState);
-			if(CatchWnd)ShowWindow(CatchWnd, 5 * HideState);
+			if (CatchWnd)ShowWindow(CatchWnd, 5 * HideState);
 			HideState = !HideState;
 			//Main.Redraw();
 			break; }
@@ -3621,8 +3626,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			Main.Redraw(Main.GetRECTc(CHK_KEYCTRL));
 			break;//键盘操作鼠标
 		}
-		case MAIN_HOTKEY_LEFTKEY: {mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, 0, 0, 0, 0); break; }//左键
-		case MAIN_HOTKEY_RIGHTKEY: {mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0); break; }//右键
+		case MAIN_HOTKEY_LEFTKEY: {mouse_event(MOUSEEVENTF_LEFTDOWN| MOUSEEVENTF_LEFTUP, 0, 0, 0, 0); break; }//左键
+		case MAIN_HOTKEY_RIGHTKEY: { mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0); break; }//右键
 		case MAIN_HOTKEY_MOVELEFT: {mouse_event(MOUSEEVENTF_MOVE, 0xffffffff - (DWORD)(10 * Main.DPI) + 1, 0, 0, 0); break; }//左移
 		case MAIN_HOTKEY_MOVEUP: {mouse_event(MOUSEEVENTF_MOVE, 0, 0xffffffff - (DWORD)(10 * Main.DPI) + 1, 0, 0); break; }//上移
 		case MAIN_HOTKEY_MOVERIGHT: {mouse_event(MOUSEEVENTF_MOVE, (DWORD)(10 * Main.DPI), 0, 0, 0); break; }//右移
@@ -4090,15 +4095,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}
 		case BUT_HIDEST:
-		{ 
-			HideState = -1; 
+		{
+			HideState = -1;
 			if (CatchWnd)
 			{
 				ReturnWindows();
 				ShowWindow(CatchWnd, SW_HIDE);
 			}
-			ShowWindow(Main.hWnd, SW_HIDE); 
-			break; 
+			ShowWindow(Main.hWnd, SW_HIDE);
+			break;
 		}//永久隐藏
 		case BUT_CLEAR: { ClearUp(); break; }//清理文件并退出
 		case BUT_GAMES:
@@ -4566,7 +4571,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	case WM_HOTKEY: {
 		if (wParam == CATCH_HOTKEY_WNDLEFT)  --MonitorCur;
 		if (wParam == CATCH_HOTKEY_WNDRIGHT) ++MonitorCur;
-		if (wParam == CATCH_HOTKEY_ESCAPE) { MonitorTot = 0, KillTimer(hWnd, TIMER_UPDATECATCH); for (int i = 513; i < 517; ++i)AutoUnregisterHotKey(hWnd, i); }
+		if (wParam == CATCH_HOTKEY_ESCAPE) { MonitorTot = 0, KillTimer(hWnd, TIMER_UPDATECATCH); for (int i = CATCH_HOTKEY_WNDLEFT; i < CATCH_HOTKEY_WNDSHOW+1; ++i)AutoUnregisterHotKey(hWnd, i); }
 		if (wParam == CATCH_HOTKEY_WNDSHOW)
 			if (IsWindowVisible(MonitorList[MonitorCur]))ShowWindow(MonitorList[MonitorCur], SW_HIDE); else ShowWindow(MonitorList[MonitorCur], SW_SHOW);
 		if (MonitorCur == 0)MonitorCur = MonitorTot;

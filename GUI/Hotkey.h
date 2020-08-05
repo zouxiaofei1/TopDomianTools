@@ -11,6 +11,7 @@ struct MYHOTKEY
 	int id, ms, vk, delay;
 	BOOL Enabled;
 }Hotkey[MAX_HOTKEY];
+#define HOTKEY_DOWN(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 1 : 0)
 void CALLBACK HotKeyTimer(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 {
 	(hWnd); (nMsg); (nTimerid); (dwTime);
@@ -20,14 +21,14 @@ void CALLBACK HotKeyTimer(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		--Hotkey[i].delay;
 		if (Hotkey[i].Enabled && Hotkey[i].delay <= 0)
 		{
-			if (KEY_DOWN(Hotkey[i].vk))
+			if (HOTKEY_DOWN(Hotkey[i].vk))
 			{
-				if ((Hotkey[i].ms & MOD_CONTROL )&& (!KEY_DOWN(VK_CONTROL)))continue;
-				if ((Hotkey[i].ms & MOD_SHIFT) && (! KEY_DOWN(VK_RSHIFT)))continue;
-				if ((Hotkey[i].ms & MOD_ALT) && (!KEY_DOWN(VK_MENU)))continue;
+				if (((Hotkey[i].ms & MOD_CONTROL)>>1) !=(HOTKEY_DOWN(VK_CONTROL)))continue;
+				if (((Hotkey[i].ms & MOD_SHIFT)>>2) != (HOTKEY_DOWN(VK_SHIFT)))continue;
+				if ((Hotkey[i].ms & MOD_ALT) != (HOTKEY_DOWN(VK_MENU)))continue;
 				SendMessage(Hotkey[i].hWnd, WM_HOTKEY, (WPARAM)Hotkey[i].id, 0);
-				//s(Hotkey[i].id);
-				if (Hotkey[i].delay < 0)Hotkey[i].delay = 10; else Hotkey[i].delay = 2;
+				
+				if (Hotkey[i].delay < 0)Hotkey[i].delay = 12; else Hotkey[i].delay = 2;
 			}
 		}
 	}
