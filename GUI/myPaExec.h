@@ -7,6 +7,10 @@
 //
 //大体思路:以服务方式运行，申请一些权限，然后调用
 //CreateProcessWithLogon 或 CreateProcessAsUser 这两个函数
+//
+//注意:一定要以服务方式运行!
+//myPAExec这个函数以正常方式调用没有任何效果!
+//
 
 #pragma once
 #include "stdafx.h"

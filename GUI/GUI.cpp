@@ -2294,7 +2294,7 @@ DWORD WINAPI DeleteThread(LPVOID pM)
 	delete[]Tempstr;
 	return 0;
 }
-#define GAMINGSPEED 5
+
 DWORD WINAPI GameThread(LPVOID pM)
 {
 	UNREFERENCED_PARAMETER(pM);
@@ -2679,7 +2679,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 		t = (int)((byte)col) + (int)((byte)(col >> 8)) + (int)((byte)(col >> 16));
 		if (t <= 210 || t >= 650)goto darrk;//太暗或太亮的颜色不要
 		if (t <= 384)
-			Main.Text[26].rgb = COLOR_WHITE; else Main.Text[26].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
+			Main.Text[27].rgb = COLOR_WHITE; else Main.Text[27].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
 		Main.SetTitleBar(col, TITLEBAR_HEIGHT);
 		Main.Redraw();
 		break;
@@ -3015,7 +3015,7 @@ void AutoPassBox(const wchar_t* str)
 	wcscat_s(TempStr, L"\"");
 	wcscat_s(TempStr, str);
 	wcscat_s(TempStr, L"\"");
-	if (slient) { Main.InfoBox(TempStr); return; }
+	if (slient||UTState) { Main.InfoBox(TempStr); return; }
 	wcscat_s(TempStr, Main.GetStr(L"Copypswd"));
 	if (MessageBox(Main.hWnd, TempStr, Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) == IDOK)
 	{
@@ -3804,7 +3804,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			cc.Flags = CC_ANYCOLOR;
 			if (!ChooseColor(&cc))break;//选择"取消"时不切换颜色
 			if (((int)((byte)cc.rgbResult) + (int)((byte)(cc.rgbResult >> 8)) + (int)((byte)(cc.rgbResult >> 16))) <= 384)
-				Main.Text[26].rgb = COLOR_WHITE; else Main.Text[26].rgb = COLOR_BLACK;//增减text时记得更改"26"这个数字
+				Main.Text[27].rgb = COLOR_WHITE; else Main.Text[27].rgb = COLOR_BLACK;//增减Text时记得更改"27"这个数字
 			Main.SetTitleBar(cc.rgbResult, TITLEBAR_HEIGHT);
 			Main.Redraw({ 0, 0, (int)(Main.Width * Main.DPI), (int)(50 * Main.DPI) });
 			break;

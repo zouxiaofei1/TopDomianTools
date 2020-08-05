@@ -1,3 +1,7 @@
+//用GetAsyncKeyState函数自定义的快捷键系统
+//不是很稳定，尚处于测试阶段
+//by zouxiaofei1 2015 - 2020
+
 #pragma once
 #include "stdafx.h"
 #include "GUI.h"
@@ -5,6 +9,7 @@
 #define MAX_HOTKEY 45
 void s();
 void s(int as);
+
 struct MYHOTKEY
 {
 	HWND hWnd;

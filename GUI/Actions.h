@@ -1,5 +1,6 @@
 //为了减短GUI.cpp长度
 //一部分和主程序中Class、全局变量没有关系函数被放在这里
+//by zouxiaofei1 2015 - 2020
 
 #pragma once
 #include "stdafx.h"
