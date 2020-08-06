@@ -8,6 +8,7 @@
 
 void s() { MessageBox(NULL, 0, 0, NULL); }
 void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
+void s(LPCSTR a) { MessageBoxA(NULL, a, "", NULL); }
 void s(int a)//当程序正式发布时可以去掉这几个函数
 {
 	wchar_t tmp[34] = { 0 };

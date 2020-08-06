@@ -283,13 +283,17 @@ public:
 	}
 	void DrawFrames(int cur)//绘制Frames
 	{
-		int i;
+		int i; RECT UPrc {0};
 		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Frame
+		GetUpdateRect(hWnd, &UPrc, false);
 		for (i = 1; i <= CurFrame; ++i)
 		{
 		begin:
 			if (Frame[i].Page == CurWnd || Frame[i].Page == 0)
 			{
+				if (UPrc.right != 0)if (UPrc.right > (long)((Frame[i].Left + Frame[i].Width) * DPI) &&
+					UPrc.left< (long)(Frame[i].Left * DPI) && UPrc.bottom>(long)((Frame[i].Top + Frame[i].Height) * DPI)
+					&& UPrc.top < (long)(Frame[i].Top * DPI))continue;
 				SelectObject(hdc, BlackPen);//绘制方框
 				SelectObject(hdc, DefFont);
 				MoveToEx(hdc, (int)(Frame[i].Left * DPI), (int)(Frame[i].Top * DPI), NULL);//多加点(int)xx*DPI 减少警告
@@ -308,13 +312,19 @@ public:
 	}
 	void DrawButtons(int cur)//绘制按钮
 	{
+		RECT UPrc{ 0 };
 		int i;//如果使用ObjectRedraw则跳过其他Button
 		if (cur != 0) { i = cur; goto begin; }//结构示意：选择颜色(渐变 or 禁用 or 默认) -> 选择字体
+		
+		GetUpdateRect(hWnd, &UPrc, false);
 		for (i = 0; i <= CurButton; ++i)//				-> 绘制方框 -> (绘制下载进度条) -> 绘制文字 -> 清理
 		{
 		begin://										(在用于其他工程时，下载进度条部分可删除)
 			if (Button[i].Page == CurWnd || Button[i].Page == 0)
 			{
+				if (UPrc.right != 0)if (UPrc.right > (long)((Button[i].Left + Button[i].Width) * DPI) &&
+					UPrc.left< (long)(Button[i].Left * DPI) && UPrc.bottom>(long)((Button[i].Top + Button[i].Height) * DPI)
+					&& UPrc.top < (long)(Button[i].Top *DPI))continue;
 				HPEN TmpPen = 0; HBRUSH TmpBrush = 0;
 				if (Button[i].Enabled == FALSE)//禁用则显示灰色
 				{
@@ -421,13 +431,18 @@ public:
 	}
 	void DrawChecks(int cur)//绘制Checks
 	{
+		RECT UPrc { 0 };
 		int i;
 		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Check
+		GetUpdateRect(hWnd, &UPrc, false);
 		for (i = 1; i <= CurCheck; ++i)
 		{
 		begin:
 			if (Check[i].Page == 0 || Check[i].Page == CurWnd)
 			{
+				if (UPrc.right != 0)if (UPrc.right > (long)((Check[i].Left + Check[i].Width) * DPI) &&
+					UPrc.left< (long)(Check[i].Left * DPI) && UPrc.bottom>(long)((Check[i].Top + 15) * DPI)
+					&& UPrc.top < (long)(Check[i].Top * DPI))continue;
 				if (Check[i].Value)SetTextColor(hdc, COLOR_DARKEST_GREY); else SetTextColor(hdc, COLOR_BLACK);
 				if (i == CoverCheck)SelectObject(hdc, NormalBluePen); else SelectObject(hdc, NormalGreyPen);
 
@@ -488,10 +503,11 @@ public:
 	}
 	void DrawEdits(int cur)//绘制输入框
 	{//(全Class最复杂的一个控件)
+		RECT UPrc {0};
 		int i, MOffset = 0, showBegin = 0, showEnd = 0;//结构示意:	创建缓存dc -> 绘制边框(蓝色 or 灰色) -> 打印文字(提示文字)
 		HDC mdc;//													->打印文字(未选中) ->打印文字(选中) -> 从缓存dc贴图 -> 清理
 		mdc = CreateCompatibleDC(hdc);
-
+		GetUpdateRect(hWnd, &UPrc, false);
 		SelectObject(mdc, EditBitmap);//Edit专用"三缓冲"Bitmap和dc
 		SetBkMode(mdc, TRANSPARENT);
 		if (cur != 0) { i = cur; goto begin; }//如果使用ObjectRedraw则跳过其他Edits
@@ -501,6 +517,9 @@ public:
 		begin:
 			if (Edit[i].Page == CurWnd || Edit[i].Page == 0)
 			{
+				if (UPrc.right != 0)if (UPrc.right > (long)((Edit[i].Left + Edit[i].Width) * DPI) &&
+					UPrc.left< (long)(Edit[i].Left * DPI) && UPrc.bottom>(long)((Edit[i].Top + Edit[i].Height) * DPI)
+					&& UPrc.top < (long)(Edit[i].Top * DPI))continue;
 				SelectObject(mdc, WhitePen);//清空缓存dc
 				SelectObject(mdc, WhiteBrush);
 				Rectangle(mdc, 0, 0, MAX_EDIT_WIDTH, MAX_EDIT_HEIGHT);
@@ -1061,9 +1080,7 @@ public:
 		if (CoverButton != -1)//当按钮按下 & 停留在按钮上时
 		{
 			Press = 1;//重绘这个按钮
-			RECT rc = GetRECT(CoverButton);
-			if (Obredraw)Readd(REDRAW_BUTTON, CoverButton);
-			Redraw(rc);
+			ButtonRedraw(CoverButton);
 		}
 		if (!InsideEdit(CoverEdit, point) && CoverEdit != 0)
 		{
@@ -1087,14 +1104,13 @@ public:
 
 	void CheckGetNewInside(POINT& point)//检查鼠标是否在任何Check内
 	{//POINT为鼠标真实坐标
-		for (int i = 1; i <= CurCheck; ++i)//遍历所有check
+		for (int i = 1; i <= CurCheck; ++i)//遍历所有Check
 			if (Check[i].Page == CurWnd || Check[i].Page == 0)//不在同一页面 -> 直接跳过
-				if (InsideCheck(i, point) != 0)//在check的文字中或方框内
+				if (InsideCheck(i, point) != 0)//在Check的文字中或方框内
 				{
-					CoverCheck = i;//设置covercheck
+					CoverCheck = i;//设置CoverCheck
 					if (Obredraw)Readd(REDRAW_CHECK, i);
-					RECT rc = GetRECTc(i);//重绘
-					Redraw(rc);
+					Redraw(GetRECTc(i));//重绘
 					return;
 				}
 	}
@@ -1110,9 +1126,7 @@ public:
 						Button[i].Percent += 40;//先给40%的颜色 （太淡了看不出来）
 						if (Button[i].Percent > 100)Button[i].Percent = 100;
 					}
-					if (Obredraw)Readd(REDRAW_BUTTON, i);
-					RECT rc = GetRECT(i);//重绘
-					Redraw(rc);
+					ButtonRedraw(i);//重绘
 					return;
 				}
 	}
@@ -1290,11 +1304,7 @@ public:
 	void EnableButton(int cur, BOOL enable)
 	{
 		Button[cur].Enabled = enable;
-		if (Button[cur].Page == CurWnd || Button[cur].Page == 0)
-		{
-			Readd(REDRAW_BUTTON, cur);
-			Redraw(GetRECT(cur));
-		}
+		if (Button[cur].Page == CurWnd || Button[cur].Page == 0)ButtonRedraw(cur);
 	}
 	void WindowCreate(int MaxWidth, int MaxHeight)//给要绘制的窗口设置一个新的hdc
 	{
@@ -1343,7 +1353,9 @@ public:
 	{
 		if (!ExpExist)return;
 		ExpExist = FALSE;//删除Exp时要绘制这个Exp下面的控件，分类绘制很麻烦，干脆就全部刷新一下吧
-		Redraw({ ExpPoint.x, ExpPoint.y, ExpPoint.x + ExpWidth, ExpPoint.y + ExpHeight });
+		RECT rc{ ExpPoint.x, ExpPoint.y, ExpPoint.x + ExpWidth, ExpPoint.y + ExpHeight };
+		es[++es[0].top] = rc;
+		Redraw(rc);
 		ExpLine = ExpHeight = ExpWidth = 0;//注意:ExpWidth等值一定要先使用再清空
 	}
 	void Redraw(const RECT& rc) { InvalidateRect(hWnd, &rc, FALSE), UpdateWindow(hWnd); }//自动重绘 & 刷新指定区域
@@ -1502,7 +1514,7 @@ public:
 	{
 		SelectObject(hdc, TitleBar.hPen);
 		SelectObject(hdc, TitleBar.hBrush);
-		Rectangle(hdc, 0, 0, (int)(DPI * Width), (int)(DPI * TitleBar.Height));
+		Rectangle(hdc, 0, 0, (int)(DPI * Width+1), (int)(DPI * TitleBar.Height));
 	}
 	void SetTitleBar(int newColor, int newHeight)
 	{
@@ -1914,9 +1926,10 @@ void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 		wcscat_s(TDPathStr, Main.GetStr(L"TPunk"));
 	else
 		wcscat_s(TDPathStr, TDPath);
+	if (wcslen(TDPathStr) > 42)wcscpy(TDPathStr + 41, L"...");
 	Main.SetStr(TDPathStr, L"TPath");
 	if (Main.CurWnd != 4)return;//不在"关于"页面的时候就不用刷新了
-	RECT rc{ (int)(170 * Main.DPI), (int)(365 * Main.DPI),(int)(Main.Width * Main.DPI),(int)(390 * Main.DPI) };
+	RECT rc{ (int)(170 * Main.DPI), (int)(365 * Main.DPI),(int)(DEFAULT_WIDTH * Main.DPI),(int)(390 * Main.DPI) };
 	Main.es[++Main.es[0].top] = rc;
 	Main.Readd(REDRAW_TEXT, 22);//增减text时记得更改"22"这个数据
 	Main.Redraw(rc);
@@ -2048,7 +2061,7 @@ void UpdateCatchedWindows()
 	Main.SetStr(tmpstr, L"_Eat");
 	if (Main.CurWnd != 1)return;
 	Main.Readd(REDRAW_TEXT, 5);
-	RECT rc{ (long)(195 * Main.DPI),(long)(480 * Main.DPI),(long)(500 * Main.DPI),(long)(505 * Main.DPI) };
+	RECT rc{ (long)(195 * Main.DPI),(long)(480 * Main.DPI),(long)(400 * Main.DPI),(long)(505 * Main.DPI) };
 	Main.es[++Main.es[0].top] = rc;
 	Main.Redraw(rc);
 }
@@ -2301,45 +2314,36 @@ DWORD WINAPI GameThread(LPVOID pM)
 	if (Main.Width < 700)
 	{//展开窗口
 		GameButtonLock = TRUE;//自制线程锁
-		for (int j = 1; j <= 240; j += GAMINGSPEED)
+		for (int j = 10; j <= 240; j += GAMINGSPEED)
 		{
 			Main.Width += GAMINGSPEED;
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((621 + j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-			RECT Rc{ (long)(621 * Main.DPI) ,0,(long)((621 + j) * Main.DPI - 0.5) ,(long)(Main.Height * Main.DPI - 0.5) };
-			for (int k = BUT_GAME1; k <= BUT_GAME6; ++k)Main.Readd(1, k);
-			Main.Redraw(Rc);//重绘展开部分
-			Main.Readd(REDRAW_BUTTON, BUT_CLOSE);
-			Rc = Main.GetRECT(BUT_CLOSE);
-			Rc.left -= (long)(40 * Main.DPI);
-			Main.Redraw(Rc);//重绘"关闭"按钮
+			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((DEFAULT_WIDTH + j) * Main.DPI ), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+			RECT Rc{ (long)((511 + j) * Main.DPI ) ,0,(long)((621 + j) * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
 			Main.Button[BUT_CLOSE].Left += GAMINGSPEED;//右移"关闭按钮"
+			Main.es[++Main.es[0].top] = Rc;
+			Main.Redraw(Rc);//重绘展开部分
 			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
-			//Sleep(1);
+			Sleep(12);
 		}
-		Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
 		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		Main.Width = DEFAULT_WIDTH + 240;
-		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
-		Main.Redraw();
 	}
 	else
 	{//缩回游戏部分
 		//基本上就是反过来
-		for (int j = 1; j <= 240; j += GAMINGSPEED)
+		for (int j = 10; j <= 240; j += GAMINGSPEED)
 		{
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 			RECT Rc = Main.GetRECT(BUT_CLOSE);
 			Rc.right += (long)(60 * Main.DPI);
-			Main.Readd(REDRAW_BUTTON, BUT_CLOSE);
-			Main.Redraw(Rc);
+			Rc.left -= (long)(60 * Main.DPI);
 			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
+			Main.Redraw(Rc);
 			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
+			Sleep(12);
 		}
 		Main.Width = DEFAULT_WIDTH;
-		Main.Button[BUT_CLOSE].Left += GAMINGSPEED;
-		::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE);
 		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
-		Main.Redraw();
 	}
 	GameButtonLock = FALSE;//关闭线程锁
 	return 0;
@@ -2565,7 +2569,7 @@ void MyExitProcess()
 
 BOOL RefreshTDstate()//刷新极域的状态
 {
-	const RECT rc = { (LONG)(165 * Main.DPI), (LONG)(400 * Main.DPI),(LONG)(320 * Main.DPI),(LONG)(505 * Main.DPI) };
+	const RECT rc { (LONG)(165 * Main.DPI), (LONG)(400 * Main.DPI),(LONG)(320 * Main.DPI),(LONG)(505 * Main.DPI) };
 	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);//记录着极域进程工具frame位置的rc
 	wchar_t myTDName[MAX_PATH] = { 0 }; for (int i = 0; i < 3; ++i)myTDName[i] = TDName[i];
 	_wcslwr_s(myTDName);
@@ -2808,7 +2812,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 		UTrc.right = point.x - UTMpoint.x + rcback.right - rcback.left;
 		UTrc.bottom = point.y - UTMpoint.y + rcback.bottom - rcback.top;
 		SetWindowPos(Main.hWnd, 0, UTrc.left, UTrc.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-		InvalidateRect(GetParent(Main.hWnd), 0, TRUE);
+		//InvalidateRect(GetParent(Main.hWnd), 0, TRUE);
 		if (!KEY_DOWN(VK_LBUTTON))KillTimer(Main.hWnd, TIMER_UT3);
 		break;
 	}
@@ -3391,7 +3395,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	Main.InitClass(hInst);//初始化主类
 	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//初始化Class
 	Main.Obredraw = TRUE;//默认使用ObjectRedraw
-	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 250, 200, 1, 1, NULL, nullptr, hInstance, nullptr);
+	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 250, 200, (int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInstance, nullptr);
 
 	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
 
@@ -3508,7 +3512,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 
 	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
-	SetWindowPos(Main.hWnd, 0, 0, 0, (int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+	//SetWindowPos(Main.hWnd, 0, 0, 0, , SWP_NOMOVE  | SWP_NOZORDER);
 	if (GetSystemDefaultLangID() == 0x0409)//英文系统上自动切换语言
 	{
 		wchar_t Tempstr[MAX_STR];//缺点是启动速度会慢很多
@@ -3520,7 +3524,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//初始化
 	if ((Main.Timer % 50) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
 	if ((Main.Timer % 513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 500, (TIMERPROC)TimerProc);//开启Exp计时器
-	if (!slient)ShowWindow(Main.hWnd, nCmdShow), Main.Redraw();
+	if (!slient)ShowWindow(Main.hWnd, nCmdShow);// Main.Redraw();
 
 	Main.CreateButton(185, 155, 110, 45, 2, L"应用", L"ApplyCh");
 	Main.CreateButton(365, 102, 97, 45, 2, L"清空密码", L"ClearPass");
@@ -3622,8 +3626,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case MAIN_HOTKEY_CTRL_ALT_K:
 		{
 			if (Main.Check[CHK_KEYCTRL].Value == FALSE)RegMouseKey(), Main.Check[CHK_KEYCTRL].Value = TRUE; else UnMouseKey(), Main.Check[CHK_KEYCTRL].Value = FALSE;
-			Main.Readd(REDRAW_CHECK, CHK_KEYCTRL);
-			Main.Redraw(Main.GetRECTc(CHK_KEYCTRL));
+			if(Main.CurWnd==5)Main.Readd(REDRAW_CHECK, CHK_KEYCTRL),Main.Redraw(Main.GetRECTc(CHK_KEYCTRL));
 			break;//键盘操作鼠标
 		}
 		case MAIN_HOTKEY_LEFTKEY: {mouse_event(MOUSEEVENTF_LEFTDOWN| MOUSEEVENTF_LEFTUP, 0, 0, 0, 0); break; }//左键
@@ -3646,7 +3649,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_PAINT://绘图
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
-		RECT rc = { 0 }; PAINTSTRUCT ps = { 0 };
+		RECT rc { 0 }; PAINTSTRUCT ps = { 0 };
 		if (lParam == UT_MESSAGE)goto finish;
 		if (hWnd != 0)GetUpdateRect(hWnd, &rc, FALSE);
 
@@ -3654,12 +3657,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 
 		if (Main.RedrawObject())goto finish;
-
-		SelectObject(Main.hdc, WhiteBrush);//打印白色背景
-		SelectObject(Main.hdc, WhitePen);
-		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
-
-		Main.DrawTitleBar();
+		
+		if (rc.right == (int)(Main.Width*Main.DPI)) {
+			SelectObject(Main.hdc, WhiteBrush);//打印白色背景
+			SelectObject(Main.hdc, WhitePen);
+			Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
+			
+		}
+		if(rc.top< (int)(Main.DPI * Main.TitleBar.Height))Main.DrawTitleBar();
 
 		Main.DrawEVERYTHING();//重绘全部
 
@@ -4184,7 +4189,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					FakeTimer = GetTickCount();
 					SetTimer(FakeWnd, TIMER_TOOLBAR, 100, (TIMERPROC)TimerProc);
 				}
-				Main.Readd(REDRAW_CHECK, CHK_FTOLD); Main.Readd(REDRAW_CHECK, CHK_FTNEW); Main.Redraw();
+				Main.Readd(REDRAW_CHECK, CHK_FTOLD); Main.Readd(REDRAW_CHECK, CHK_FTNEW); 
+				Main.Redraw({(long)(165*Main.DPI),(long)(238*Main.DPI),(long)(300*Main.DPI),(long)(279* Main.DPI) });
 				ShowWindow(FakeWnd, SW_SHOW);
 				InvalidateRect(FakeWnd, nullptr, TRUE);
 				UpdateWindow(FakeWnd);
