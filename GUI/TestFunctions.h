@@ -1,5 +1,6 @@
 ﻿//为了减短GUI.cpp长度
 //一部分调试用函数、测试中的函数将被放在这里
+//by zouxiaofei1 2015 - 2020
 
 #pragma once
 #include "stdafx.h"
@@ -8,12 +9,18 @@
 
 void s() { MessageBox(NULL, 0, 0, NULL); }
 void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
-void s(LPCSTR a) { MessageBoxA(NULL, a, "", NULL); }
+void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
 void s(int a)//当程序正式发布时可以去掉这几个函数
 {
 	wchar_t tmp[34] = { 0 };
 	_itow_s(a, tmp, 10);
 	MessageBox(NULL, tmp, L"", NULL);
+}
+void s(double a)
+{
+	char tmp[34] = { 0 };
+	_gcvt_s(tmp, a, 34);
+	MessageBoxA(NULL, tmp ,0, NULL);
 }
 void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
@@ -22,6 +29,16 @@ void s2(int a)
 	_itow_s(a, tmp, 10); wcscat(tmp, L"\n");
 	OutputDebugString(tmp);
 }
+void s2(){OutputDebugString(L"0\n");}
+void s2(double a)
+{
+	char tmp[34] = { 0 };
+	_gcvt_s(tmp, a, 34);
+	OutputDebugStringA(tmp);
+}
+
+
+
 
 
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"

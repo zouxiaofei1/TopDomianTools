@@ -7,8 +7,8 @@
 #include "GUI.h"
 #pragma warning(disable:4996)
 #define MAX_HOTKEY 45
-void s();
-void s(int as);
+//void s();
+//void s(int a);
 
 struct MYHOTKEY
 {
@@ -45,7 +45,7 @@ void InitHotKey()
 
 BOOL AutoRegisterHotKey(HWND hwnd, int id, UINT Ms, UINT Vk)
 {//×Ô¶¯×¢²áÈÈ¼ü
-	if (id >= MAX_HOTKEY) { s(); return false; }
+	if (id >= MAX_HOTKEY) {  return false; }
 	Hotkey[id].id = id;
 	Hotkey[id].Enabled = true;
 	Hotkey[id].ms = Ms;
