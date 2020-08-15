@@ -23,17 +23,17 @@
 -enablebut 一键安装
 -sethc 安装sethc
 -unsethc 卸载sethc
--auto 全自动防控制
--clear 清除密码
+-killtop 全自动防控制
 -antishutdown 防教师关机
--reopen 重新打开极域
+-retd 重新打开极域
 -BSOD 蓝屏
--restart 瞬间重启
--viewpass 尝试读取密码
+-reboot 瞬间重启
+-vp 尝试读取密码
 -rekill "程序名"
--delete "文件名"
+-del "文件名"
+-clear 清除密码
 -change "密码"
--changewithpasswd "密码"
+-changepasswd "密码"
 -channel "频道"
 -top 窗口置顶运行
 
@@ -46,62 +46,56 @@
 	因不当使用本软件而造成的 受到老师惩罚 成绩下降 等后果作者概不承担
 	不得未经考虑随意将本软件大规模推广
 
-作者        ：zouxiaofei1
+作者:	zouxiaofei1
 	cxy
 	villager
 
-技术支持& 致谢名单:
-//以字典序排序，不区分大小写
-	论坛、网站、团队
-	      github.com
-	      Microsoft
-	      MSDN & CSDN
-	      msdn.itellyou.cn
-	      sourceforge.net
-	      stackoverflow.com
-	      Visual Studio 团队
-	      The FreeBASIC Development Team 
-	      www.52pojie.cn
-	      www.baidu.com
-	      www.google.com
-	      www.PowerAdmin.com
+技术支持 & 致谢名单:
+         论坛、网站、团队
+	github.com
+	Microsoft
+	MSDN & CSDN
+	sourceforge.net
+	stackoverflow.com
+	The FreeBASIC Development Team
+	Visual Studio 团队
+	www.52pojie.cn
+	www.baidu.com
+	www.google.com
+	www.PowerAdmin.com
 
-	封装：
-	      @ 年老痴呆 2014 
-	      AM电脑吧
+          参考的代码:
+	@即将重启
+	@火晶石Motor
+	wj32 (Process Hacker) https://github.com/processhacker/processhacker
+	PaExec  https://github.com/poweradminllc/PAExec
+	百度贴吧 vb吧 全体吧友
+	百度贴吧 极域电子教室吧 全体吧友
+	闪闪的星 https://shansing.com/
 
-	参考的代码:
-	      @ 即将重启
-	      @ 火晶石Motor
-	      CSDN 上部分代码
-	      wj32 (Process Hacker) https://github.com/processhacker/processhacker
-	      PaExec    https://github.com/poweradminllc/PAExec
-	      百度贴吧 vb吧 全体吧友
-	      百度贴吧 极域电子教室吧 全体吧友
-	      闪闪的星 https://shansing.com/
+           开发工具:
+	FreeBASIC 1.07
+	Visual Basic 6.0
+	Visual C++ 6.0
+	Visual Studio 2017 & 2019
+	WDK 7.0
 
-	开发工具:
-	      FreeBASIC 1.07
-	      Visual Basic 6.0
-	      Visual C++ 6.0
-	      Visual Studio 2017 & 2019
-	      WDK 7.0
+          其他工具:
+	Cheat Engine 6.7
+	IDA 7.0
+	OllyDebug
+	RegFromApp 1.3.3
+	VMware Workstation 15
+	WireShark
+	窗口信息管理器
 
-	其他工具:
-	      Cheat Engine 6.7
-	      IDA 7.0
-	      OllyDebug
-	      RegFromApp 1.3.3
-	      VMware Workstation 15
-	      窗口信息管理器
-
-	驱动：
-	      @ 《寒江独钓》作者团队
-	      m5home 紫水晶论坛
-	      看雪安全论坛
-	      @ angla.tesla
-	      tangptr@126.com
-	      wj32
+          驱动：
+	《寒江独钓》作者团队
+	m5home 紫水晶论坛
+	看雪安全论坛
+	@angla.tesla
+	tangptr@126.com
+	wj32
 
 更新历史：
 
@@ -297,9 +291,10 @@ v1.9.4
 v1.9.5
 增加 伪装蓝屏的真实性
 增加 按钮阴影特效
+增加 窗口拖动缩放功能
 修复 部分快捷键在win7系统上偶尔出错的bug
 
-最后修改：2020-6-29
+最后修改：2020-8-16
 
 本版为正式版(或许吧)
 

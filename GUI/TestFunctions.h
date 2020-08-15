@@ -30,12 +30,6 @@ void s2(int a)
 	OutputDebugString(tmp);
 }
 void s2(){OutputDebugString(L"0\n");}
-void s2(double a)
-{
-	char tmp[34] = { 0 };
-	_gcvt_s(tmp, a, 34);
-	OutputDebugStringA(tmp);
-}
 
 
 

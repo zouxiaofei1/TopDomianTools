@@ -1287,8 +1287,8 @@ public:
 	{//						(ÓÉÓÚÄ³ÀúÊ·Ô­Òò£¬Ëõ·Å´óÐ¡µÄ±äÁ¿±»ÎÒÃüÃû³ÉÁËDPI)
 		if (DPI == NewDPI)return;
 		DPI = NewDPI;//´´½¨ÐÂ´óÐ¡µÄ×ÖÌå
-		if(DefFont)DeleteObject(DefFont);
-		DefFont = CreateFontW(max((int)(16 * DPI),8), max((int)(8 * DPI),4), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("ËÎÌå"));
+		if (DefFont)DeleteObject(DefFont);
+		DefFont = CreateFontW(max((int)(16 * DPI), 8), max((int)(8 * DPI), 4), 0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("ËÎÌå"));
 		for (int i = 1; i <= CurEdit; ++i)SetEditStrOrFont(0, DefFont, i), RefreshXOffset(i);//ÉèÖÃ×ÖÌå
 		RefreshCaretByPos(CoverEdit);
 		if (Width != 0 && Height != 0)SetWindowPos(hWnd, NULL, 0, 0, (int)(Width * DPI - 0.5), (int)(Height * DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
@@ -1780,7 +1780,7 @@ BOOL CALLBACK EnumFullScreenWnd(HWND hwnd, LPARAM lParam)//É±µôÈ«ÆÁ´°¿ÚµÄÃ¶¾Ùº¯Ê
 skipped:
 	return 1;
 }
-void KillFullScreen()//É±µôÈ«ÆÁ´°¿Ú
+bool KillFullScreen()//É±µôÈ«ÆÁ´°¿Ú
 {
 	Map<int, BOOL>::Iterator it = expid.Begin();//Çå¿Õmap
 	if (it != 0)while (it != expid.End()) (*it).second = FALSE, ++it;
@@ -1793,7 +1793,8 @@ void KillFullScreen()//É±µôÈ«ÆÁ´°¿Ú
 		pe.szExeFile[3] = 0;
 		if (wcsstr(pe.szExeFile, L"exp") != 0)expid[pe.th32ProcessID] = TRUE;
 	}//½«ExplorerµÄPid¼ÓÈë±£»¤Ãûµ¥ÖÐ
-	if (!EnumWindows(EnumFullScreenWnd, NULL))error();
+	if (!EnumWindows(EnumFullScreenWnd, NULL)) { error(); return false; }
+	return true;
 }
 
 BOOL KillProcess(LPCWSTR ProcessName)//¸ù¾Ý½ø³ÌÃû½áÊø½ø³Ì.
@@ -2272,7 +2273,7 @@ forcedelete:
 
 BOOL UninstallSethc()//»Ö¸´Ô­À´µÄsethc.
 {//²»ÊÇ³£ÓÃµÄº¯Êý£¬µ«£¨ÓÖÊÇÀúÊ·Ô­Òò£©»¹ÊÇ±»±£ÁôÏÂÀ´
-	if (!DeleteFile(SethcPath)) { Main.InfoBox(L"DSR3Fail"); return FALSE; };//ÕâÊ±sethc±»É¾³ý¹ýÒ»´Î£¬ÒÑ¾­ÓµÓÐÆäËùÓÐÈ¨
+	DeleteFile(SethcPath);//ÕâÊ±sethc±»É¾³ý¹ýÒ»´Î£¬Ó¦¸ÃÒÑÓµÓÐÆäËùÓÐÈ¨
 	if (!CopyFile(L"C:\\SAtemp\\sethc", SethcPath, FALSE)) { Main.InfoBox(L"USFail"); return FALSE; }//»Ö¸´sethcÊ§°Ü?
 	else { Main.InfoBox(L"suc"); SethcState = TRUE; return TRUE; }
 }
@@ -2723,14 +2724,14 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//Ö÷¼Æ
 		{
 			if (Main.CoverButton != i && Main.Button[i].Percent > 0)
 			{//²»ÔÚÊó±êÉÏµÄ°´Å¥ÑÕÉ«Öð½¥±äµ­
-				Main.Button[i].Percent -= 2*Delta * (LowResource + 1);
+				Main.Button[i].Percent -= 2 * Delta * (LowResource + 1);
 				if (Main.Button[i].Percent < 0)Main.Button[i].Percent = 0;
 				Main.ButtonRedraw(i);
 			}
 		}
 		if (Main.CoverButton != -1 && Main.Button[Main.CoverButton].Percent < 100)
 		{//ÔÚÊó±êÉÏµÄ°´Å¥ÑÕÉ«ÒÔË«±¶ËÙ¶È±äÉî
-			Main.Button[Main.CoverButton].Percent += 3 * Delta*(LowResource+1);
+			Main.Button[Main.CoverButton].Percent += 3 * Delta * (LowResource + 1);
 			if (Main.Button[Main.CoverButton].Percent > 100)Main.Button[Main.CoverButton].Percent = 100;
 			Main.ButtonRedraw(Main.CoverButton);
 		}
@@ -2938,19 +2939,9 @@ DWORD WINAPI SizingThread(LPVOID pM)//³¢ÊÔÑ°ÕÒ²¢´ò¿ª¼«Óò
 {
 	(pM);
 	if (Main.CurWnd == 5)ShowWindow(FileList, SW_HIDE);
-	while(1)
+	UTState = true;
+	while (1)
 	{
-		if (!KEY_DOWN(VK_LBUTTON))
-		{
-			SizingLock = false;
-			if (Main.CurWnd == 5)
-			{
-				ShowWindow(FileList, SW_SHOW); 
-				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), 0);
-				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
-			}
-			return 0;
-		}
 		POINT point;
 		GetCursorPos(&point);
 		RECT rc;
@@ -2958,9 +2949,26 @@ DWORD WINAPI SizingThread(LPVOID pM)//³¢ÊÔÑ°ÕÒ²¢´ò¿ª¼«Óò
 		point.x -= rc.left; point.y -= rc.top;
 		double newDPI = min((double)point.x / (double)Main.Width, (double)point.y / (double)Main.Height);
 		if (newDPI < 0.3)newDPI = 0.3;
+		if (!KEY_DOWN(VK_LBUTTON))
+		{
+			UTState = false;
+			Main.SetDPI(newDPI);
+			SizingLock = false;
+			if (Main.CurWnd == 5)
+			{
+				ShowWindow(FileList, SW_SHOW);
+				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), 0);
+				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
+			}
+			return 0;
+		}
 		//if (abs(Main.DPI - newDPI) <= 0.012)continue;
-		Main.SetDPI(newDPI);
-		//Sleep(1);
+		SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * newDPI - 0.5), (int)(Main.Height * newDPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
+		Main.tdc = GetDC(Main.hWnd);
+		SetStretchBltMode(Main.tdc, HALFTONE);
+		StretchBlt(Main.tdc, 0, 0, (int)(Main.Width * newDPI - 0.5), (int)(Main.Height * newDPI - 0.5), Main.hdc, 0, 0, (int)(Main.Width * Main.DPI - 0.5), (int)(Main.Height * Main.DPI - 0.5), SRCCOPY);
+		ReleaseDC(Main.hWnd, Main.tdc);
+		Sleep(10);
 	}
 	return 0;
 }
@@ -3266,7 +3274,7 @@ void AutoCreateCatchWnd()
 BOOL RunCmdLine(LPWSTR str)//½âÎöÆô¶¯Ê±µÄÃüÁîÐÐ²¢Ö´ÐÐ
 {
 	BOOL console; DWORD pid;
-	_wcslwr(str);
+	_wcslwr(str);//È«²¿×ª»¯ÎªÐ¡Ð´×ÖÄ¸
 	for (unsigned int i = 0; i < wcslen(str); ++i)if (str[i] == L'/')str[i] = L'-';
 	if (GetSystemDefaultLangID() == 0x0409)//Ó¢ÎÄÏµÍ³ÉÏ×Ô¶¯ÇÐ»»ÓïÑÔ
 	{
@@ -3285,7 +3293,7 @@ BOOL RunCmdLine(LPWSTR str)//½âÎöÆô¶¯Ê±µÄÃüÁîÐÐ²¢Ö´ÐÐ
 	pid = GetParentProcessID(GetCurrentProcessId());
 	console = AttachConsole(pid);//¸½¼Óµ½¸¸½ø³ÌÃüÁîÐÐÉÏ
 	hdlWrite = GetStdHandle(STD_OUTPUT_HANDLE);
-	//setlocale(LC_ALL, "chs");//ÕâÒ»ÐÐÓï¾äÕ¼30k´óÐ¡£¬½÷É÷Ê¹ÓÃ
+	//setlocale(LC_ALL, "chs");//ÕâÒ»ÐÐÓï¾ä»áÔö¼Ó³ÌÐòÌå»ýÔ¼30k£¬½÷É÷Ê¹ÓÃ
 	slient = TRUE;
 
 	if (wcsstr(str, L"-help") != NULL || wcsstr(str, L"-?") != NULL)//ÏÔÊ¾°ïÖú
@@ -3322,35 +3330,35 @@ BOOL RunCmdLine(LPWSTR str)//½âÎöÆô¶¯Ê±µÄÃüÁîÐÐ²¢Ö´ÐÐ
 		AutoSetupSethc();
 		goto okreturn;
 	}
-	if (wcsstr(str, L"-enablebut") != NULL) { SetTimer(0, TIMER_ONEKEY, 1500, (TIMERPROC)TimerProc); goto noreturn; }//Ò»¼ü°²×°(EnableButton)
-	if (wcsstr(str, L"-auto") != NULL) { KillFullScreen(); Main.InfoBox(L"suc"); goto okreturn; }//×Ô¶¯½áÊøÖÃ¶¥½ø³Ì
+	if (wcsstr(str, L"-enablebut") != NULL) { SetTimer(0, TIMER_ONEKEY, 1500, (TIMERPROC)TimerProc); Main.InfoBox(L"suc"); goto noreturn; }//Ò»¼ü°²×°(EnableButton)
+	if (wcsstr(str, L"-killtop") != NULL) { if (KillFullScreen()) Main.InfoBox(L"suc"); goto okreturn; } //×Ô¶¯½áÊøÖÃ¶¥½ø³Ì
 	if (wcsstr(str, L"-unsethc") != NULL) { UninstallSethc(); goto okreturn; }//Ð¶ÔØsethc
-	if (wcsstr(str, L"-viewpass") != NULL) { AutoViewPass(); goto okreturn; }//ÏÔÊ¾ÃÜÂë
+	if (wcsstr(str, L"-vp") != NULL) { AutoViewPass(); goto okreturn; }//ÏÔÊ¾ÃÜÂë
 	if (wcsstr(str, L"-antishutdown") != NULL) { ShutdownDeleter(); Main.InfoBox(L"suc");  goto okreturn; }//É¾³ýshutdown
-	if (wcsstr(str, L"-reopen") != NULL) { TDSearchDirect(); ReopenTD(); if (TDPath[0] != 0) Main.InfoBox(L"suc"); goto okreturn; }
+	if (wcsstr(str, L"-retd") != NULL) { TDSearchDirect(); ReopenTD(); if (TDPath[0] != 0) Main.InfoBox(L"suc"); goto okreturn; }
 	if (wcsstr(str, L"-bsod") != NULL)
 	{
 		if (wcscmp(str, L"old") != 0) { BSOD(2); goto noreturn; }
 		if (wcscmp(str, L"new") != 0) { BSOD(1); goto noreturn; }
 		BSOD(0); goto noreturn;
 	}
-	if (wcsstr(str, L"-restart") != NULL) { Restart(); goto okreturn; }
+	if (wcsstr(str, L"-reboot") != NULL) { Restart(); goto okreturn; }
 	if (wcsstr(str, L"-clear") != NULL) { wchar_t tmp[MAX_STR] = { 0 }; AutoChangePassword(tmp, 1); goto okreturn; }
 	if (wcsstr(str, L"-rekill") != NULL)
 	{
 		wchar_t tmp[MAX_PATH], * tmp1 = wcsstr(str, L"-rekill");
 		if (!Findquotations(tmp1, tmp))goto error;
-		while (1) { KillProcess(tmp); Sleep(500); }
+		while (1) { if (KillProcess(tmp))Main.InfoBox(L"suc"); else error();  Sleep(500); }
 	}
-	if (wcsstr(str, L"-delete") != NULL)
+	if (wcsstr(str, L"-del") != NULL)
 	{
-		wchar_t tmp[MAX_PATH], * tmp1 = wcsstr(str, L"-delete");
+		wchar_t tmp[MAX_PATH], * tmp1 = wcsstr(str, L"-del");
 		if (!Findquotations(tmp1, tmp))goto error;
 		AutoDelete(tmp, TRUE);
 		goto okreturn;
 	}
-	if (wcsstr(str, L"-changewithpasswd") != NULL)//Ç°ºó¶þÕßË³Ðò²»ÄÜµ÷»»
-	{//ÒòÎªchangewithpasswd°üÀ¨changeÕâ¸ö×Ö·û´®
+	if (wcsstr(str, L"-changepasswd") != NULL)//Ç°ºó¶þÕßË³Ðò²»ÄÜµ÷»»
+	{//ÒòÎªchangepasswd°üÀ¨changeÕâ¸ö×Ö·û´®
 		wchar_t tmp[MAX_PATH] = { 0 }, * tmp1 = wcsstr(str, L"-changewithpasswd");
 		if (!Findquotations(tmp1, tmp))goto error;
 		AutoChangePassword(tmp, 2);
@@ -3710,9 +3718,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		if (Main.RedrawObject())goto finish;
 
 		//if (rc.right == (int)(Main.Width * Main.DPI)||rc.left==0) {
-			SelectObject(Main.hdc, WhiteBrush);//´òÓ¡°×É«±³¾°
-			SelectObject(Main.hdc, WhitePen);
-			Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
+		SelectObject(Main.hdc, WhiteBrush);//´òÓ¡°×É«±³¾°
+		SelectObject(Main.hdc, WhitePen);
+		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
 
 		//}
 		/*if (rc.top < (int)(Main.DPI * Main.TitleBar.Height))*/Main.DrawTitleBar();
@@ -3770,31 +3778,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		break;
 	case WM_COMMAND://µ±¿Ø¼þ½ÓÊÕµ½ÏûÏ¢Ê±»á´¥·¢Õâ¸ö
-		//switch (LOWORD(wParam))//TDTÖÐÖ»ÓÃÁËListÒ»¸ö¿Ø¼þ£¬ËùÒÔÏÂÃæµÄÄÚÈÝ¿Ï¶¨ÊÇÎÄ¼þÑ¡Ôñ¿òÁË= =
-		//{
-		//case 1:
-		switch (HIWORD(wParam))
-		{
-		case LBN_SELCHANGE:
+	{
+		if (HIWORD(wParam) == LBN_SELCHANGE) {//TDTÖÐÖ»ÓÃÁËListÒ»¸ö¿Ø¼þ£¬ËùÒÔÏÂÃæµÄÄÚÈÝ¿Ï¶¨ÊÇÎÄ¼þÑ¡Ôñ¿òÁË= =
 			wchar_t LanguageName[MAX_PATH], LanguagePath[MAX_PATH];
 			SendMessage(FileList, LB_GETTEXT, ::SendMessage(FileList, LB_GETCURSEL, 0, 0), (LPARAM)LanguageName);
 			wcscpy_s(LanguagePath, TDTempPath);
 			wcscat_s(LanguagePath, L"language\\");
 			wcscat_s(LanguagePath, LanguageName);
 			SwitchLanguage(LanguagePath);//¸ù¾Ýµã»÷µÄÄÚÈÝºÏ³É×Ö·û´®£¬È»ºóÇÐ»»ÓïÑÔ
-			ShowWindow(FileList, SW_HIDE);
-			ShowWindow(FileList, SW_SHOW);
-			break;
-		}break;
-		//}
+		}
 		break;
-
+	}
 	case WM_LBUTTONDOWN://µãÏÂÊó±ê×ó¼üÊ±
 	{
 		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMostÊ±ÒÀ¿¿È«¾Ö¼üÅÌ¹³×ÓÀ´»ñÈ¡ÊäÈëÐÅÏ¢
 
 		POINT p = Main.GetPos();
-		if (p.x > (int)(Main.Width * Main.DPI) - 10 && p.y > (int)(Main.Height * Main.DPI) - 10 && !SizingLock)
+		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 20 && !SizingLock)
 		{
 			CreateThread(NULL, 0, SizingThread, NULL, 0, NULL);
 			HCURSOR hc = LoadCursor(NULL, IDC_SIZENWSE);
@@ -4378,7 +4378,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		else DragState.first = 0;
 		POINT p = Main.GetPos();
-		if (p.x > (int)(Main.Width*Main.DPI) - 10 && p.y > (int)(Main.Height * Main.DPI) - 10)
+		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 20)
 		{
 			HCURSOR hc = LoadCursor(NULL, IDC_SIZENWSE);
 			SetCursor(hc);
