@@ -13,7 +13,7 @@
 #pragma comment(lib, "ws2_32.lib")//Winsock API ¿â
 
 //²¿·Ö(ÖØÒª)º¯ÊıµÄÇ°ÏòÉùÃ÷
-BOOL				InitInstance(HINSTANCE, int);//³õÊ¼»¯
+BOOL				InitInstance();//³õÊ¼»¯
 LRESULT	CALLBACK	WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//Ö÷´°¿Ú
 LRESULT CALLBACK	CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//"²¶×½´°¿Ú"µÄ´°¿Ú
 LRESULT CALLBACK	ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//½ØÍ¼Î±×°´°¿Ú
@@ -159,25 +159,24 @@ public:
 		wcscpy(str[HashTemp], Str);//¸´ÖÆĞÂµÄ
 	}
 
-	void CreateString(LPCWSTR Str, LPCWSTR ID)//´´½¨ĞÂ×Ö·û´®
+	__forceinline void CreateString(LPCWSTR Str, LPCWSTR ID)//´´½¨ĞÂ×Ö·û´®
 	{//×¢Òâ:Ó¦½öÔÚÊ¹ÓÃ³£Á¿³õÊ¼»¯Ê±Ê¹ÓÃ±¾º¯Êı,ÓÃ±äÁ¿³õÊ¼»¯ÊÇ½¨ÒéCurString++ÔÙÓÃSetStr
 		++CurString;
 		if (Str != NULL)//Ä¬ÈÏ½ö¸´ÖÆÖ¸Õë(Î£ÏÕ!)
 #ifdef _DEBUG
-			string[CurString].str = new wchar_t[wcslen(Str) + 1],
-			wcscpy(string[CurString].str, Str);
+			str[Hash(ID)] = new wchar_t[wcslen(Str) + 1],
+			wcscpy(str[Hash(ID)], Str);
 #else
 #ifdef _WIN64
-			string[CurString].str = new wchar_t[wcslen(Str) + 1],
-			wcscpy(string[CurString].str, Str);
+			str[Hash(ID)] = new wchar_t[wcslen(Str) + 1],
+			wcscpy(str[Hash(ID)], Str);
 #else
-			string[CurString].str = (LPWSTR)Str;
+
+			str[Hash(ID)] = (LPWSTR)Str;
 #endif
 #endif
-		string[CurString].ID = (LPWSTR)ID;
-		str[Hash(ID)] = string[CurString].str;
 	}
-	void CreateEditEx(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID, HFONT Font, BOOL Ostr)
+	void CreateEditEx(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, HFONT Font, BOOL Ostr)
 	{//´´½¨×Ô»æÊäÈë¿ò
 		++CurEdit;
 		Edit[CurEdit].Left = Left; Edit[CurEdit].Top = Top;
@@ -192,7 +191,6 @@ public:
 		}
 		else//Ã»ÓĞÌáÊ¾×Ö·û´®:
 			SetEditStrOrFont(name, Font, CurEdit);
-		wcscpy_s(Edit[CurEdit].ID, ID);
 	}
 	void CreateArea(int Left, int Top, int Wid, int Hei, int Page)//´´½¨µã»÷ÇøÓò
 	{
@@ -373,7 +371,7 @@ public:
 					Rectangle(hdc, (int)(Button[i].Left * DPI), (int)(Button[i].Top * DPI),
 						(int)(Button[i].Left * DPI + Button[i].Width * DPI * (Button[i].Download - 1) / 100), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
 				}
-				if (Button[i].Shadow)//ÔÚ°´Å¥µÄÓÒÏÂ·½»­Ò»È¦ÒõÓ°
+				if (Button[i].Shadow && ButtonEffect)//ÔÚ°´Å¥µÄÓÒÏÂ·½»­Ò»È¦ÒõÓ°
 				{
 					SelectObject(hdc, DDGreyPen);
 					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + 0.5), 0),
@@ -488,6 +486,7 @@ public:
 		begin:
 			if (Text[i].Page == 0 || Text[i].Page == CurWnd)
 			{
+				
 				SetTextColor(hdc, Text[i].rgb);
 				SelectObject(hdc, DefFont);//ÎÄ×ÖµÄ×ÖÌåËõ·ÅĞ§¹û²»Ì«ÀíÏë
 				wchar_t* TempText = str[Hash(Text[i].Name)];
@@ -1129,7 +1128,7 @@ public:
 					CoverButton = i;//ÉèÖÃCoverButton
 					if (ButtonEffect)//ÌØĞ§¿ªÆô
 					{//Éè¶¨½¥±äÉ«
-						Button[i].Percent += 40;//ÏÈ¸ø40%µÄÑÕÉ« £¨Ì«µ­ÁË¿´²»³öÀ´£©
+						Button[i].Percent += 3;//ÏÈ¸ø30%µÄÑÕÉ« £¨Ì«µ­ÁË¿´²»³öÀ´£©
 						if (Button[i].Percent > 100)Button[i].Percent = 100;
 					}
 					ButtonRedraw(i);//ÖØ»æ
@@ -1233,6 +1232,10 @@ public:
 	{
 		if (Obredraw)Readd(REDRAW_BUTTON, cur);
 		Redraw(GetRECT(cur));//±ê×¼ObjectRedrawĞ´·¨
+	}
+	BOOL YesNoBox(LPCWSTR Str)
+	{
+		return MessageBox(hWnd, GetStr(Str), GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) == IDOK;
 	}
 	void InfoBox(LPCWSTR Str)//È«×Ô¶¯µÄMessageBox
 	{
@@ -1353,8 +1356,8 @@ public:
 			y = x;
 		}
 		ExpPoint = GetPos();
-		if (ExpPoint.x > (int)((float)Width * DPI / 2.0))ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//×Ô¶¯Ñ¡Ôñ×¢ÊÍµÄÎ»ÖÃ
-		if (ExpPoint.y > (int)((float)Height * DPI / 2.0))ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//·ÀÖ¹´òÓ¡µ½´°¿ÚÍâÃæ
+		if (ExpPoint.x > (int)((float)Width * DPI / (float)2.0))ExpPoint.x -= (ExpWidth + 6); else ExpPoint.x += 12;//×Ô¶¯Ñ¡Ôñ×¢ÊÍµÄÎ»ÖÃ
+		if (ExpPoint.y > (int)((float)Height * DPI / (float)2.0))ExpPoint.y -= (ExpHeight + 6); else ExpPoint.y += 14;//·ÀÖ¹´òÓ¡µ½´°¿ÚÍâÃæ
 		RECT rc{ ExpPoint.x, ExpPoint.y, ExpPoint.x + ExpWidth, ExpPoint.y + ExpHeight + 2 };//×¢ÒâÕâÀïµÄExpPointµÈ¶¼ÊÇÕæÊµ×ø±ê
 		Readd(REDRAW_EXP, 1);
 		Redraw(rc);
@@ -1581,17 +1584,13 @@ public:
 		int strWidth, strHeight, Pos1, Pos2, XOffset, strLength;
 		int* strW;
 		BOOL Press;
-		wchar_t* str, ID[MAX_ID], OStr[21];
+		wchar_t* str, OStr[21];
 		HFONT font;
 	}Edit[MAX_EDIT];
 	struct ClickAreaEx//µã»÷ÇøÓò
 	{
 		int Left, Top, Width, Height, Page;
 	}Area[MAX_AREA];
-	struct GUIString//´øID±êÇ©µÄ×Ö·û´®
-	{
-		wchar_t* str, * ID;
-	}string[MAX_STRING];
 
 	int ExpLine, ExpHeight, ExpWidth;//¹ØÓÚExplainationµÄ¼¸¸ö±äÁ¿
 	wchar_t Exp[MAX_EXPLINES][MAX_EXPLENGTH];
@@ -1607,7 +1606,7 @@ public:
 	int CurString, CurButton, CurFrame, CurCheck, CurLine, CurText, CurEdit, CurArea;//¸÷ÖÖ¿Ø¼şµÄÊıÁ¿
 	float DPI = 1;//Ëõ·Å´óĞ¡
 	int CoverButton, CoverCheck, CoverEdit, CoverArea;//µ±Ç°±»Êó±ê¸²¸ÇµÄ¶«Î÷
-	BOOL Obredraw = FALSE;//ÊÇ·ñÆôÓÃObjectRedraw¼¼Êõ
+	BOOL Obredraw = TRUE;//ÊÇ·ñÆôÓÃObjectRedraw¼¼Êõ - Ä¬ÈÏ¿ªÆô
 	BOOL ButtonEffect = FALSE;//ÊÇ·ñ¿ªÆô½¥±äÉ«
 	int CurWnd;//µ±Ç°µÄÒ³Ãæ
 	int Press;//Êó±ê×ó¼üÊÇ·ñ°´ÏÂ
@@ -1648,8 +1647,8 @@ public://ÕâĞ©º¯ÊıÖĞÓĞĞ©²ÎÊıÃ»ÓĞÓÃµ½£¬»áµ¼ÖÂ´óÁ¿¾¯¸æ.
 		if (ulProgressMax != 0)//ulProgress£ºÒÑÏÂÔØµÄ×Ö½ÚÊı
 		{//ulProgressMax£º×Ü×Ö½ÚÊı
 			float percentage;
-			if (factmax == 0) percentage = float(ulProgress * 1.0 / ulProgressMax * 100);//¼ÆËãÏÂÔØ°Ù·Ö±È
-			else  percentage = float(ulProgress * 1.0 / factmax * 100);//×¢Òâ£¡ÓĞÊ±º¯ÊıÎŞ·¨µÃµ½ÕıÈ·µÄulProgressMax£¬ËäÈ»Ã»ÓĞÏÂÍê
+			if (factmax == 0) percentage = (float)ulProgress / (float)ulProgressMax * 100;//¼ÆËãÏÂÔØ°Ù·Ö±È
+			else  percentage = (float)ulProgress / (float)factmax * 100;//×¢Òâ£¡ÓĞÊ±º¯ÊıÎŞ·¨µÃµ½ÕıÈ·µÄulProgressMax£¬ËäÈ»Ã»ÓĞÏÂÍê
 			if (Main.Button[curi].Download != (int)percentage + 1)//percentageÈÔ»áµÈÓÚ100%£¬µ¼ÖÂÒ»ÏµÁĞ´íÎó
 			{//																		ÕâÊ±ºòÓ¦¾¡Á¿´«ÈëÎÄ¼şµÄÕıÈ·´óĞ¡(factmax)
 				Main.Button[curi].Download = (int)percentage + 1;
@@ -2242,7 +2241,7 @@ BOOL SearchTool(LPCWSTR lpPath, int type)//1:´ò¿ª¼«Óò 2:É¾³ıshutdown 3:É¾³ıÎÄ¼ş¼
 	FindClose(hFind);//¹Ø±Õ¾ä±ú
 	return TRUE;
 }
-void AutoDelete(wchar_t* FilePath, BOOL sli)//×Ô¶¯É¾³ıÎÄ¼ş.
+void AutoDelete(const wchar_t* FilePath, BOOL sli)//×Ô¶¯É¾³ıÎÄ¼ş.
 {
 	int FileType = GetFileAttributes(FilePath);
 	if (FileType == -1)
@@ -2334,7 +2333,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 			Main.es[++Main.es[0].top] = Rc;
 			Main.Redraw(Rc);//ÖØ»æÕ¹¿ª²¿·Ö
 			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
-			Sleep(12);
+			Sleep(10);
 		}
 		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		Main.Width = DEFAULT_WIDTH + 240;
@@ -2351,7 +2350,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
 			Main.Redraw(Rc);
 			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
-			Sleep(12);
+			Sleep(10);
 		}
 		Main.Width = DEFAULT_WIDTH;
 		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
@@ -2398,7 +2397,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)//·Ö·¢ÏÂÔØ(ÓÎÏ·)ÈÎÎñµÄÏß³Ì.
 		progress.curi = BUT_ARP;
 		if (GetFileAttributes(L"C:\\Windows\\System32\\wpcap.dll") == -1)//WinPcapÎ´°²×°
 		{
-			if (MessageBox(Main.hWnd, Main.GetStr(L"WPAsk"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)return 0;
+			if (!Main.YesNoBox(L"WPAsk"))return 0;
 			//ÊÇ·ñÍ¬ÒâÏÂÔØÒ»¸ö?
 			WPinstalled = FALSE;
 			Main.Button[BUT_ARP].Download = Main.Button[BUT_ARP].DownCur = 1;
@@ -2842,6 +2841,8 @@ DWORD WINAPI SDThread(LPVOID pM)//ÇĞ»»×ÀÃæµÄÏß³Ì
 		si.cb = sizeof(si);
 		si.lpDesktop = szVDesk;
 		CreateProcess(NULL, ExplorerPath, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 		FirstSD = false;
 	}
 	HDESK vdback;
@@ -2930,9 +2931,9 @@ void ReopenTD()//ÔÚÒÑÖªÂ·¾¶µÄÇé¿öÏÂ£¬ÖØĞÂ´ò¿ª¼«Óòµç×Ó½ÌÊÒ
 			STARTUPINFO si = { 0 };
 			si.cb = sizeof(si);
 			si.lpDesktop = szVDesk;//¿ÉÄÜÒªÔÚĞéÄâ×ÀÃæÀïÔËĞĞ
-			RunEXE(TDPath, NULL, &si);
+			if (!RunEXE(TDPath, NULL, &si))Main.InfoBox(L"StartFail");
 		}
-		else RunEXE(TDPath, NULL, nullptr);
+		else if (!RunEXE(TDPath, NULL, nullptr))Main.InfoBox(L"StartFail");
 	}
 }
 DWORD WINAPI SizingThread(LPVOID pM)//³¢ÊÔÑ°ÕÒ²¢´ò¿ª¼«Óò
@@ -2947,8 +2948,9 @@ DWORD WINAPI SizingThread(LPVOID pM)//³¢ÊÔÑ°ÕÒ²¢´ò¿ª¼«Óò
 		RECT rc;
 		GetWindowRect(Main.hWnd, &rc);
 		point.x -= rc.left; point.y -= rc.top;
-		double newDPI = min((double)point.x / (double)Main.Width, (double)point.y / (double)Main.Height);
-		if (newDPI < 0.3)newDPI = 0.3;
+		float newDPI = min((float)point.x / (float)Main.Width, (float)point.y / (float)Main.Height);
+		if (newDPI < 0.3)newDPI = (float)0.3;
+		if(newDPI>2)newDPI = (float)2;
 		if (!KEY_DOWN(VK_LBUTTON))
 		{
 			UTState = false;
@@ -3111,7 +3113,7 @@ void AutoViewPass()//¶ÁÈ¡ÃÜÂë²¢ÏÔÊ¾
 	if (ret != 0 && slient == FALSE)//´ò²»¿ªÎÄ¼ş¼Ğ
 	{
 		if (slient) { error = TRUE; goto finish; }//ÃüÁîĞĞµ÷ÓÃÊ±Ö±½Ó½áÊø
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+		if (!Main.YesNoBox(L"VPFail"))goto finish;
 	}
 
 	ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType, (LPBYTE)&szLocation, &dwSize);//³¢ÊÔ¶ÁÈ¡¼üÖµ
@@ -3144,7 +3146,7 @@ encrypted:
 	if (ret != 0 && slient == FALSE)//´ò²»¿ªÎÄ¼ş¼Ğ
 	{
 		if (slient) { error = TRUE; goto finish; }//ÃüÁîĞĞµ÷ÓÃÊ±Ö±½Ó½áÊø
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+		if (!Main.YesNoBox(L"VPFail"))goto finish;
 	}
 
 	ret = RegQueryValueExW(hKey, L"Knock1", 0, &dwType2, (LPBYTE)bits, &dwSize2);//³¢ÊÔ¶ÁÈ¡¼üÖµ
@@ -3180,14 +3182,14 @@ encrypted2:
 	if (ret != 0 && slient == FALSE)//´ò²»¿ªÎÄ¼ş¼Ğ
 	{
 		if (slient) { error = TRUE; goto finish; }//ÃüÁîĞĞµ÷ÓÃÊ±Ö±½Ó½áÊø
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+		if (!Main.YesNoBox(L"VPFail"))goto finish;
 	}
 
 	ret = RegQueryValueExW(hKey, L"Key", 0, &dwType2, (LPBYTE)&bits, &dwSize2);//³¢ÊÔ¶ÁÈ¡¼üÖµ
 	if (ret != 0 && slient == FALSE)//´ò²»¿ªÎÄ¼ş¼Ğ
 	{
 		if (slient) { error = TRUE; goto finish; }//ÃüÁîĞĞµ÷ÓÃÊ±Ö±½Ó½áÊø
-		if (MessageBox(Main.hWnd, Main.GetStr(L"VPFail"), Main.GetStr(L"Info"), MB_ICONINFORMATION | MB_OKCANCEL) != IDOK)goto finish;
+		if (!Main.YesNoBox(L"VPFail"))goto finish;
 	}
 
 	for (int i = 0; i < 150; ++i)
@@ -3293,6 +3295,7 @@ BOOL RunCmdLine(LPWSTR str)//½âÎöÆô¶¯Ê±µÄÃüÁîĞĞ²¢Ö´ĞĞ
 	pid = GetParentProcessID(GetCurrentProcessId());
 	console = AttachConsole(pid);//¸½¼Óµ½¸¸½ø³ÌÃüÁîĞĞÉÏ
 	hdlWrite = GetStdHandle(STD_OUTPUT_HANDLE);
+
 	//setlocale(LC_ALL, "chs");//ÕâÒ»ĞĞÓï¾ä»áÔö¼Ó³ÌĞòÌå»ıÔ¼30k£¬½÷É÷Ê¹ÓÃ
 	slient = TRUE;
 
@@ -3379,7 +3382,9 @@ BOOL RunCmdLine(LPWSTR str)//½âÎöÆô¶¯Ê±µÄÃüÁîĞĞ²¢Ö´ĞĞ
 		goto okreturn;
 	}
 error:
-	Main.InfoBox(L"unkcmd");
+	SetConsoleTextAttribute(hdlWrite, FOREGROUND_RED | FOREGROUND_INTENSITY);
+	Main.InfoBox(L"unkcmd");//±¨´íÊ±Ê¹ÓÃºìÉ«×ÖÌå
+	SetConsoleTextAttribute(hdlWrite, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 okreturn:
 	if (!console)return TRUE;
 	FreeConsole();//ÔÚ½áÊøÇ°Ä£ÄâÒ»ÏÂ»Ø³µ¼ü»»ĞĞ
@@ -3393,13 +3398,12 @@ noreturn:
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,//³ÌĞòÈë¿Úµã
 	_In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {//ºÍ³ÌĞò½çÃæÎŞ¹ØµÄ³õÊ¼»¯
-	UNREFERENCED_PARAMETER(hPrevInstance);
+	//UNREFERENCED_PARAMETER(hPrevInstance);
 
 	GetPath();//»ñÈ¡×ÔÉíÄ¿Â¼
 	Admin = IsUserAnAdmin();//ÊÇ·ñ¹ÜÀíÔ±
 	FirstFlag = (GetFileAttributes(TDTempPath) == -1);
 	BackupSethc();//±¸·İsethc
-
 	if (Admin && *lpCmdLine == 0)
 	{//ÅĞ¶ÏÊÇ·ñÎª·şÎñ³ÌĞò
 		if (wcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
@@ -3419,7 +3423,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);//´´½¨ĞéÄâ×ÀÃæ
 
 	SetProcessAware();//ÈÃÏµÍ³²»¶ÔÕâ¸ö³ÌĞò½øĞĞËõ·Å,ÔÚÒ»Ğ©±Ê¼Ç±¾ÉÏÓĞÓÃ
-	if (!InitInstance(hInstance, nCmdShow))return FALSE;//ºÍ³ÌĞò½çÃæÓĞ¹ØµÄ³õÊ¼»¯
+
+	hInst = hInstance; // ½«ÊµÀı¾ä±ú´æ´¢ÔÚÈ«¾Ö±äÁ¿ÖĞ
+	if (!InitInstance())return FALSE;//ºÍ³ÌĞò½çÃæÓĞ¹ØµÄ³õÊ¼»¯
 
 	MSG msg;
 	// Ö÷ÏûÏ¢Ñ­»·: 
@@ -3430,13 +3436,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	return (int)msg.wParam;
 }
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
+BOOL InitInstance()//³õÊ¼»¯
 {
 	InitBrushs;//´´½¨»­±Ê & »­Ë¢
 	Main.SetTitleBar(COLOR_TITLE_1, TITLEBAR_HEIGHT);
 	//·ÅÔÚTestFunctions.hÀïÒÔ¼õÉÙGUI.cpp³¤¶È
-
-	hInst = hInstance; // ½«ÊµÀı¾ä±ú´æ´¢ÔÚÈ«¾Ö±äÁ¿ÖĞ
 
 	InitHotKey();
 	int yLength = GetSystemMetrics(SM_CYSCREEN);
@@ -3445,32 +3449,31 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
 	if (yLength <= 650)Main.DPI = 0.5;
 
 	if (yLength <= 1070)LowResource = TRUE;//ÔÚÆÁÄ»·Ö±æÂÊ½ÏµÍµÄµçÄÔÉÏ×Ô¶¯½µµÍ»­ÖÊ
-
 	Main.InitClass(hInst);//³õÊ¼»¯Class
 	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//×¢²á´°¿ÚÀà
-	Main.Obredraw = TRUE;//Ä¬ÈÏÊ¹ÓÃObjectRedraw
-	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290, (int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInstance, nullptr);
+	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290,\
+	(int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInst, nullptr);
 
 	if (!Main.hWnd)return FALSE;//´´½¨Ö÷´°¿ÚÊ§°Ü¾ÍÖ±½ÓÍË³ö
 
-	Main.ButtonEffect = TRUE;//°´Å¥½¥±äÉ«ÌØĞ§
-	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, LowResource ? 16 : 1, (TIMERPROC)TimerProc);//ÆôÓÃ½¥±äÉ«¼ÆÊ±Æ÷
+	Main.ButtonEffect = !LowResource;//°´Å¥½¥±äÉ«ÌØĞ§
+	if (!LowResource)SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//ÆôÓÃ½¥±äÉ«¼ÆÊ±Æ÷
 	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//°ëÍ¸Ã÷ÌØĞ§
 
-	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", L"E_runinVD", 0, FALSE);//´´½¨ÊäÈë¿ò
-	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", L"E_Pname", 0, FALSE);
-	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", L"E_Delay", 0, FALSE);
-	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"ÊäÈëĞÂ¶Ë¿Ú", L"E_ApplyCh", 0, TRUE);
-	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"ÊäÈëĞÂÃÜÂë", L"E_CP", 0, TRUE);
-	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"ä¯ÀÀÎÄ¼ş/ÎÄ¼ş¼Ğ", L"E_View", 0, TRUE);
-	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", L"E_TDname", 0, FALSE);
+	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", 0, FALSE);//´´½¨ÊäÈë¿ò
+	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", 0, FALSE);
+	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", 0, FALSE);
+	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"ÊäÈëĞÂ¶Ë¿Ú", 0, TRUE);
+	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"ÊäÈëĞÂÃÜÂë", 0, TRUE);
+	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"ä¯ÀÀÎÄ¼ş/ÎÄ¼ş¼Ğ", 0, TRUE);
+	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", 0, FALSE);
 
 	Main.CreateButtonEx(1, 1, 50, 139, 64, 0, L"Ö÷Òª¹¦ÄÜ", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P1");//ÇĞ»»Ò³Ãæ°´Å¥
 	Main.CreateButtonEx(2, 1, 115, 139, 64, 0, L"¼«Óò¹¤¾ßÏä", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P2");//
 	Main.CreateButtonEx(3, 1, 180, 139, 64, 0, L"ÆäËû¹¤¾ß", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P3");
 	Main.CreateButtonEx(4, 1, 245, 139, 64, 0, L"¹ØÓÚ", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P4");
 	Main.CreateButtonEx(5, 1, 310, 139, 64, 0, L"ÉèÖÃ", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P5");
-	Main.CreateButtonEx(6, 1, 375, 139, 173, 0, L"Ò»¼ü°²×°", LGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"QuickSetup");
+	Main.CreateButtonEx(6, 1, 375, 139, 173, 0, L"Ò»¼ü°²×°", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"QS");
 	Main.CurButton = 6;
 	Main.CreateLine(140, 51, 140, 549, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(0, 51, 0, 549, 0, COLOR_DARKER_GREY);//ÇĞ»»Ò³Ãæ°´Å¥±ßÉÏµÄÏß
@@ -3479,9 +3482,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
 	Main.CreateLine(2, 244, 139, 244, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(2, 309, 139, 309, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(2, 374, 139, 374, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(0, DEFAULT_HEIGHT - 1, DEFAULT_WIDTH + 241, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(DEFAULT_WIDTH - 1, 50, DEFAULT_WIDTH - 1, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);
-	Main.CreateLine(DEFAULT_WIDTH + 240, 50, DEFAULT_WIDTH + 240, DEFAULT_HEIGHT - 1, 0, COLOR_DARKER_GREY);//´°¿Ú×îÓÒ±ßµÄÏß
+	Main.CreateLine(DEFAULT_WIDTH - 1, 50, DEFAULT_WIDTH + 1, DEFAULT_HEIGHT + 1, 0, COLOR_DARKER_GREY);
 
 	Main.CreateFrame(170, 75, 415, 95, 1, L" ½ø³Ì·½°¸ ");
 	Main.CreateButton(195, 100, 110, 50, 1, L"°²×°sethc", L"Sethc");//sethc
@@ -3580,7 +3581,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);//ÀıÈç Main.Timer % 50 == 0 ÕâÌõÓï¾ä£¬Êµ¼Ê´¥·¢¸ÅÂÊÊÇ25·ÖÖ®1
 
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 500, (TIMERPROC)TimerProc);//¿ªÆôExp¼ÆÊ±Æ÷
-	if (!slient)ShowWindow(Main.hWnd, nCmdShow);
+	if (!slient)ShowWindow(Main.hWnd, SW_SHOW);
 
 	Main.CreateButton(185, 155, 110, 45, 2, L"Ó¦ÓÃ", L"ApplyCh");
 	Main.CreateButton(365, 102, 97, 45, 2, L"Çå¿ÕÃÜÂë", L"ClearPass");
@@ -3604,12 +3605,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
 	Main.CreateButton(325, 151, 97, 55, 3, L"¿ªÊ¼·ÛËé", L"Delete");
 	Main.CreateCheck(195, 160, 3, 100, L" ¼ÓÔØÇı¶¯");
 	Main.CreateButton(192, 280, 115, 60, 3, L"BSOD(À¶ÆÁ)", L"BSOD");
-	Main.CreateButton(324, 280, 100, 60, 3, L"¿ìËÙÖØÆô", L"NtShutdown");
+	Main.CreateButton(324, 280, 100, 60, 3, L"¿ìËÙÖØÆô", L"Res");
 	Main.CreateButton(192, 412, 100, 60, 3, L"ARP¹¥»÷", L"ARP");
-	Main.CreateButton(304, 412, 140, 60, 3, L"SystemÈ¨ÏŞCMD", L"SuperCMD");
+	Main.CreateButton(304, 412, 140, 60, 3, L"SystemÈ¨ÏŞCMD", L"sysCMD");
 	Main.CreateButton(455, 412, 105, 60, 3, L"¸Éµô360", L"Killer");//32
-	Main.CreateButton(490, 415, 100, 50, 4, L"°ïÖúÎÄµµ", L"more.txt");
-	Main.CreateButton(490, 477, 100, 50, 4, L"ÏµÍ³ĞÅÏ¢", L"sysinfo");//34
+	Main.CreateButton(490, 415, 100, 50, 4, L"°ïÖúÎÄµµ", L"more");
+	Main.CreateButton(490, 477, 100, 50, 4, L"ÏµÍ³ĞÅÏ¢", L"info");//34
 	Main.CreateCheck(180, 70, 5, 100, L" ´°¿ÚÖÃ¶¥");
 	Main.CreateCheck(180, 100, 5, 160, L" Ctrl+R ½ô¼±À¶ÆÁ");
 	Main.CreateCheck(180, 130, 5, 160, L" Ctrl+T ¿ìËÙÖØÆô");
@@ -3623,12 +3624,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)//³õÊ¼»¯
 	Main.CreateButton(470, 410, 105, 50, 5, L"ÓÀ¾ÃÒş²Ø", L"hidest");
 	Main.CreateButton(470, 470, 105, 50, 5, L"ÇåÀí²¢ÍË³ö", L"clearup");//36
 	Main.CreateButton(466, 255, 115, 106, 3, L"´òÓÎÏ·", L"Games");//37
-	Main.CreateButton(680, 95, 120, 50, 0, L"Ğ¡·É²Â´Ê", L"Game1");
-	Main.CreateButton(680, 160, 120, 50, 0, L"Flappy Bird", L"Game2");
-	Main.CreateButton(680, 225, 120, 50, 0, L"2048", L"Game3");
-	Main.CreateButton(680, 290, 120, 50, 0, L"¶íÂŞË¹·½¿é", L"Game4");
-	Main.CreateButton(680, 355, 120, 50, 0, L"¼û·ì²åÕë", L"Game5");
-	Main.CreateButton(680, 420, 120, 50, 0, L"Îå×ÓÆå", L"Game6");//43
+	Main.CreateButton(680, 95, 120, 50, 0, L"Ğ¡·É²Â´Ê", L"G1");
+	Main.CreateButton(680, 160, 120, 50, 0, L"Flappy Bird", L"G2");
+	Main.CreateButton(680, 225, 120, 50, 0, L"2048", L"G3");
+	Main.CreateButton(680, 290, 120, 50, 0, L"¶íÂŞË¹·½¿é", L"G4");
+	Main.CreateButton(680, 355, 120, 50, 0, L"¼û·ì²åÕë", L"G5");
+	Main.CreateButton(680, 420, 120, 50, 0, L"Îå×ÓÆå", L"G6");//43
 
 	if ((Main.Timer % 49) == 0 && FirstFlag && !slient)Main.InfoBox(L"Firststr");
 
@@ -3717,13 +3718,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		if (Main.RedrawObject())goto finish;
 
-		//if (rc.right == (int)(Main.Width * Main.DPI)||rc.left==0) {
+		if (rc.left==0) {
 		SelectObject(Main.hdc, WhiteBrush);//´òÓ¡°×É«±³¾°
 		SelectObject(Main.hdc, WhitePen);
 		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
 
-		//}
-		/*if (rc.top < (int)(Main.DPI * Main.TitleBar.Height))*/Main.DrawTitleBar();
+		}
+	if (rc.top < (int)(Main.DPI * Main.TitleBar.Height))Main.DrawTitleBar();
 
 		Main.DrawEVERYTHING();//ÖØ»æÈ«²¿
 
@@ -3794,7 +3795,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		if (UTState && lParam != UT_MESSAGE)break;//UltraTopMostÊ±ÒÀ¿¿È«¾Ö¼üÅÌ¹³×ÓÀ´»ñÈ¡ÊäÈëĞÅÏ¢
 
 		POINT p = Main.GetPos();
-		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 20 && !SizingLock)
+		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 30 && !SizingLock)
 		{
 			CreateThread(NULL, 0, SizingThread, NULL, 0, NULL);
 			HCURSOR hc = LoadCursor(NULL, IDC_SIZENWSE);
@@ -4211,7 +4212,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			{
 				wchar_t TempPath[MAX_PATH] = L"C:\\SAtemp\\Games\\";
 				wcscat_s(TempPath, GameName[Main.CoverButton - BUT_GAME1]);
-				RunEXE(TempPath, NULL, nullptr);
+				if (!RunEXE(TempPath, NULL, nullptr))Main.InfoBox(L"StartFail");
 			}
 			else { CreateDownload(Main.CoverButton - BUT_GAME1 + 1); }break;
 		}
@@ -4378,7 +4379,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		else DragState.first = 0;
 		POINT p = Main.GetPos();
-		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 20)
+		if (p.x + p.y > (int)((Main.Width + Main.Height) * Main.DPI) - 30)
 		{
 			HCURSOR hc = LoadCursor(NULL, IDC_SIZENWSE);
 			SetCursor(hc);
@@ -4619,7 +4620,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			{//±»¼àÊÓ´°¿Ú³¤¿í±È <= ×Ô¼º³¤¿í±È
 				top = 0;
 				height = rc2.bottom - rc2.top;
-				left = (int)((rc2.right - rc2.left) / 2 - (rc2.bottom - rc2.top) * wh1 / 2.0);
+				left = (int)((rc2.right - rc2.left) / 2 - (rc2.bottom - rc2.top) * wh1 / (float)2.0);
 				width = (int)((rc2.bottom - rc2.top) * wh1);
 			}
 

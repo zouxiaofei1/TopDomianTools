@@ -55,5 +55,6 @@ BOOL AutoRegisterHotKey(HWND hwnd, int id, UINT Ms, UINT Vk)
 }
 void AutoUnregisterHotKey(HWND hwnd, int id)
 {
+	(hwnd);
 	Hotkey[id].Enabled = false;
 }

@@ -119,14 +119,14 @@ __forceinline void CheckIP(wchar_t* a)//取本机的ip地址
 	WSADATA wsaData;
 	char name[155];
 	char* ip;
-	wchar_t wip[20]= {0};
-	PHOSTENT hostinfo ;
+	wchar_t wip[20] = { 0 };
+	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{//具体原理不太清楚，详见百科
 		if (gethostname(name, sizeof(name)) == 0)
 			if ((hostinfo = gethostbyname(name)) != NULL)
 			{
-				ip = inet_ntoa(*(struct in_addr*) * hostinfo->h_addr_list);
+				ip = inet_ntoa(*(struct in_addr*)*hostinfo->h_addr_list);
 				MultiByteToWideChar(CP_ACP, 0, ip, -1, wip, 20);
 			}//清理
 		WSACleanup();
@@ -173,7 +173,10 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
 	PROCESS_INFORMATION pi = { 0 };
-	return CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
+	bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	return f;
 }
 
 ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, int style)
@@ -306,7 +309,7 @@ int CaptureImage()
 	return 0;
 }
 
-void SetProcessAware()
+__forceinline void SetProcessAware()
 {
 	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
 	SEtProcessDPIAware SetProcessDPIAware = 0;
@@ -481,7 +484,7 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 	CloseHandle(FileHandle);
 }
 
-void ReleaseLanguageFiles(const wchar_t* Path,int tag,wchar_t* str)//tag 和 str 可不填
+void ReleaseLanguageFiles(const wchar_t* Path, int tag, wchar_t* str)//tag 和 str 可不填
 {//当tag填1或2时函数将语言文件路径保存在str中
 	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
 	wcscpy_s(LanguagePath, Path);
