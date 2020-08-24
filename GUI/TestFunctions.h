@@ -4,6 +4,8 @@
 
 #pragma once
 #include "stdafx.h"
+#include "GUI.h"
+#include "mystd.h"
 #pragma warning(disable:4996)
 #pragma warning(disable:26812)
 
@@ -13,20 +15,20 @@ void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
 void s(int a)//当程序正式发布时可以去掉这几个函数
 {
 	wchar_t tmp[34] = { 0 };
-	_itow_s(a, tmp, 10);
+	myitow(a, tmp, MAX_NUM);
 	MessageBox(NULL, tmp, L"", NULL);
 }
-void s(double a)
-{
-	char tmp[34] = { 0 };
-	_gcvt_s(tmp, a, 34);
-	MessageBoxA(NULL, tmp ,0, NULL);
-}
+//void s(double a)
+//{
+//	char tmp[34] = { 0 };
+//	_gcvt_s(tmp, a, MAX_NUM);
+//	MessageBoxA(NULL, tmp ,0, NULL);
+//}
 void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
 {
 	wchar_t tmp[34] = { 0 };
-	_itow_s(a, tmp, 10); wcscat(tmp, L"\n");
+	myitow(a, tmp, MAX_NUM); mywcscat(tmp, L"\n");
 	OutputDebugString(tmp);
 }
 void s2(){OutputDebugString(L"0\n");}
@@ -34,24 +36,26 @@ void s2(){OutputDebugString(L"0\n");}
 
 
 
-
+#pragma warning(disable:6387)//tmp1+1可能是"0"
+#pragma warning(disable:6320)//异常筛选器表达式为常量 EXCEPTION_EXECUTE_HANDLER。这样可能会屏蔽不打算处理的异常。
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
 	__try
 	{
 		wchar_t tmp0;
-		wchar_t* tmp1 = wcsstr(zxf, L"\"");
-		wchar_t* tmp2 = wcsstr(tmp1 + 1, L"\"");
+		wchar_t* tmp1 = mywcsstr(zxf, L"\"");
+		wchar_t* tmp2 = mywcsstr(tmp1 + 1, L"\"");
 		if (tmp1 == 0 || tmp2 == 0)return false;
 		tmp0 = *tmp2;
 		*tmp2 = 0;
-		wcscpy(zxf2, tmp1 + 1);
+		mywcscpy(zxf2, tmp1 + 1);
 		*tmp2 = tmp0;
 		return true;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
-
+#pragma warning(default:6320)
+#pragma warning(default:6387)
 
 //
 //为了减少程序体积，从网上抄来的红黑树map代码
@@ -66,6 +70,7 @@ struct RBTreeNode {
 	RBTreeNode<K, V>* _pParent;
 	std::pair<K, V> _value;
 	COLOR _color;
+
 	RBTreeNode(const K& key = K(), const V& value = V(), COLOR color = RED)
 		: _pLeft(NULL)
 		, _pRight(NULL)
@@ -128,10 +133,6 @@ public:
 		return temp;
 	}
 
-	bool operator==(const Self& s)
-	{
-		return _pNode == s._pNode;
-	}
 
 	bool operator!=(const Self& s)
 	{

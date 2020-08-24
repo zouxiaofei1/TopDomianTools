@@ -12,6 +12,7 @@
 //myPAExec这个函数以正常方式调用没有任何效果!
 //
 
+#pragma warning(disable:6031)//返回值被忽略:ImpersonateLoggedOnUser
 #pragma once
 #include "stdafx.h"
 
@@ -87,6 +88,7 @@ public:
 		processID = 0;
 		bNoName = false;
 		sessionToInteractWith = (DWORD)-1; //not initialized
+		
 	}
 
 	bool bDontLoadProfile;
@@ -94,14 +96,14 @@ public:
 	bool bInteractive;
 	bool bRunElevated;
 	bool bRunLimited;
-	wchar_t password[300];
-	wchar_t user[300];
+	wchar_t password[300] = { 0 };
+	wchar_t user[300] = { 0 };
 	bool bUseSystemAccount;
-	wchar_t workingDir[300];
+	wchar_t workingDir[300] = {0};
 	bool bShowUIOnWinLogon;
 	int priority;
-	wchar_t app[300];
-	wchar_t appArgs[300];
+	wchar_t app[300] = { 0 };
+	wchar_t appArgs[300] = { 0 };
 	bool bDisableFileRedirection;
 
 	//NOT TRANSMITTED
@@ -126,7 +128,7 @@ void GetTokenUserSID(HANDLE hToken)
 {
 	DWORD tmp = 0;
 	wchar_t  tokenUserBuf[1024] = { 0 };
-	DWORD userTokenSize = 1024;
+	constexpr DWORD userTokenSize = 1024;
 
 	TOKEN_USER* userToken = (TOKEN_USER*)tokenUserBuf;
 
@@ -135,7 +137,7 @@ void GetTokenUserSID(HANDLE hToken)
 		WCHAR* pSidString = NULL;
 		if (userToken->User.Sid)
 			if (ConvertSidToStringSid(userToken->User.Sid, &pSidString))
-				wcscpy_s(GetTokenUserSIDname, pSidString);
+				mywcscpy(GetTokenUserSIDname, pSidString);
 		if (NULL != pSidString)
 			LocalFree(pSidString);
 	}
@@ -143,9 +145,10 @@ void GetTokenUserSID(HANDLE hToken)
 
 HANDLE GetLocalSystemProcessToken()
 {
-	DWORD pids[1024 * 10] = { 0 }, cbNeeded = 0, cProcesses = 0;
-
-	if (!EnumProcesses(pids, sizeof(pids), &cbNeeded))return NULL;
+	DWORD  cbNeeded = 0, cProcesses = 0;
+	DWORD* pids = new DWORD[1024 * 10];
+	//ZeroMemory(pids, 10000);
+	if (!EnumProcesses(pids, 1024 * 10, &cbNeeded))return NULL;
 
 	cProcesses = cbNeeded / sizeof(DWORD);
 	for (DWORD i = 0; i < cProcesses; ++i)
@@ -161,7 +164,7 @@ HANDLE GetLocalSystemProcessToken()
 				try
 				{
 					GetTokenUserSID(hToken);
-					if (wcscmp(GetTokenUserSIDname, L"S-1-5-18") == 0) //Well known SID for Local System
+					if (mywcscmp(GetTokenUserSIDname, L"S-1-5-18") == 0) //Well known SID for Local System
 					{
 						CloseHandle(hProcess);
 						return hToken;
@@ -177,6 +180,7 @@ HANDLE GetLocalSystemProcessToken()
 			gle = GetLastError();
 		if (hProcess)CloseHandle(hProcess);
 	}
+	delete[]pids;
 	return NULL;
 }
 
@@ -247,16 +251,16 @@ BOOL PrepForInteractiveProcess(Settings& settings, CleanupInteractive* pCI, DWOR
 void GetUserDomain(LPCWSTR userIn, wchar_t* user, wchar_t* domain)
 {
 	//run as specified user
-	wchar_t tmp[300]; wcscpy_s(tmp, userIn);
+	wchar_t tmp[300]; mywcscpy(tmp, userIn);
 	LPCWSTR userStr = NULL, domainStr = NULL;
-	if (NULL != wcschr(userIn, L'@'))
+	if (NULL != mywcschr(userIn, L'@'))
 		userStr = userIn; //leave domain as NULL
 	else
 	{
-		if (NULL != wcschr(userIn, L'\\'))
+		if (NULL != mywcschr(userIn, L'\\'))
 		{
-			domainStr = wcstok(tmp, L"\\");
-			userStr = wcstok(NULL, L"\\");
+			domainStr = mywcstok(tmp, L"\\");
+			userStr = mywcstok(NULL, L"\\");
 		}
 		else
 		{
@@ -264,8 +268,8 @@ void GetUserDomain(LPCWSTR userIn, wchar_t* user, wchar_t* domain)
 			domainStr = L".";
 		}
 	}
-	wcscpy(user, userStr);
-	if (domainStr)wcscpy(domain, domainStr);
+	mywcscpy(user, userStr);
+	if (domainStr)mywcscpy(domain, domainStr);
 }
 
 bool StartProcess(Settings& settings)
@@ -286,15 +290,15 @@ bool StartProcess(Settings& settings)
 	}
 
 	wchar_t path[300];
-	wcscpy_s(path, settings.app);
-	if (wcslen(settings.appArgs) != 0)
+	mywcscpy(path, settings.app);
+	if (mywcslen(settings.appArgs) != 0)
 	{
-		wcscat_s(path, L" ");
-		wcscat_s(path, settings.appArgs);
+		mywcscat(path, L" ");
+		mywcscat(path, settings.appArgs);
 	}
 
 	LPCWSTR startingDir = NULL;
-	if (wcslen(settings.workingDir) != 0)
+	if (mywcslen(settings.workingDir) != 0)
 		startingDir = settings.workingDir;
 
 	DWORD launchGLE = 0;
@@ -335,11 +339,11 @@ bool StartProcess(Settings& settings)
 	}
 	else
 	{
-		if (wcslen(settings.user) != 0) //launching as a specific user
+		if (mywcslen(settings.user) != 0) //launching as a specific user
 		{
 			if (false == settings.bRunLimited)
 			{
-				bLaunched = CreateProcessWithLogonW(user, (wcslen(domain) == 0) ? NULL : domain, settings.password, settings.bDontLoadProfile ? 0 : LOGON_WITH_PROFILE, NULL, path, dwFlags, pEnvironment, startingDir, &si, &pi);
+				bLaunched = CreateProcessWithLogonW(user, (mywcslen(domain) == 0) ? NULL : domain, settings.password, settings.bDontLoadProfile ? 0 : LOGON_WITH_PROFILE, NULL, path, dwFlags, pEnvironment, startingDir, &si, &pi);
 				launchGLE = GetLastError();
 			}
 			else
@@ -403,20 +407,20 @@ void myPAExec(bool cmd)
 {
 	Settings set;
 	if (cmd)
-		wcscpy_s(set.app, L"\"C:\\windows\\system32\\cmd.exe\"");
+		mywcscpy(set.app, L"\"C:\\windows\\system32\\cmd.exe\"");
 	else
 	{
-		wcscpy_s(set.app, L"\"");
+		mywcscpy(set.app, L"\"");
 		wchar_t tmpstr[300]; GetModuleFileName(NULL, tmpstr, 300);
-		wcscat_s(set.app, tmpstr);
-		wcscat_s(set.app, L"\"");
-		wcscpy_s(set.appArgs, L"-top");
+		mywcscat(set.app, tmpstr);
+		mywcscat(set.app, L"\"");
+		mywcscpy(set.appArgs, L"-top");
 		set.bShowUIOnWinLogon = true;
 	}
 	set.bInteractive = true;
 	set.bUseSystemAccount = true;
 	set.sessionToInteractWith = (DWORD)-1;
-	wcscpy_s(set.user, L"SYSTEM");
+	mywcscpy(set.user, L"SYSTEM");
 	StartProcess(set);
 	return;
 }

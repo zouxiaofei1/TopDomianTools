@@ -11,9 +11,18 @@ VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
 #define SE_SHUTDOWN_PRIVILEGE  0x13
 
-const unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
+constexpr unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
 {
-	const unsigned int seed = 131;
+	constexpr unsigned int seed = 131;
+	unsigned int hash = 0;
+
+	while (*str)hash = hash * seed + (*str++);
+
+	return (hash & 0x7FFFFFFF);
+}
+const unsigned int Hash2(const wchar_t* str)//获取一个字符串的"散列值"
+{
+	constexpr unsigned int seed = 131;
 	unsigned int hash = 0;
 
 	while (*str)hash = hash * seed + (*str++);
@@ -34,12 +43,12 @@ __forceinline VOID RestartDirect()//创建快速重启的线程
 	CreateThread(0, 0, RestartThread, 0, 0, 0);
 }
 
-DWORD WINAPI RestartThread(LPVOID pM)//快速重启
+DWORD WINAPI  RestartThread(LPVOID pM)//快速重启
 {//不应直接调用，否则主线程会卡一会儿
 	(pM);
 	typedef int(__stdcall* PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
 	typedef int(__stdcall* PFN_ZwShutdownSystem)(int);
-	HMODULE hModule = ::LoadLibrary(_T("ntdll.dll"));
+	HMODULE hModule = ::LoadLibrary(L"ntdll.dll");
 	if (hModule != NULL)
 	{//寻找ZwShutdownSystem的地址
 		PFN_RtlAdjustPrivilege pfnRtl = (PFN_RtlAdjustPrivilege)GetProcAddress(hModule, "RtlAdjustPrivilege"); PFN_ZwShutdownSystem
@@ -57,7 +66,7 @@ DWORD WINAPI RestartThread(LPVOID pM)//快速重启
 
 BOOL MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些含有特殊字符的文件夹
 {//使得AutoDelete执行完毕后，可能会残留少许空的目录无法删除。这里尝试调用SHFileOperation删除它们
-	size_t len = wcslen(FilePath);
+	size_t len = mywcslen(FilePath);
 	FilePath[len + 1] = FilePath[len + 1] = 0;//SHFileOperation有一个bug,文件目录的最后 2 个字符都必须是NULL
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.fFlags = FOF_NO_UI;
@@ -78,6 +87,11 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 	return FALSE;
 }
 
+#pragma warning(disable:28159)//编译器建议我们使用IsWindows7OrGreater()这类的函数
+//但是这种函数只支持win7及以上的系统
+//所以我们就不听取这个建议了= =
+
+
 BOOL GetOSDisplayString(wchar_t* pszOS)
 {//获取系统版本的函数
 	OSVERSIONINFOEX osvi;
@@ -87,13 +101,13 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果总是6.2(9200)
 	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
 
-	wchar_t tmp[MAX_STR];//(不过对于win7以前的系统用GetVersionEx没有问题)
-	_itow_s(osvi.dwMajorVersion, tmp, 10);//大版本号
-	wcscpy(pszOS, tmp); wcscat(pszOS, L".");
-	_itow_s(osvi.dwMinorVersion, tmp, 10);//小版本号
-	wcscat(pszOS, tmp); wcscat(pszOS, L".");
-	_itow_s(osvi.dwBuildNumber, tmp, 10);//build
-	wcscat(pszOS, tmp);
+	wchar_t tmp[MAX_NUM] = { 0 };//(不过对于win7以前的系统用GetVersionEx没有问题)
+	myitow(osvi.dwMajorVersion, tmp, MAX_NUM);//大版本号
+	mywcscpy(pszOS, tmp); mywcscat(pszOS, L".");
+	myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//小版本号
+	mywcscat(pszOS, tmp); mywcscat(pszOS, L".");
+	myitow(osvi.dwBuildNumber, tmp, MAX_NUM);//build
+	mywcscat(pszOS, tmp);
 
 	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
 	{//win7及以后则使用RtlGetVersion更好
@@ -103,21 +117,23 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 		osvi.dwMajorVersion = ovi.dwMajorVersion;
 		osvi.dwMinorVersion = ovi.dwMinorVersion;
 		osvi.dwBuildNumber = ovi.dwBuildNumber;
-		_itow_s(osvi.dwMajorVersion, tmp, 10);
-		wcscpy(pszOS, tmp); wcscat(pszOS, L".");
-		_itow_s(osvi.dwMinorVersion, tmp, 10);//拼接版本号
-		wcscat(pszOS, tmp); wcscat(pszOS, L".");
-		_itow_s(osvi.dwBuildNumber, tmp, 10);
-		wcscat(pszOS, tmp);
+		myitow(osvi.dwMajorVersion, tmp, MAX_NUM);
+		mywcscpy(pszOS, tmp); mywcscat(pszOS, L".");
+		myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//拼接版本号
+		mywcscat(pszOS, tmp); mywcscat(pszOS, L".");
+		myitow(osvi.dwBuildNumber, tmp, MAX_NUM);
+		mywcscat(pszOS, tmp);
 	}
 	return true;
 }
+#pragma warning(default:28159)//恢复警告
+
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
 __forceinline void CheckIP(wchar_t* a)//取本机的ip地址  
 {
-	WSADATA wsaData;
-	char name[155];
+	WSADATA wsaData = {0};
+	char name[155] = {0};
 	char* ip;
 	wchar_t wip[20] = { 0 };
 	PHOSTENT hostinfo;
@@ -131,7 +147,7 @@ __forceinline void CheckIP(wchar_t* a)//取本机的ip地址
 			}//清理
 		WSACleanup();
 	}
-	wcscat(a, wip);
+	mywcscat(a, wip);
 }
 
 BOOL TakeOwner(LPCWSTR FilePath)
@@ -173,13 +189,13 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	STARTUPINFO s = { 0 };
 	if (si == nullptr)si = &s;
 	PROCESS_INFORMATION pi = { 0 };
-	bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
+	const bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 	return f;
 }
 
-ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, int style)
+ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, unsigned int style)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -274,7 +290,7 @@ int CaptureImage()
 	DEVMODE curDevMod = { 0 };
 	curDevMod.dmSize = sizeof(DEVMODE);
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &curDevMod);
-	int width = curDevMod.dmPelsWidth, height = curDevMod.dmPelsHeight;
+	const int width = curDevMod.dmPelsWidth, height = curDevMod.dmPelsHeight;
 	hbmScreen = CreateCompatibleBitmap(hdcScreen, width, height);
 
 	SelectObject(hdcMemDC, hbmScreen);
@@ -289,6 +305,7 @@ int CaptureImage()
 	dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
 
 	hDIB = GlobalAlloc(GHND, dwBmpSize);
+	if (!hDIB)return 0;
 	lpbitmap = (char*)GlobalLock(hDIB);
 
 	GetDIBits(hdcScreen, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
@@ -348,8 +365,8 @@ void change(void* Src, bool wow)
 	v8 = rand() % (v5 - 68) + 2;//取一个大小为2 - 57的随机值
 	*v6 = v8;//v6的第一位和最后一位都标上这个值
 	v6[v5 - 1] = v8;//以这个值为加密后密码字段的开始
-	if (Src && wcslen((const wchar_t*)Src))//如果密码不为空，将密码明文先复制到v8处
-		memcpy(&v6[v8], Src, 2 * wcslen((const wchar_t*)Src) + 2);
+	if (Src && mywcslen((const wchar_t*)Src))//如果密码不为空，将密码明文先复制到v8处
+		mymemcpy(&v6[v8], Src, 2 * mywcslen((const wchar_t*)Src) + 2);
 	else
 	{//若密码为空，则将v8和v8的下一字节都设为空
 		v9 = &v6[v8];
@@ -374,20 +391,6 @@ void change(void* Src, bool wow)
 	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
-typedef struct _CLIENT_ID
-{
-	HANDLE UniqueProcess;
-	HANDLE UniqueThread;
-}CLIENT_ID, * PCLIENT_ID;
-typedef struct _OBJECT_ATTRIBUTES
-{
-	ULONG Length;
-	HANDLE RootDirectory;
-	PVOID ObjectName;
-	ULONG Attributes;
-	PVOID SecurityDescriptor;
-	PVOID SecurityQualityOfService;
-}OBJECT_ATTRIBUTES, * POBJECT_ATTRIBUTES;
 
 BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileType)
 {//释放指定资源
@@ -404,7 +407,7 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 	HRSRC   hrsc = FindResource(NULL, MAKEINTRESOURCE(wResID), strFileType);
 	if (!hrsc)return FALSE;
 	HGLOBAL hG = LoadResource(NULL, hrsc);
-	DWORD   dwSize = SizeofResource(NULL, hrsc);
+	const DWORD dwSize = SizeofResource(NULL, hrsc);
 
 	// 写入文件  
 	WriteFile(hFile, hG, dwSize, &dwWrite, NULL);
@@ -473,8 +476,8 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 	// 从IPicture中获取高度与宽度   
 	pPic->get_Width(&hmWidth);
 	pPic->get_Height(&hmHeight);
-	int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
-	int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
+	const int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
+	const int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
 
 	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, NULL);
 
@@ -487,300 +490,14 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 void ReleaseLanguageFiles(const wchar_t* Path, int tag, wchar_t* str)//tag 和 str 可不填
 {//当tag填1或2时函数将语言文件路径保存在str中
 	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
-	wcscpy_s(LanguagePath, Path);
-	wcscat_s(LanguagePath, L"language\\");//创建language目录
+	mywcscpy(LanguagePath, Path);
+	mywcscat(LanguagePath, L"language\\");//创建language目录
 	CreateDirectory(LanguagePath, NULL);
-	wcscat_s(LanguagePath, L"Chinese.ini");
+	mywcscat(LanguagePath, L"Chinese.ini");
 	ReleaseRes(LanguagePath, FILE_CHN, L"JPG");
-	if (tag == 1)wcscpy(str, LanguagePath);
-	wcscpy_s(LanguagePath, Path);
-	wcscat_s(LanguagePath, L"language\\EnglishANSI.ini");
+	if (tag == 1)mywcscpy(str, LanguagePath);
+	mywcscpy(LanguagePath, Path);
+	mywcscat(LanguagePath, L"language\\EnglishANSI.ini");
 	ReleaseRes(LanguagePath, FILE_ENG, L"JPG");
-	if (tag == 2)wcscpy(str, LanguagePath);
-}
-
-//
-//改编过的与KProcessHacker驱动通信的一段代码
-//
-
-BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath, bool Kernel)
-{
-	wchar_t szDriverImagePath[256];
-	//得到完整的驱动路径
-	GetFullPathName(lpszDriverPath, 256, szDriverImagePath, NULL);
-	BOOL bRet = FALSE;
-
-	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
-	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
-
-								 //打开服务控制管理器
-	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-
-	if (hServiceMgr == NULL)
-	{
-		bRet = FALSE;
-		goto BeforeLeave;
-	}
-
-	//创建驱动所对应的服务
-	hServiceDDK = CreateService(hServiceMgr,
-		lpszDriverName, //驱动程序的在注册表中的名字  
-		lpszDriverName, // 注册表驱动程序的 DisplayName 值  
-		SERVICE_ALL_ACCESS, // 加载驱动程序的访问权限  
-		Kernel ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS,// 表示加载的服务是驱动程序还是服务
-		SERVICE_DEMAND_START, // 注册表驱动程序的 Start 值  
-		SERVICE_ERROR_IGNORE, // 注册表驱动程序的 ErrorControl 值  
-		szDriverImagePath, // 注册表驱动程序的 ImagePath 值  
-		NULL, NULL, NULL, NULL, NULL);
-
-
-	DWORD dwRtn;
-
-	//判断服务是否失败
-	if (hServiceDDK == NULL)
-	{
-		dwRtn = GetLastError();
-		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_EXISTS)
-		{
-			bRet = FALSE;
-			goto BeforeLeave;
-		}
-		hServiceDDK = OpenService(hServiceMgr, lpszDriverName, SERVICE_ALL_ACCESS);
-		if (hServiceDDK == NULL)
-		{
-			bRet = FALSE;
-			goto BeforeLeave;
-		}
-	}
-
-	//开启此项服务
-	bRet = StartService(hServiceDDK, NULL, NULL);
-	if (!bRet)
-	{
-		dwRtn = GetLastError();
-		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_ALREADY_RUNNING)
-		{
-			bRet = FALSE;
-			goto BeforeLeave;
-		}
-		else
-		{
-			if (dwRtn == ERROR_IO_PENDING)
-			{
-				bRet = FALSE;
-				goto BeforeLeave;
-			}
-			else
-			{
-				bRet = TRUE;
-				goto BeforeLeave;
-			}
-		}
-	}
-	bRet = TRUE;
-	//离开前关闭句柄
-BeforeLeave:
-	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
-	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
-	return bRet;
-}
-
-//卸载驱动程序  
-BOOL UnloadNTDriver(LPCWSTR szSvrName)
-{
-	BOOL bRet = FALSE;
-	SC_HANDLE hServiceMgr = NULL;//SCM管理器的句柄
-	SC_HANDLE hServiceDDK = NULL;//NT驱动程序的服务句柄
-	SERVICE_STATUS SvrSta;
-	//打开SCM管理器
-	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (hServiceMgr == NULL)
-	{
-		bRet = FALSE;
-		goto BeforeLeave;
-	}
-	//打开驱动所对应的服务
-	hServiceDDK = OpenService(hServiceMgr, szSvrName, SERVICE_ALL_ACCESS);
-
-	if (hServiceDDK == NULL)
-	{
-		bRet = FALSE;
-		goto BeforeLeave;
-	}
-	//停止驱动程序，如果停止失败，只有重新启动才能，再动态加载。  
-	ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta);
-	//动态卸载驱动程序。  
-	DeleteService(hServiceDDK);
-	bRet = TRUE;
-BeforeLeave:
-	//离开前关闭打开的句柄
-	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
-	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
-	return bRet;
-}
-
-typedef _Success_(return >= 0) LONG NTSTATUS;
-typedef struct _IO_STATUS_BLOCK
-{
-	union
-	{
-		NTSTATUS Status;
-		PVOID Pointer;
-	};
-	ULONG_PTR Information;
-} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
-
-typedef  DWORD(__stdcall* NTOPENFILE)(
-	_Out_ PHANDLE FileHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
-	_Out_ PIO_STATUS_BLOCK IoStatusBlock,
-	_In_ ULONG ShareAccess,
-	_In_ ULONG OpenOptions
-	);
-
-typedef struct _UNICODE_STRING
-{
-	USHORT Length;
-	USHORT MaximumLength;
-	_Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;
-} UNICODE_STRING, * PUNICODE_STRING;
-
-typedef const UNICODE_STRING* PCUNICODE_STRING;
-
-
-FORCEINLINE VOID RtlInitUnicodeString(
-	_Out_ PUNICODE_STRING DestinationString,
-	_In_opt_ const wchar_t* SourceString
-)
-{
-	if (SourceString)
-		DestinationString->MaximumLength = (DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR))) + sizeof(WCHAR);
-	else
-		DestinationString->MaximumLength = DestinationString->Length = 0;
-
-	DestinationString->Buffer = (PWCH)SourceString;
-}
-
-#define InitializeObjectAttributes(p, n, a, r, s) { \
-    (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
-    (p)->RootDirectory = r; \
-    (p)->Attributes = a; \
-    (p)->ObjectName = n; \
-    (p)->SecurityDescriptor = s; \
-    (p)->SecurityQualityOfService = NULL; \
-    }
-
-#define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
-    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
-)
-#define KPH_DEVICE_TYPE 0x9999
-#define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x,3,0)
-#define KPH_OPENPROCESS KPH_CTL_CODE(50)
-#define KPH_TERMINATEPROCESS KPH_CTL_CODE(55)
-typedef VOID(NTAPI* PIO_APC_ROUTINE)(
-	_In_ PVOID ApcContext,
-	_In_ PIO_STATUS_BLOCK IoStatusBlock,
-	_In_ ULONG Reserved
-	);
-NTSTATUS KphpDeviceIoControl(
-	_In_ ULONG KphControlCode,
-	_In_ PVOID InBuffer,
-	_In_ ULONG InBufferLength,
-	_In_ HANDLE PhKphHandle
-)
-{
-	DWORD a;
-	DeviceIoControl(PhKphHandle, KphControlCode, InBuffer, InBufferLength, nullptr, sizeof(DWORD), &a, nullptr);
-	return GetLastError();
-}
-
-NTSTATUS KphOpenProcess(
-	_Out_ PHANDLE ProcessHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ PCLIENT_ID ClientId,
-	_In_ HANDLE PhKphHandle
-)
-{
-	struct
-	{
-		PHANDLE ProcessHandle;
-		ACCESS_MASK DesiredAccess;
-		PCLIENT_ID ClientId;
-	} input = { ProcessHandle, DesiredAccess, ClientId };
-
-	return KphpDeviceIoControl(
-		(ULONG)KPH_OPENPROCESS,
-		&input,
-		sizeof(input),
-		PhKphHandle
-	);
-}
-NTSTATUS PhOpenProcess(
-	_Out_ PHANDLE ProcessHandle,
-	_In_ ACCESS_MASK DesiredAccess,
-	_In_ HANDLE ProcessId,
-	_In_ HANDLE PhKphHandle
-)
-{
-	//OBJECT_ATTRIBUTES objectAttributes;
-	CLIENT_ID clientId;
-
-	clientId.UniqueProcess = ProcessId;
-	clientId.UniqueThread = NULL;
-	return KphOpenProcess(
-		ProcessHandle,
-		DesiredAccess,
-		&clientId,
-		PhKphHandle
-	);
-}
-
-NTSTATUS PhTerminateProcess(
-	_In_ HANDLE ProcessHandle,
-	_In_ NTSTATUS ExitStatus,
-	_In_ HANDLE PhKphHandle
-)
-{
-	NTSTATUS status;
-	struct
-	{
-		HANDLE ProcessHandle;
-		NTSTATUS ExitStatus;
-	} input = { ProcessHandle, ExitStatus };
-
-	status = KphpDeviceIoControl(
-		(ULONG)KPH_TERMINATEPROCESS,
-		&input,
-		sizeof(input),
-		PhKphHandle
-	);
-	return status;
-}
-
-NTSTATUS KphConnect(PHANDLE handle)
-{
-	OBJECT_ATTRIBUTES objectAttributes;
-	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
-	if (hModule == NULL)
-		return FALSE;
-	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
-	UNICODE_STRING on;
-	RtlInitUnicodeString(&on, L"\\Device\\KProcessHacker2");
-	InitializeObjectAttributes(
-		&objectAttributes,
-		&on,
-		0x00000040,
-		NULL,
-		NULL
-	);
-	IO_STATUS_BLOCK isb;
-	return myopen(
-		handle,
-		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-		&objectAttributes,
-		&isb,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		0x00000040
-	);
+	if (tag == 2)mywcscpy(str, LanguagePath);
 }

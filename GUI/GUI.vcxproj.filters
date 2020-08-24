@@ -36,6 +36,12 @@
     <ClInclude Include="Hotkey.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="myProcessHacker.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mystd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
