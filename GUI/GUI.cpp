@@ -1285,6 +1285,8 @@ public:
 	void SetPage(int newPage)//设置窗口的页数
 	{
 		if (newPage == CurWnd)return;//点了当前页的按钮，直接退出
+		/*EnableButton(CurWnd, true);
+		EnableButton(newPage, false);*/
 		HideCaret(hWnd);//换页时自动隐藏闪烁的光标
 		ShowCrt = FALSE;
 		Edit[CoverEdit].Press = FALSE;
@@ -1696,7 +1698,7 @@ BOOL CALLBACK EnumAllBroadcastwnds(HWND hwnd, LPARAM lParam)//查找极域"屏幕广播"
 	if (!IsWindowVisible(hwnd))return CONTINUE_SEARCH;
 	wchar_t title[MAX_STR];
 	GetWindowText(hwnd, title, MAX_STR);
-	if (mywcscmp(title, L"屏幕广播") == 0 || mywcsstr(title, L"屏幕演播室窗口") != 0 || mywcsstr(title, L"屏幕广播窗口") != 0)
+	if (mywcsstr(title, L"屏幕广播") != 0 || mywcsstr(title, L"屏幕演播室窗口") != 0 || mywcsstr(title, L"屏幕广播窗口") != 0)
 	{
 		EnumChildWindows(hwnd, EnumChildwnd, 1);
 		return CONTINUE_SEARCH;
@@ -1708,14 +1710,14 @@ BOOL CALLBACK EnumBroadcastwnd(HWND hwnd, LPARAM lParam)//查找"屏幕广播"窗口的枚
 	if (!IsWindowVisible(hwnd))return CONTINUE_SEARCH;
 	wchar_t title[MAX_STR];
 	GetWindowText(hwnd, title, MAX_STR);
-	if (mywcscmp(title, L"屏幕广播") == 0)//这里枚举枚举极域广播窗口
-	{//2015、2016中极域广播窗口一般叫"屏幕广播"。但极域是多语言的，在英语系统上可能会出问题
+	if (mywcsstr(title, L"屏幕广播") != 0)//枚举极域广播窗口
+	{//(2015、2016中极域广播窗口一般叫"屏幕广播"。但极域是多语言的，在英语系统上可能会出问题)
+		EnumChildWindows(hwnd, EnumChildwnd, NULL);
 		if (FS) { FS = FALSE; MyRegisterClass(hInst, ScreenProc, ScreenWindow, NULL); }
 		TDhWndGrandParent = CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP, 0, 0, 100, 100, nullptr, nullptr, hInst, nullptr);
 		SetParent(hwnd, TDhWndGrandParent);//子窗口被捕捉后，"屏幕广播"窗口也应该得到妥善处置。
 		TDhWndParent = hwnd;//曾经试过DestroyWindow、ShowWindow(SW_HIDE)这些标准方法，但都没有效果
-		EnumChildWindows(hwnd, EnumChildwnd, NULL);//这里创建一个看不见的窗口，把"屏幕广播"窗口捕捉进去
-		return STOP_SEARCH;
+		return STOP_SEARCH;//这里创建一个看不见的窗口，把"屏幕广播"窗口捕捉进去
 	}
 	return  CONTINUE_SEARCH;
 }
@@ -3490,7 +3492,7 @@ BOOL InitInstance()//初始化
 	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", 0, TRUE);
 	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", 0, FALSE);
 
-	Main.CreateButtonEx(1, 1, 50, 139, 64, 0, L"主要功能", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P1");//切换页面按钮
+	Main.CreateButtonEx(1, 1, 50, 139, 64, 0, L"主要功能", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0,TRUE, 0, 0, L"P1");//切换页面按钮
 	Main.CreateButtonEx(2, 1, 115, 139, 64, 0, L"极域工具箱", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P2");//
 	Main.CreateButtonEx(3, 1, 180, 139, 64, 0, L"其他工具", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P3");
 	Main.CreateButtonEx(4, 1, 245, 139, 64, 0, L"关于", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P4");
@@ -3603,7 +3605,8 @@ BOOL InitInstance()//初始化
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);//例如 Main.Timer % 50 == 0 这条语句，实际触发概率是25分之1
 
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 500, (TIMERPROC)TimerProc);//开启Exp计时器
-	if (!slient)ShowWindow(Main.hWnd, SW_SHOW);
+	if (!slient)ShowWindow(Main.hWnd, SW_SHOW), UpdateWindow(Main.hWnd);
+
 
 	Main.CreateButton(185, 155, 110, 45, 2, L"应用", L"ApplyCh");
 	Main.CreateButton(365, 102, 97, 45, 2, L"清空密码", L"ClearPass");
@@ -3742,9 +3745,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		if (rc.left==0) {
 		SelectObject(Main.hdc, WhiteBrush);//打印白色背景
 		SelectObject(Main.hdc, WhitePen);
-		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
-
-		}
+		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));}
 	if (rc.top < (int)(Main.DPI * Main.TitleBar.Height))Main.DrawTitleBar();
 
 		Main.DrawEVERYTHING();//重绘全部
