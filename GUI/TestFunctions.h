@@ -14,70 +14,125 @@ void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
 void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
 void s(int a)//当程序正式发布时可以去掉这几个函数
 {
-	wchar_t tmp[34] = { 0 };
-	myitow(a, tmp, MAX_NUM);
-	MessageBox(NULL, tmp, L"", NULL);
+	wchar_t tmp[20];
+	//myZeroMemory(tmp, sizeof(wchar_t) * 20);
+	myitow(a, tmp, 0);
+	//MessageBox(NULL, tmp, L"", NULL);
 }
 //void s(double a)
 //{
-//	char tmp[34] = { 0 };
+//	char tmp[34];
 //	_gcvt_s(tmp, a, MAX_NUM);
 //	MessageBoxA(NULL, tmp ,0, NULL);
 //}
 void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
 {
-	wchar_t tmp[34] = { 0 };
+	wchar_t tmp[34];
+	//myZeroMemory(tmp, sizeof(wchar_t) * 34);
 	myitow(a, tmp, MAX_NUM); mywcscat(tmp, L"\n");
 	OutputDebugString(tmp);
 }
-void s2(){OutputDebugString(L"0\n");}
+void s2() { OutputDebugString(L"0\n"); }
 
 
-
-
-#pragma warning(disable:6387)//tmp1+1可能是"0"
-#pragma warning(disable:6320)//异常筛选器表达式为常量 EXCEPTION_EXECUTE_HANDLER。这样可能会屏蔽不打算处理的异常。
 bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 {
-	__try
-	{
-		wchar_t tmp0;
-		wchar_t* tmp1 = mywcsstr(zxf, L"\"");
-		wchar_t* tmp2 = mywcsstr(tmp1 + 1, L"\"");
-		if (tmp1 == 0 || tmp2 == 0)return false;
-		tmp0 = *tmp2;
-		*tmp2 = 0;
-		mywcscpy(zxf2, tmp1 + 1);
-		*tmp2 = tmp0;
-		return true;
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+	wchar_t tmp0;
+	wchar_t* tmp1 = mywcsstr(zxf, L"\"");
+	if (tmp1 == 0)return false;
+	wchar_t* tmp2 = mywcsstr(tmp1 + 1, L"\"");
+	if (tmp2 == 0)return false;
+	tmp0 = *tmp2;
+	*tmp2 = 0;
+	mywcscpy(zxf2, tmp1 + 1);
+	*tmp2 = tmp0;
+	return true;
 }
-#pragma warning(default:6320)
-#pragma warning(default:6387)
 
 //
 //为了减少程序体积，从网上抄来的红黑树map代码
 //
 
-#include <utility>
+namespace fbcstd {
+
+	template<class T1, class T2>
+	struct pair {
+		typedef T1 first_type;
+		typedef T2 second_type;
+
+		// default construct
+		pair() : first(), second() {}
+		// construct from compatible pair
+		template<class U, class V>
+		pair(const pair<U, V>& pr) : first(pr.first), second(pr.second) {}
+		// construct from specified values
+		pair(const first_type& a, const second_type& b) : first(a), second(b) {}
+
+		// assign from copied pair
+		pair& operator = (const pair& pr)
+		{
+			first = pr.first;
+			second = pr.second;
+
+			return (*this);
+		}
+
+		T1 first;
+		T2 second;
+	}; // struct pair
+
+	// relational operators for pair
+	template<class T1, class T2>
+	inline bool operator == (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (lhs.first == rhs.first && lhs.second == rhs.second);
+	}
+
+	template<class T1, class T2>
+	inline bool operator != (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (!(lhs == rhs));
+	}
+
+	template<class T1, class T2>
+	inline bool operator < (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (lhs.first < rhs.first || (!(rhs.first < lhs.first) && lhs.second < rhs.second));
+	}
+	template<class T1, class T2>
+	inline bool operator > (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (rhs < lhs);
+	}
+	template<class T1, class T2>
+	inline bool operator <= (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (!(rhs < lhs));
+	}
+	template<class T1, class T2>
+	inline bool operator >= (const pair<T1, T2>& lhs, const pair<T1, T2>& rhs)
+	{
+		return (!(lhs < rhs));
+	}
+} // namespace fbcstd
+
 enum COLOR { RED, BLACK };
 template<class K, class V>
 struct RBTreeNode {
 	RBTreeNode<K, V>* _pLeft;
 	RBTreeNode<K, V>* _pRight;
 	RBTreeNode<K, V>* _pParent;
-	std::pair<K, V> _value;
+	fbcstd::pair<K, V> _value;
 	COLOR _color;
 
 	RBTreeNode(const K& key = K(), const V& value = V(), COLOR color = RED)
-		: _pLeft(NULL)
-		, _pRight(NULL)
-		, _pParent(NULL)
-		, _value(key, value)
-		, _color(color)
-	{}
+	{
+		_pLeft = NULL;
+		_pRight = NULL;
+		_pParent = NULL;
+		_value(key, value);
+	}
 };
 
 
@@ -97,12 +152,12 @@ public:
 		: _pNode(s._pNode)
 	{}
 
-	std::pair<K, V>& operator*()
+	fbcstd::pair<K, V>& operator*()
 	{
 		return _pNode->_value;
 	}
 
-	std::pair<K, V>* operator->()
+	fbcstd::pair<K, V>* operator->()
 	{
 		return &(operator*());
 	}
@@ -202,9 +257,11 @@ class RBTree {
 public:
 	typedef RBTreeiterator<K, V> Iterator;
 public:
-	RBTree()
-		:_pHead(new Node)
-	{}
+	void InitRBTree()
+	{
+		//s(1234);
+		_pHead = (Node*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(Node));
+	}
 	Iterator Begin()
 	{
 		return Iterator(_pHead->_pLeft);
@@ -213,19 +270,26 @@ public:
 	{
 		return Iterator(_pHead);
 	}
-	PNode& GetRoot()
+	inline PNode& GetRoot()
 	{
 		return _pHead->_pParent;
 	}
-	std::pair<Iterator, bool> InsertUnique(const std::pair<K, V>& value)
+	fbcstd::pair<Iterator, bool> InsertUnique(const fbcstd::pair<K, V>& value)
 	{
-		PNode& _pRoot = GetRoot();
-		PNode newNode = NULL;
-		if (NULL == _pRoot) {
-			newNode = _pRoot = new Node(value.first, value.second, BLACK);
+		PNode &_pRoot = GetRoot();
+		PNode newNode = NULL; 
+		if (_pRoot == 0) {
+			Node* a = (Node*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(Node));
+			a->_value.first = value.first;
+			a->_value.second = value.second;
+			a->_color = BLACK;// s(3);
+			newNode = _pRoot = a;
+			//newNode = _pRoot = &a;
 			_pRoot->_pParent = _pHead;
+
 		}
 		else {
+
 			PNode pCur = _pRoot;
 			PNode pParent = pCur;
 			while (pCur) {
@@ -238,9 +302,13 @@ public:
 					pCur = pCur->_pLeft;
 				}
 				else
-					return std::pair<Iterator, bool>(Iterator(pCur), false);
+					return fbcstd::pair<Iterator, bool>(Iterator(pCur), false);
 			}
-			newNode = pCur = new Node(value.first, value.second);
+			Node* a = (Node*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(Node));
+			a->_value.first = value.first;
+			a->_value.second = value.second;
+			a->_color = RED;
+			newNode = pCur = a;
 			if (value.first < pParent->_value.first)
 				pParent->_pLeft = pCur;
 			else
@@ -260,7 +328,9 @@ public:
 					else {
 						if (pCur == pParent->_pRight) {
 							rotateL(pParent);
-							std::swap(pCur, pParent);
+							PNode t = pCur;
+							pCur = pParent;
+							pParent = t;
 						}
 						grandParent->_color = RED;
 						pParent->_color = BLACK;
@@ -279,7 +349,10 @@ public:
 					else {
 						if (pCur == pParent->_pLeft) {
 							rotateR(pParent);
-							std::swap(pCur, pParent);
+							PNode t = pCur;
+							pCur = pParent;
+							pParent = t;
+							//fbcstd::swap(pCur, pParent);
 						}
 						grandParent->_color = RED;
 						pParent->_color = BLACK;
@@ -292,7 +365,10 @@ public:
 		_pRoot->_color = BLACK;
 		_pHead->_pLeft = MostLeft();
 		_pHead->_pRight = MostRight();
-		return std::make_pair(Iterator(newNode), true);
+		fbcstd::pair<Iterator, bool> a;
+		a.first = Iterator(newNode);
+		a.second = true;
+		return a;
 	}
 
 	bool Empty()const
@@ -421,7 +497,8 @@ private:
 			pCur = pCur->_pRight;
 		return pCur;
 	}
-private:
+	//private:
+//	Node head;
 	PNode _pHead;
 };
 
@@ -429,14 +506,11 @@ template<class K, class V>
 
 class Map {
 public:
-	typedef std::pair<K, V> valueType;
+	typedef fbcstd::pair<K, V> valueType;
 	typename typedef RBTree<K, V>::Iterator Iterator;
 public:
-	Map()
-		:_t()
-	{}
 
-	std::pair<Iterator, bool> Insert(const valueType& v)
+	fbcstd::pair<Iterator, bool> Insert(const valueType& v)
 	{
 		return _t.InsertUnique(v);
 	}
@@ -453,7 +527,7 @@ public:
 
 	V& operator[](const K& key)
 	{
-		Iterator ret = _t.InsertUnique(std::pair<K, V>(key, V())).first;
+		Iterator ret = _t.InsertUnique(fbcstd::pair<K, V>(key, V())).first;
 		return (*ret).second;
 	}
 
@@ -467,6 +541,5 @@ public:
 		return _t.End();
 	}
 
-private:
 	RBTree<K, V> _t;
 };

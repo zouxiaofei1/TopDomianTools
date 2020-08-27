@@ -20,16 +20,6 @@ constexpr unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
 
 	return (hash & 0x7FFFFFFF);
 }
-const unsigned int Hash2(const wchar_t* str)//获取一个字符串的"散列值"
-{
-	constexpr unsigned int seed = 131;
-	unsigned int hash = 0;
-
-	while (*str)hash = hash * seed + (*str++);
-
-	return (hash & 0x7FFFFFFF);
-}
-
 VOID LockCursor()//锁住鼠标
 {
 	RECT rect;
@@ -68,7 +58,8 @@ BOOL MyRemoveDirectory(wchar_t* FilePath)//由于RemoveDirectory的bug,无法删除某些
 {//使得AutoDelete执行完毕后，可能会残留少许空的目录无法删除。这里尝试调用SHFileOperation删除它们
 	size_t len = mywcslen(FilePath);
 	FilePath[len + 1] = FilePath[len + 1] = 0;//SHFileOperation有一个bug,文件目录的最后 2 个字符都必须是NULL
-	SHFILEOPSTRUCT FileOp = { 0 };
+	SHFILEOPSTRUCT FileOp;
+	myZeroMemory(&FileOp, sizeof(FileOp));
 	FileOp.fFlags = FOF_NO_UI;
 	FileOp.pFrom = FilePath;
 	FileOp.pTo = NULL; //一定要是NULL
@@ -96,12 +87,15 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 {//获取系统版本的函数
 	OSVERSIONINFOEX osvi;
 	BOOL bOsVersionInfoEx;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//GetVersionEx用来判断版本效果一般不好
+#ifndef _WIN64
+	myZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//GetVersionEx用来判断版本效果一般不好
+#endif
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//例如用它来判断一台win10电脑
 	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//得到的结果总是6.2(9200)
 	if (!bOsVersionInfoEx) return FALSE;//不能正确显示详细版本号
 
-	wchar_t tmp[MAX_NUM] = { 0 };//(不过对于win7以前的系统用GetVersionEx没有问题)
+	wchar_t tmp[MAX_NUM];//(不过对于win7以前的系统用GetVersionEx没有问题)
+	myZeroMemory(tmp, sizeof(wchar_t) * 10);
 	myitow(osvi.dwMajorVersion, tmp, MAX_NUM);//大版本号
 	mywcscpy(pszOS, tmp); mywcscat(pszOS, L".");
 	myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//小版本号
@@ -112,7 +106,10 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
 	{//win7及以后则使用RtlGetVersion更好
 		OSVERSIONINFOEXW ovi;
-		ZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
+#ifndef _WIN64
+		myZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
+#endif
+		ovi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 		if (!GetVersionEx2((LPOSVERSIONINFOW)&ovi)) return FALSE;
 		osvi.dwMajorVersion = ovi.dwMajorVersion;
 		osvi.dwMinorVersion = ovi.dwMinorVersion;
@@ -132,10 +129,20 @@ bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
 __forceinline void CheckIP(wchar_t* a)//取本机的ip地址  
 {
-	WSADATA wsaData = {0};
-	char name[155] = {0};
-	char* ip;
-	wchar_t wip[20] = { 0 };
+	WSADATA wsaData;
+#ifndef _WIN64
+	myZeroMemory(&wsaData, sizeof(WSADATA));
+#endif
+
+	char name[156], * ip;
+#ifndef _WIN64
+	myZeroMemory(name, sizeof(char) * 156);
+#else
+	* name = 0;
+#endif
+
+	wchar_t wip[20];
+	myZeroMemory(wip, sizeof(wchar_t) * 20);
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
 	{//具体原理不太清楚，详见百科
@@ -153,14 +160,18 @@ __forceinline void CheckIP(wchar_t* a)//取本机的ip地址
 BOOL TakeOwner(LPCWSTR FilePath)
 {//获取指定文件的所有权，在删除sethc等时要用
 	CHAR UserName[36];
-	DWORD cbUserName = sizeof(UserName);
-	CHAR Sid[1024] = { 0 };
-	DWORD cbSid = sizeof(Sid);
-	CHAR DomainBuffer[128] = { 0 };
-	DWORD cbDomainBuffer = sizeof(DomainBuffer);
-#pragma warning (disable:26812)
+	//s(0);
+	DWORD cbUserName = sizeof(char) * 36;
+	//s(1);
+	CHAR Sid[1024];
+	myZeroMemory(Sid, sizeof(char) * 1024);
+	DWORD cbSid = sizeof(char) * 1024;
+	CHAR DomainBuffer[128];
+	myZeroMemory(DomainBuffer, sizeof(char) * 128);
+	DWORD cbDomainBuffer = sizeof(char) * 128;
 	SID_NAME_USE eUse;
-#pragma warning (default:26812)
+	wchar_t tmp[9];
+	mywcscpy(tmp, L"everyone");
 	PACL Dacl = NULL, OldDacl = NULL;
 	EXPLICIT_ACCESS Ea;
 	BOOL Ret = FALSE;
@@ -170,8 +181,8 @@ BOOL TakeOwner(LPCWSTR FilePath)
 		GetUserNameA(UserName, &cbUserName);
 		if (LookupAccountNameA(NULL, UserName, &Sid, &cbSid, DomainBuffer, &cbDomainBuffer, &eUse))
 		{
-			ZeroMemory(&Ea, sizeof(EXPLICIT_ACCESS));
-			wchar_t tmp[] = L"everyone";
+			myZeroMemory(&Ea, sizeof(EXPLICIT_ACCESS));
+
 			BuildExplicitAccessWithName(&Ea, tmp, GENERIC_ALL, GRANT_ACCESS, SUB_CONTAINERS_AND_OBJECTS_INHERIT);
 			if (SetEntriesInAclW(1, &Ea, OldDacl, &Dacl) == ERROR_SUCCESS)
 			{//直接不复制旧的ace,不然无法去除文件的拒绝权
@@ -186,18 +197,24 @@ BOOL TakeOwner(LPCWSTR FilePath)
 }
 BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 {//用CreateProcess来创建进程
-	STARTUPINFO s = { 0 };
+	STARTUPINFO s;
+	myZeroMemory(&s, sizeof(STARTUPINFO));
 	if (si == nullptr)si = &s;
-	PROCESS_INFORMATION pi = { 0 };
-	const bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
+	PROCESS_INFORMATION pi;
+//#ifndef _WIN64
+	myZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+//#endif
+	const bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si,&pi);
+	if(pi.hProcess)CloseHandle(pi.hProcess);
+	if(pi.hThread)CloseHandle(pi.hThread);
 	return f;
 }
 
 ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, unsigned int style)
 {//封装过的注册Class函数.
-	WNDCLASSEXW wcex = { 0 };
+	WNDCLASSEXW wcex;
+	s(sizeof(WNDCLASSEXW));
+	myZeroMemory(&wcex, sizeof(WNDCLASSEXW));
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = style;
 	wcex.lpfnWndProc = proc;
@@ -213,7 +230,8 @@ ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, unsigned int 
 
 BOOL RunWithAdmin(wchar_t* path)//以管理员身份运行一个程序.
 {
-	SHELLEXECUTEINFO info = { 0 };
+	SHELLEXECUTEINFO info;
+	myZeroMemory(&info, sizeof(SHELLEXECUTEINFO));
 	info.cbSize = sizeof(info);
 	info.lpFile = path;
 	info.lpVerb = L"runas";
@@ -279,7 +297,8 @@ int CaptureImage()
 	HBITMAP hbmScreen = NULL;
 	BITMAP bmpScreen;
 	BITMAPFILEHEADER bmfHeader;
-	BITMAPINFOHEADER bi = { 0 };
+	BITMAPINFOHEADER bi;
+	myZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
 	DWORD dwBmpSize;
 	HANDLE hDIB;
 	CHAR* lpbitmap;
@@ -287,7 +306,8 @@ int CaptureImage()
 	DWORD dwSizeofDIB, dwBytesWritten = 0;
 	hdcScreen = GetDC(NULL); // 获取桌面DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
-	DEVMODE curDevMod = { 0 };
+	DEVMODE curDevMod;
+	myZeroMemory(&curDevMod, sizeof(DEVMODE));
 	curDevMod.dmSize = sizeof(DEVMODE);
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &curDevMod);
 	const int width = curDevMod.dmPelsWidth, height = curDevMod.dmPelsHeight;
@@ -349,20 +369,22 @@ void change(void* Src, bool wow)
 	else//根据系统位数打开键值所在的目录
 		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
 
-	v5 = (rand() % 40 + 83) & 0xFFFFFFFC;//随机得到加密后密码的长度，向下取整为4的倍数
-	v6 = (BYTE*)operator new[](v5);//申请相应的内存空间
+	v5 = (myrand() % 40 + 83) & 0xFFFFFFFC;//随机得到加密后密码的长度，向下取整为4的倍数
+	v6 = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, v5);//申请相应的内存空间
+	if (v6 == 0)return;
 	v7 = v6;//v7是指向v6开头的指针
 	if (v5 >> 1)
 	{//先给v6每个位上都写上随机值
 		lpSubKeya = (LPCWSTR)(v5 >> 1);
 		do
 		{
-			*(WORD*)v7 = rand();
+			*(WORD*)v7 = myrand();
 			v7 += 2;
 			lpSubKeya = (LPCWSTR)((char*)lpSubKeya - 1);
 		} while (lpSubKeya);
 	}
-	v8 = rand() % (v5 - 68) + 2;//取一个大小为2 - 57的随机值
+
+	v8 = myrand() % (v5 - 68) + 2;//取一个大小为2 - 57的随机值
 	*v6 = v8;//v6的第一位和最后一位都标上这个值
 	v6[v5 - 1] = v8;//以这个值为加密后密码字段的开始
 	if (Src && mywcslen((const wchar_t*)Src))//如果密码不为空，将密码明文先复制到v8处
@@ -386,8 +408,7 @@ void change(void* Src, bool wow)
 	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
 	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//尝试读取键值
 	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
-	operator delete[](v6);//然后设到Knock中
-
+	HeapFree(GetProcessHeap(), 0, v6);//然后设到Knock中
 	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
@@ -479,7 +500,7 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 	const int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
 	const int nHeight = MulDiv(hmHeight, GetDeviceCaps(hdc, LOGPIXELSY), 2540);
 
-	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, NULL);
+	pPic->Render(hdc, (int)(startx * DPI), (int)(starty * DPI), (int)(DPI * nWidth), (int)(DPI * nHeight), 0, hmHeight, hmWidth, -hmHeight, nullptr);
 
 	pPic->Release();
 	pstream->Release();
@@ -489,7 +510,7 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 
 void ReleaseLanguageFiles(const wchar_t* Path, int tag, wchar_t* str)//tag 和 str 可不填
 {//当tag填1或2时函数将语言文件路径保存在str中
-	wchar_t LanguagePath[MAX_PATH] = { 0 };//先释放自带的两个中英文语言文件
+	wchar_t LanguagePath[MAX_PATH];//先释放自带的两个中英文语言文件
 	mywcscpy(LanguagePath, Path);
 	mywcscat(LanguagePath, L"language\\");//创建language目录
 	CreateDirectory(LanguagePath, NULL);

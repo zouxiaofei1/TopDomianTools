@@ -14,6 +14,7 @@ int myrand() {
 unsigned int mywcslen(const wchar_t* wstr)
 {
 	int i = 0;
+	if (wstr == 0)return 0;
 	while (*wstr != L'\0')
 	{
 		++i;
@@ -37,17 +38,19 @@ wchar_t* mywcscpy(wchar_t* dest, const wchar_t* source)
 		return p;
 	}
 }
-int mywcscmp(const wchar_t* src, const wchar_t* dst)
+int mywcscmp(const wchar_t* src, const wchar_t* dst)//weak
 {
-	int ret = 0;
-	while (!(ret = *(wchar_t*)src - *(wchar_t*)dst) && *dst)
+	//while (!(ret = *(wchar_t*)src - *(wchar_t*)dst) && *dst)
+	/*while (!(ret = *(wchar_t*)src - *(wchar_t*)dst) && *dst)
 	{
 		++src;
 		++dst;
 	}
 	if (ret < 0) ret = -1;
 	else if (ret > 0) ret = 1;
-	return ret;
+	return ret;*/
+	while ((*src == *dst) && *dst)++src, ++dst;
+	if (*src == *dst)return 0; else return 1;
 }
 
 __forceinline bool isSign(wchar_t c)
@@ -158,17 +161,39 @@ void* mymemcpy(void* dest, const void* src, size_t n)
 		*tempDest++ = *tempSrc++;
 	return dest;
 }
-
-#undef ZeroMemory
-
-void ZeroMemory(void* s,  size_t n)
+#ifndef _WIN64
+void myZeroMemory(void* source,  size_t dwsize)
 {
-	if (NULL == s || n < 0)
-		return;
-	char* tmpS = (char*)s;
-	while (n-- > 0)
-		*tmpS++ = 0;
+	__asm
+	{
+		mov ecx, dwsize
+		//ecx: Ñ­»·´ÎÊý
+		xor eax, eax
+		mov edi, [source]
+		rep stos[edi]
+	}
 }
+
+#else
+//#define myZeroMemory ZeroMemory
+
+void myZeroMemory(wchar_t* src, size_t count)
+{
+	for (int i = 0; i < count / sizeof(wchar_t); ++i)src[i] = 0;
+}
+void myZeroMemory(void* src, size_t count)
+{
+	size_t t = count /2;
+	char* tmpsrc = (char*)src;
+	while (t--)
+		*tmpsrc++ = 0;
+}
+
+
+#endif // _WIN64
+
+
+
 wchar_t* __cdecl mywcsstr(
 	const wchar_t* wcs1,
 	const wchar_t* wcs2
@@ -194,7 +219,7 @@ wchar_t* __cdecl mywcsstr(
 		cp++;
 	}
 
-	return(NULL);
+	return 0;
 }
 void mywcslwr(wchar_t* src)
 {

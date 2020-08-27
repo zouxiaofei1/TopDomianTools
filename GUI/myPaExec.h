@@ -15,7 +15,7 @@
 #pragma warning(disable:6031)//·µ»ØÖµ±»ºöÂÔ:ImpersonateLoggedOnUser
 #pragma once
 #include "stdafx.h"
-
+#include "mystd.h"
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_RAND_S
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS 
@@ -50,7 +50,7 @@ bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken)
 		return false;
 	}
 
-	ZeroMemory(&tp, sizeof(tp));
+	myZeroMemory(&tp, sizeof(tp));
 	tp.PrivilegeCount = 1;
 	tp.Privileges[0].Luid = luid;
 	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
@@ -66,9 +66,9 @@ bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken)
 
 class Settings
 {
-	Settings(const Settings&); //not implemented
+	//Settings(const Settings&); //not implemented
 public:
-	Settings()
+	void initSettings()
 	{
 		bDontLoadProfile = false;
 		bRunElevated = false;
@@ -88,7 +88,11 @@ public:
 		processID = 0;
 		bNoName = false;
 		sessionToInteractWith = (DWORD)-1; //not initialized
-		
+		myZeroMemory(app, sizeof(wchar_t)* 300);
+		myZeroMemory(password, sizeof(wchar_t) * 300);
+		myZeroMemory(workingDir, sizeof(wchar_t) * 300);
+		myZeroMemory(appArgs, sizeof(wchar_t) * 300);
+		myZeroMemory(user, sizeof(wchar_t) * 300);
 	}
 
 	bool bDontLoadProfile;
@@ -96,14 +100,14 @@ public:
 	bool bInteractive;
 	bool bRunElevated;
 	bool bRunLimited;
-	wchar_t password[300] = { 0 };
-	wchar_t user[300] = { 0 };
+	wchar_t password[300] ;
+	wchar_t user[300] ;
 	bool bUseSystemAccount;
-	wchar_t workingDir[300] = {0};
+	wchar_t workingDir[300] ;
 	bool bShowUIOnWinLogon;
 	int priority;
-	wchar_t app[300] = { 0 };
-	wchar_t appArgs[300] = { 0 };
+	wchar_t app[300] ;
+	wchar_t appArgs[300];
 	bool bDisableFileRedirection;
 
 	//NOT TRANSMITTED
@@ -127,7 +131,8 @@ wchar_t GetTokenUserSIDname[300];
 void GetTokenUserSID(HANDLE hToken)
 {
 	DWORD tmp = 0;
-	wchar_t  tokenUserBuf[1024] = { 0 };
+	wchar_t  tokenUserBuf[1024];
+	myZeroMemory(tokenUserBuf, sizeof(wchar_t) * 1024);
 	constexpr DWORD userTokenSize = 1024;
 
 	TOKEN_USER* userToken = (TOKEN_USER*)tokenUserBuf;
@@ -146,8 +151,9 @@ void GetTokenUserSID(HANDLE hToken)
 HANDLE GetLocalSystemProcessToken()
 {
 	DWORD  cbNeeded = 0, cProcesses = 0;
-	DWORD* pids = new DWORD[1024 * 10];
-	//ZeroMemory(pids, 10000);
+	DWORD* pids = (DWORD*)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(DWORD)*10240);
+	if (pids == 0)return 0;
+	//myZeroMemory(pids, 10000);
 	if (!EnumProcesses(pids, 1024 * 10, &cbNeeded))return NULL;
 
 	cProcesses = cbNeeded / sizeof(DWORD);
@@ -160,8 +166,8 @@ HANDLE GetLocalSystemProcessToken()
 		{
 			HANDLE hToken = 0;
 			if (OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_READ | TOKEN_IMPERSONATE | TOKEN_QUERY_SOURCE | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_EXECUTE, &hToken))
-			{
-				try
+			{//weak
+				//try
 				{
 					GetTokenUserSID(hToken);
 					if (mywcscmp(GetTokenUserSIDname, L"S-1-5-18") == 0) //Well known SID for Local System
@@ -170,7 +176,7 @@ HANDLE GetLocalSystemProcessToken()
 						return hToken;
 					}
 				}
-				catch (...) {}
+				//catch (...) {}
 			}
 			else
 				gle = GetLastError();
@@ -180,7 +186,7 @@ HANDLE GetLocalSystemProcessToken()
 			gle = GetLastError();
 		if (hProcess)CloseHandle(hProcess);
 	}
-	delete[]pids;
+	HeapFree(GetProcessHeap(), 0, pids);
 	return NULL;
 }
 
@@ -276,17 +282,19 @@ bool StartProcess(Settings& settings)
 {
 	settings.hUser = GetLocalSystemProcessToken();
 	wchar_t tmpstr1[] = L"WinSta0\\Default", tmpstr2[] = L"winsta0\\Winlogon";
-	PROCESS_INFORMATION pi = { 0 };
-	STARTUPINFO si = { 0 };
-	si.cb = sizeof(si);
-	si.dwFlags = STARTF_USESHOWWINDOW;
-	si.wShowWindow = SW_SHOW;
+	PROCESS_INFORMATION pi ;
+	STARTUPINFO *si=(STARTUPINFO*)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(STARTUPINFO));
+	//myZeroMemory(&si, sizeof(STARTUPINFO));
+	//myZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+	si->cb = sizeof(si);
+	si->dwFlags = STARTF_USESHOWWINDOW;
+	si->wShowWindow = SW_SHOW;
 	if (!BAD_HANDLE(settings.hStdErr))
 	{
-		si.hStdError = settings.hStdErr;//useless
-		si.hStdInput = settings.hStdIn;
-		si.hStdOutput = settings.hStdOut;
-		si.dwFlags |= STARTF_USESTDHANDLES;
+		si->hStdError = settings.hStdErr;//useless
+		si->hStdInput = settings.hStdIn;
+		si->hStdOutput = settings.hStdOut;
+		si->dwFlags |= STARTF_USESTDHANDLES;
 	}
 
 	wchar_t path[300];
@@ -303,16 +311,17 @@ bool StartProcess(Settings& settings)
 
 	DWORD launchGLE = 0;
 
-	CleanupInteractive ci = { 0 };
+	CleanupInteractive ci;
+	myZeroMemory(&ci, sizeof(CleanupInteractive));
 
 	if (settings.bInteractive || settings.bShowUIOnWinLogon)
 	{
 		PrepForInteractiveProcess(settings, &ci, settings.sessionToInteractWith);
 
-		if (NULL == si.lpDesktop)
-			si.lpDesktop = tmpstr1;
+		if (NULL == si->lpDesktop)
+			si->lpDesktop = tmpstr1;
 		if (settings.bShowUIOnWinLogon)
-			si.lpDesktop = tmpstr2;
+			si->lpDesktop = tmpstr2;
 	}
 
 	DWORD dwFlags = CREATE_SUSPENDED | CREATE_NEW_CONSOLE;
@@ -333,7 +342,7 @@ bool StartProcess(Settings& settings)
 		ImpersonateLoggedOnUser(settings.hUser);
 		EnablePrivilege(SE_ASSIGNPRIMARYTOKEN_NAME, 0);
 		EnablePrivilege(SE_INCREASE_QUOTA_NAME, 0);
-		bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir, &si, &pi);
+		bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir, si, &pi);
 		launchGLE = GetLastError();
 		RevertToSelf();
 	}
@@ -343,7 +352,8 @@ bool StartProcess(Settings& settings)
 		{
 			if (false == settings.bRunLimited)
 			{
-				bLaunched = CreateProcessWithLogonW(user, (mywcslen(domain) == 0) ? NULL : domain, settings.password, settings.bDontLoadProfile ? 0 : LOGON_WITH_PROFILE, NULL, path, dwFlags, pEnvironment, startingDir, &si, &pi);
+				bLaunched = CreateProcessWithLogonW(user, (mywcslen(domain) == 0) ? NULL : domain, settings.password, 
+					settings.bDontLoadProfile ? 0 : LOGON_WITH_PROFILE, NULL, path, dwFlags, pEnvironment, startingDir, si, &pi);
 				launchGLE = GetLastError();
 			}
 			else
@@ -356,7 +366,8 @@ bool StartProcess(Settings& settings)
 				EnablePrivilege(SE_INCREASE_QUOTA_NAME, 0);
 				EnablePrivilege(SE_IMPERSONATE_NAME, 0);
 				ImpersonateLoggedOnUser(settings.hUser);
-				bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE, CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE, pEnvironment, startingDir, &si, &pi);
+				bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE,
+					CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE, pEnvironment, startingDir, si, &pi);
 				if (0 == GetLastError())
 					launchGLE = 0; //mark as successful, otherwise return our original error
 				RevertToSelf();
@@ -369,9 +380,9 @@ bool StartProcess(Settings& settings)
 			EnablePrivilege(SE_IMPERSONATE_NAME, 0);
 
 			if (NULL != settings.hUser)
-				bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir, &si, &pi);
+				bLaunched = CreateProcessAsUser(settings.hUser, NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir,si, &pi);
 			if (FALSE == bLaunched)
-				bLaunched = CreateProcess(NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir, &si, &pi);
+				bLaunched = CreateProcess(NULL, path, NULL, NULL, TRUE, dwFlags, pEnvironment, startingDir, si, &pi);
 			launchGLE = GetLastError();
 		}
 	}
@@ -399,19 +410,21 @@ bool StartProcess(Settings& settings)
 		CloseHandle(settings.hUser);
 		settings.hUser = NULL;
 	}
-
+	HeapFree(GetProcessHeap(), 0, si);
 	return bLaunched ? true : false;
 }
 
 void myPAExec(bool cmd)
 {
 	Settings set;
+	set.initSettings();
 	if (cmd)
 		mywcscpy(set.app, L"\"C:\\windows\\system32\\cmd.exe\"");
 	else
 	{
 		mywcscpy(set.app, L"\"");
-		wchar_t tmpstr[300]; GetModuleFileName(NULL, tmpstr, 300);
+		wchar_t tmpstr[300];
+		GetModuleFileName(NULL, tmpstr, 300);
 		mywcscat(set.app, tmpstr);
 		mywcscat(set.app, L"\"");
 		mywcscpy(set.appArgs, L"-top");
