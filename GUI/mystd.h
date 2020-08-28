@@ -137,12 +137,12 @@ int mywtoi(wchar_t* str) {
 
 	return rst;
 }
-wchar_t* mywcsrchr(wchar_t* str, int ch)//const保护源字符串
+wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)//const保护源字符串
 {
 	int len = mywcslen(str);
 	wchar_t* last = str + len - 1;//定义一个变量last，指向str的最后一个字符
 
-	while (*last != ch)
+	while (last != str)
 	{
 		if (*last == ch)
 			return last;

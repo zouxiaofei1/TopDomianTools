@@ -17,7 +17,7 @@ void s(int a)//当程序正式发布时可以去掉这几个函数
 	wchar_t tmp[20];
 	//myZeroMemory(tmp, sizeof(wchar_t) * 20);
 	myitow(a, tmp, 0);
-	//MessageBox(NULL, tmp, L"", NULL);
+	MessageBox(NULL, tmp, L"", NULL);
 }
 //void s(double a)
 //{
@@ -54,6 +54,7 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引�
 //为了减少程序体积，从网上抄来的红黑树map代码
 //
 
+#pragma warning (disable:6011)
 namespace fbcstd {
 
 	template<class T1, class T2>
@@ -259,7 +260,6 @@ public:
 public:
 	void InitRBTree()
 	{
-		//s(1234);
 		_pHead = (Node*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(Node));
 	}
 	Iterator Begin()
@@ -497,8 +497,6 @@ private:
 			pCur = pCur->_pRight;
 		return pCur;
 	}
-	//private:
-//	Node head;
 	PNode _pHead;
 };
 

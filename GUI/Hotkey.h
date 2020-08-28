@@ -41,7 +41,7 @@ void CALLBACK HotKeyTimer(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
 		}
 	}
 }
-void InitHotKey()
+__forceinline void InitHotKey()
 {
 	SetTimer(0, 0, 16, (TIMERPROC)HotKeyTimer);
 }

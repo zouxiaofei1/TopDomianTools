@@ -213,7 +213,6 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, unsigned int style)
 {//封装过的注册Class函数.
 	WNDCLASSEXW wcex;
-	s(sizeof(WNDCLASSEXW));
 	myZeroMemory(&wcex, sizeof(WNDCLASSEXW));
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = style;
