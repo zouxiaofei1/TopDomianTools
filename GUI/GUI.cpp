@@ -70,8 +70,8 @@ constexpr int numGames = 6;// (游戏)数
 BOOL GameExist[numGames + 1];//标记的文件是否存在?
 constexpr wchar_t GameName[numGames + 1][12] = { L"xiaofei.exe", L"fly.exe",L"2048.exe",\
 L"block.exe", L"1.exe" , L"chess.exe",L"14Kwds.ini" };//(游戏)名
-constexpr wchar_t GameURLsuffix[numGames + 1][27] = { L"F87EA6C91-fef146eabedd37f1", L"F1D5923FE-df13e026f991e2e2",L"EB37DDBC8-874a107f9e508740",\
-L"F2B070762-ad238c90cdccbf81", L"EAAD01475-f78a4bf94b02314c" , L"F6743FB5E-72eb2ae6a1b500b6",L"F90D07F91-4018ea97a9fe01f1" };//链接后缀
+constexpr wchar_t GameURLsuffix[numGames + 1][27] = { L"F87EA6C91-fef146eabedd37f1", L"F1D5923FE-df13e026f991e2e2",L"EAAD01475-f78a4bf94b02314c",\
+L"F2B070762-ad238c90cdccbf81", L"EB37DDBC8-874a107f9e508740" , L"F6743FB5E-72eb2ae6a1b500b6",L"F90D07F91-4018ea97a9fe01f1" };//链接后缀
 BOOL GameButtonLock = FALSE;//Game按钮锁定
 constexpr wchar_t GameURLprefix[] = L"http://f0.mc.0sm.com/node0/2020/08/85F4B5C";//游戏存储库目录
 
@@ -107,7 +107,7 @@ Map<int, BOOL>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND MonitorList[101]; //被监视窗口hWnd
 int MonitorTot, MonitorCur;//被监视窗口数量 + 正在被监视的窗口编号
 int TopCount;//CatchWnd窗口置顶延迟变量
-int sdl = 7;//systemdefaultlanguage
+int sdl = 5;//systemdefaultlanguage
 constexpr int QRcode[] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
@@ -2455,7 +2455,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 			Main.es[++Main.es[0].top] = Rc;
 			Main.Redraw(Rc);//重绘展开部分
 			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
-			Sleep(10);
+			//Sleep(10);
 		}
 		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		Main.Width = DEFAULT_WIDTH + 240;
@@ -2470,7 +2470,7 @@ DWORD WINAPI GameThread(LPVOID pM)
 			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
 			Main.Redraw(Rc);
 			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
-			Sleep(10);
+			//Sleep(10);
 		}
 		Main.Width = DEFAULT_WIDTH;
 		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
@@ -2857,7 +2857,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 			}
 		}
 		if (GetForegroundWindow() != Main.hWnd)Main.EditUnHotKey();
-		if (GetTickCount() - Main.Timer >= 1000 && Main.ExpExist == FALSE)Main.Try2CreateExp();
+		if (GetTickCount() - Main.Timer >= 500 && Main.ExpExist == FALSE)Main.Try2CreateExp();
 		break;
 	}
 	case TIMER_BUTTONEFFECT://按钮特效
@@ -3687,7 +3687,7 @@ BOOL InitInstance()//初始化
 	Main.CreateLine(2, 374, 137, LINE_X, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(DEFAULT_WIDTH + 1, 50, DEFAULT_HEIGHT + 1 - 50, LINE_Y, 0, COLOR_DARKER_GREY);//页面最右边的线
 
-	Main.CreateFrame(170, 75, 415, 95, 1, L" 进程方案 ");
+	Main.CreateFrame(170, 75, 419, 95, 1, L" 进程方案 ");
 	Main.CreateButton(195, 100, 110, 50, 1, L"安装sethc", L"Sethc");//sethc
 	Main.CreateButton(325, 100, 110, 50, 1, L"全局键盘钩子", L"hook");//hook
 	if (SethcState)
@@ -3702,7 +3702,7 @@ BOOL InitInstance()//初始化
 		FindClose(hFind);
 	}
 
-	Main.CreateFrame(170, 195, 415, 320, 1, L" 窗口方案 ");//虚拟桌面系列
+	Main.CreateFrame(170, 195, 419, 320, 1, L" 窗口方案 ");//虚拟桌面系列
 	Main.CreateButton(195, 220, 110, 50, 1, L"运行程序", L"runinVD");
 	Main.CreateButton(455, 220, 110, 50, 1, L"切换桌面", L"SwitchD");
 	Main.CreateText(195, 285, 1, L"Tctrl+b", COLOR_ORANGE);
@@ -3790,7 +3790,7 @@ BOOL InitInstance()//初始化
 	if ((Main.Timer % 49) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);//因此将GetTickCount取模时如果和18的最大公约数不是1，就会造成概率不正确的问题
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);//例如 Main.Timer % 50 == 0 这条语句，实际触发概率是25分之1
 
-	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 500, (TIMERPROC)TimerProc);//开启Exp计时器
+	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 250, (TIMERPROC)TimerProc);//开启Exp计时器
 
 	if (!slient)//显示主窗口
 	{
@@ -3856,7 +3856,11 @@ BOOL InitInstance()//初始化
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"G5");
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"G6");//43
 
-	if ((Main.Timer % 49) == 0 && FirstFlag && !slient)Main.InfoBox(L"Firststr");
+	if ((Main.Timer % 3) == 0 && FirstFlag && !slient)
+	{
+		Main.InfoBox(L"Firststr");
+		if((Main.Timer % 49) == 0)Main.InfoBox(L"First2");
+	}
 
 	typedef struct tagCHANGEFILTERSTRUCT {//使程序接受非管理员程序(explorer)的拖拽请求
 		DWORD cbSize;
@@ -4273,6 +4277,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			if (CatchWndTimerLeft < 1)CatchWndTimerLeft = 0;
 
 			SetTimer(Main.hWnd, TIMER_CATCHWINDOW, 1000, (TIMERPROC)TimerProc);
+			if(!Main.Check[CHK_NOHOOK].Value)Main.Check[CHK_NOHOOK].Value=TRUE,SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc);
 			break;
 		}
 		case BUT_VIEW://监视窗口
