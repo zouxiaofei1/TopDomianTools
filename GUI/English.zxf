@@ -160,6 +160,7 @@ nolg = "This func is disabled."
 swlg = "Switch Language:"
 UT = " ULTRA TopMost"
 starting = "Starting"
+unSet = "Uninst Sethc"
 </Strings>
 <Frames>
 F1 = " Process Solution ",-1,-1,-1,-1

@@ -161,6 +161,7 @@ nolg = "语言切换暂不可用"
 swlg = "语言切换:"
 UT = " 超级置顶"
 starting = "启动中"
+unSet = "卸载Sethc"
 </Strings>
 <Frames>
 F1 = " 进程方案 ",-1,-1,-1,-1

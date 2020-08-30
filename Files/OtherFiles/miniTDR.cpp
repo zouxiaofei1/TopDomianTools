@@ -1,3 +1,6 @@
+//编译前在 工具 - 编译选项 - 在连接器命令行加入以下命令 中加入"-l ws2_32"
+//在不同机器上使用时应先调用cmd中的ipconfig命令获取本机ip地址 
+
 #include <windows.h>
 void win(char *l)
 {
@@ -29,7 +32,7 @@ int main()
 	for(int i=2;i<=130;i++)
 	{
 		strcpy(a,"192.168.181.");
-		itoa(i,b,9);
+		itoa(i,b,10);
 		strcat(a,b);
 		win(a);
 	}

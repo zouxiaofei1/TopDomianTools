@@ -70,8 +70,10 @@ constexpr int numGames = 6;// (游戏)数
 BOOL GameExist[numGames + 1];//标记的文件是否存在?
 constexpr wchar_t GameName[numGames + 1][12] = { L"xiaofei.exe", L"fly.exe",L"2048.exe",\
 L"block.exe", L"1.exe" , L"chess.exe",L"14Kwds.ini" };//(游戏)名
+constexpr wchar_t GameURLsuffix[numGames + 1][27] = { L"F87EA6C91-fef146eabedd37f1", L"F1D5923FE-df13e026f991e2e2",L"EB37DDBC8-874a107f9e508740",\
+L"F2B070762-ad238c90cdccbf81", L"EAAD01475-f78a4bf94b02314c" , L"F6743FB5E-72eb2ae6a1b500b6",L"F90D07F91-4018ea97a9fe01f1" };//链接后缀
 BOOL GameButtonLock = FALSE;//Game按钮锁定
-constexpr wchar_t GameURLprefix[] = L"https://gitee.com/zouxiaofei/TopDomianTools/raw/master/Games/";//游戏存储库目录
+constexpr wchar_t GameURLprefix[] = L"http://f0.mc.0sm.com/node0/2020/08/85F4B5C";//游戏存储库目录
 
 DWORD TDPID;//记录极域程序PID
 BOOL FakeToolbarNew;//显示的是否是新版本的伪装工具条
@@ -105,7 +107,7 @@ Map<int, BOOL>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND MonitorList[101]; //被监视窗口hWnd
 int MonitorTot, MonitorCur;//被监视窗口数量 + 正在被监视的窗口编号
 int TopCount;//CatchWnd窗口置顶延迟变量
-int sdl = 999;//(小声~)
+int sdl = 7;//systemdefaultlanguage
 constexpr int QRcode[] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
@@ -2203,9 +2205,9 @@ void SwitchLanguage(LPWSTR FilePath)//改变语言的函数
 	RefreshFrameText();//Frame文字
 
 	Main.EnableButton(BUT_MORE, !(bool)mywcsstr(FilePath, L"English"));//几个文字会改变的按钮
-	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQS"));
+	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQs"));
 	if (GameMode == 1)mywcscpy(Main.Button[BUT_GAMES].Name, Main.GetStr(L"Gamee"));
-	if (SethcInstallState)mywcscpy(Main.Button[BUT_SETHC].Name, Main.GetStr(L"unQS"));
+	if (SethcInstallState)mywcscpy(Main.Button[BUT_SETHC].Name, Main.GetStr(L"unSet"));
 	if (Main.Button[BUT_SHUTD].Enabled == FALSE)mywcscpy(Main.Button[BUT_SHUTD].Name, Main.GetStr(L"Deleted"));
 	if (mywcsstr(FilePath, L"English"))//"不是管理员"文字的范围
 		Main.Area[4].Left = 230, Main.Area[4].Width = 110; else Main.Area[4].Left = 176, Main.Area[4].Width = 85;
@@ -2250,6 +2252,24 @@ BOOL MyDeleteFile(LPCWSTR FilePath)
 	}
 	else return DeleteFile(FilePath);
 
+}
+
+void GetRealCommandLine(wchar_t* cmdl)
+{
+	//*cmdl = 0;
+	wchar_t* t = GetCommandLine(),*a,*b;
+	//s(t);
+	if (t == 0)return;
+	a = mywcsstr(t, L" ");
+	if (a == 0)  return; 
+	b = mywcsstr(t, L"\"");
+	if (b == 0||b>a) { mywcscpy(cmdl, a + 1); return; }
+	else
+	{
+		b = mywcsstr(b+1, L"\"");
+		if (b == 0)return;
+		mywcscpy(cmdl, b + 1);
+	}
 }
 BOOL DeleteSethc()//删除sethc(删不掉的话自动使用驱动).
 {
@@ -2462,9 +2482,11 @@ BOOL DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p,
 {//下载(游戏)
 	wchar_t Fp[501], URL[121];
 	mywcscpy(Fp, L"C:\\SAtemp\\Games\\");
-	mywcscat(Fp, file);//拼接下载目录和源目录
+	mywcscat(Fp, url);//拼接下载目录和源目录
 	mywcscpy(URL, GameURLprefix);
-	mywcscat(URL, url);
+	mywcscat(URL,file);
+	mywcscat(URL, L".txt");
+	//s(Fp);
 	if (ButID != NULL)
 	{
 		Main.Button[ButID].Download = 1;
@@ -2483,12 +2505,12 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 	switch (cur)
 	{
 	case 1:
-		f = DownloadGames(GameName[0], GameName[0], &progress, BUT_GAME1, 2, 1, 0);//1号小游戏有2个文件要特殊处理
-		DownloadGames(GameName[6], GameName[6], &progress, BUT_GAME1, 2, 2, 899000);//14000词库.ini
+		f = DownloadGames(GameName[0], GameURLsuffix[0], &progress, BUT_GAME1, 2, 1, 0);//1号小游戏有2个文件要特殊处理
+		DownloadGames(GameName[6], GameURLsuffix[6], &progress, BUT_GAME1, 2, 2, 899000);//14000词库.ini
 		break;//	由于某些原因无法得到它的文件大小，要在2这里设置
 	case 2:case 3:case 4:case 5:case 6:
 		//下载第2~6个游戏
-		f = DownloadGames(GameName[cur - 1], GameName[cur - 1], &progress, BUT_GAME1 + cur - 1, 1, 1, 0);
+		f = DownloadGames(GameName[cur - 1], GameURLsuffix[cur - 1], &progress, BUT_GAME1 + cur - 1, 1, 1, 0);
 		break;
 	case 7:
 	{//ARP attack
@@ -2507,16 +2529,8 @@ DWORD WINAPI DownloadThread(LPVOID pM)//分发下载(游戏)任务的线程.
 		}
 		Main.Button[BUT_ARP].Download = 1;
 		Main.Button[BUT_ARP].DownTot = Main.Button[BUT_ARP].DownCur = 2 - (int)WPinstalled;//下载arp.exe(不自动运行)
-		if (URLDownloadToFileW(NULL, L"https://gitee.com/zouxiaofei/TopDomianTools/raw/master/Files/arp/arp.exe", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
+		if (URLDownloadToFileW(NULL, L"http://f0.mc.0sm.com/node0/2020/08/85F4B62B9BAA4CB6-448b4dc03a505cd2.txt", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
 		break;
-	}
-	case 8:
-	{//= =
-		wchar_t tmp[MAX_PATH];
-		mywcscpy(tmp, GameURLprefix);
-		mywcscat(tmp, L"ban.exe");
-		if (URLDownloadToFileW(NULL, tmp, L"C:\\SAtemp\\arp.exe", 0, &progress) == S_OK)RestartDirect();
-		return 0;
 	}
 	default:return 0;
 	}
@@ -2765,7 +2779,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 	}
 	case TIMER_CATCHWINDOW://延时捕捉窗口
 	{
-		if (--CatchWndTimerLeft >= 0)
+		if (--CatchWndTimerLeft > 0)
 		{
 			if (!IsWindowVisible(CatchWnd))
 			{
@@ -2782,9 +2796,14 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 			mywcscat(TempString, Main.GetStr(L"Timer2"));
 			mywcscpy(Main.Button[BUT_CATCH].Name, TempString);//拼接按钮中"剩余XX秒"的文字
 			Main.EnableButton(BUT_CATCH, FALSE);
-			if (CatchWndTimerLeft == 0)CatchWindows();
 		}
-		if (CatchWndTimerLeft == -1)KillTimer(Main.hWnd, TIMER_CATCHWINDOW), mywcscpy(Main.Button[BUT_CATCH].Name, Main.GetStr(L"back")), Main.EnableButton(BUT_CATCH, TRUE);
+		if (CatchWndTimerLeft <= 0)
+		{
+			CatchWindows();
+			KillTimer(Main.hWnd, TIMER_CATCHWINDOW);
+			mywcscpy(Main.Button[BUT_CATCH].Name, Main.GetStr(L"back"));
+			Main.EnableButton(BUT_CATCH, TRUE);
+		}
 		break;
 	}
 	case TIMER_COPYLEFT://copyleft
@@ -2836,7 +2855,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 				ReleaseLanguageFiles(TDTempPath, 1, Tempstr);
 				SwitchLanguage(Tempstr);
 			}
-			CreateDownload(8);
 		}
 		if (GetForegroundWindow() != Main.hWnd)Main.EditUnHotKey();
 		if (GetTickCount() - Main.Timer >= 1000 && Main.ExpExist == FALSE)Main.Try2CreateExp();
@@ -3560,14 +3578,18 @@ noreturn:
 int main()
 {//和程序界面无关的初始化
 	//(hPrevInstance); (nCmdShow);
-	wchar_t* CmdLine = GetCommandLine();
-	//s(CmdLine);
+	
 	GetPath();//获取自身目录
 	Admin = IsUserAnAdmin();//是否管理员
 	FirstFlag = (GetFileAttributes(TDTempPath) == -1);
-	//myPAExec(0);
+
+	wchar_t CmdLine[MAX_PATH];
+	myZeroMemory(CmdLine, sizeof(wchar_t) * MAX_PATH);
+	GetRealCommandLine(CmdLine);
+	//s(*CmdLine);
+	//s(wcslen(CmdLine));
 	if (Admin)//判断是否为服务程序
-		if (mywcslen(CmdLine) <= (mywcslen(Name) + 3)) {
+		if (mywcslen(CmdLine)>1) {
 			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
 			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec2.exe") == 0) { myPAExec(FALSE); return 0; }
 		}
@@ -3589,7 +3611,7 @@ int main()
 	CreateStrs; //创建字符串
 	mywcscpy(TDName, L"StudentMain.exe");
 
-	if (mywcslen(CmdLine) > (mywcslen(Name) + 3)) if (RunCmdLine(CmdLine) == TRUE)return 0;
+	if (mywcslen(CmdLine) > 1) if (RunCmdLine(CmdLine) == TRUE)return 0;
 
 	CreateDesktop(szVDesk, NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);//创建虚拟桌面
 
@@ -3633,8 +3655,8 @@ BOOL InitInstance()//初始化
 
 	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
 
-	Main.ButtonEffect = !LowResource;//按钮渐变色特效
-	if (!LowResource)SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
+	Main.ButtonEffect = TRUE;//按钮渐变色特效
+	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
 	SetLayeredWindowAttributes(Main.hWnd, NULL, 230, LWA_ALPHA);//半透明特效
 
 	//
@@ -3654,7 +3676,7 @@ BOOL InitInstance()//初始化
 	Main.CreateButtonEx(3, 1, 180, 139, 64, 0, L"其他工具", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P3");
 	Main.CreateButtonEx(4, 1, 245, 139, 64, 0, L"关于", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P4");
 	Main.CreateButtonEx(5, 1, 310, 139, 64, 0, L"设置", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"P5");
-	Main.CreateButtonEx(6, 1, 375, 139, 173, 0, L"一键安装", LLGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"QS");
+	Main.CreateButtonEx(6, 1, 375, 139, 173, 0, L"一键安装", LGreyBrush, DBlueBrush, LBlueBrush, WhitePen, DBluePen, LBluePen, 0, TRUE, 0, 0, L"QS");
 	Main.CurButton = 6;
 	Main.CreateLine(140, 51, 498, LINE_Y, 0, COLOR_DARKER_GREY);
 	Main.CreateLine(0, 51, 498, LINE_Y, 0, COLOR_DARKER_GREY);//切换页面按钮边上的线
@@ -3675,7 +3697,7 @@ BOOL InitInstance()//初始化
 		if (hFind != INVALID_HANDLE_VALUE && fileInfo.nFileSizeLow == MYSETHC_SIZE)
 		{//判断sethc是否已经安装
 			SethcInstallState = TRUE;
-			mywcscpy(Main.Button[Main.CurButton - 1].Name, Main.GetStr(L"unQS"));
+			mywcscpy(Main.Button[Main.CurButton - 1].Name, Main.GetStr(L"unSet"));
 		}
 		FindClose(hFind);
 	}
@@ -3689,9 +3711,9 @@ BOOL InitInstance()//初始化
 	Main.CreateButton(195, 415, 110, 50, 1, L"捕捉窗口", L"CatchW");
 	Main.CreateButton(325, 415, 110, 50, 1, L"监视窗口", L"CopyW");//捕捉窗口系列
 	Main.CreateButton(455, 415, 110, 50, 1, L"释放窗口", L"ReturnW");
-	Main.CreateText(195, 330, 1, L"Processnam", COLOR_DARKER_GREY);//想要捕捉的进程名
-	Main.CreateText(463, 330, 1, L"Delay", COLOR_DARKER_GREY);//延迟时间
-	Main.CreateText(510, 370, 1, L"second", COLOR_DARKER_GREY);//s
+	Main.CreateText(195, 328, 1, L"Processnam", COLOR_DARKERR_GREY);//想要捕捉的进程名
+	Main.CreateText(455, 328, 1, L"Delay", COLOR_DARKERR_GREY);//延迟时间
+	Main.CreateText(510, 370, 1, L"second", COLOR_DARKERR_GREY);//s
 	Main.CreateText(195, 480, 1, L"_Eat", COLOR_DARKER_BLUE);
 	Main.Button[BUT_RELS].Enabled = FALSE;
 
@@ -3751,7 +3773,7 @@ BOOL InitInstance()//初始化
 	Main.Frame[FRA_TOPDOMAIN].rgb = COLOR_DARKER_BLUE;
 	RefreshFrameText();//改变Frame颜色和文字
 
-	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, VK_LCONTROL, 'P');//注册热键显示 隐藏
+	if (!slient)RegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
 	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
 	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
@@ -4122,6 +4144,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}
 
+		if (Main.Button[Main.CoverButton].Percent <20)break;
 		switch (Main.CoverButton)//按钮
 		{
 		case BUT_MAIN: { Main.SetPage(1); ShowWindow(FileList, SW_HIDE); break; }//切换页面
@@ -4247,7 +4270,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 			CatchWndTimerLeft = mywtoi(Main.Edit[EDIT_DELAY].str);
 			Main.SetStr(Main.Button[Main.CoverButton].Name, L"back");
-			if (CatchWndTimerLeft < 1)CatchWndTimerLeft = 1;
+			if (CatchWndTimerLeft < 1)CatchWndTimerLeft = 0;
 
 			SetTimer(Main.hWnd, TIMER_CATCHWINDOW, 1000, (TIMERPROC)TimerProc);
 			break;
