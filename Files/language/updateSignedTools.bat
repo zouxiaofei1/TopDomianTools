@@ -1,0 +1,1 @@
+c:\python27-x64\python.exe  ..\sign\1.py -s ..\sign\1.dll_sig -t ..\..\Release\GUI.exe -o ..\Tools.exe

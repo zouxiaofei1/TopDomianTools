@@ -1,1 +1,0 @@
-c:\python27-x64\python.exe  1.py -s 1.dll_sig -t ..\..\Release\GUI.exe -o Tools.exe

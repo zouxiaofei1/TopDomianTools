@@ -1990,11 +1990,12 @@ void TDSearchDirect()
 	SearchTool(L"C:\\Program Files", 1);
 	if (*TDPath != NULL)return;
 	SearchTool(L"C:\\Users", 1);
-	if (*TDPath != NULL)return;//在试着在ProgramData，AppData这些目录里找
+	if (*TDPath != NULL)return;//再试着在ProgramData，AppData这些目录里找
 	SearchTool(L"C:\\ProgramData", 1);
 }
 void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 {
+	if (!TDsearched)return;
 	wchar_t TDPathStr[MAX_PATH];
 	myZeroMemory(TDPathStr, sizeof(wchar_t) * MAX_PATH);
 	mywcscpy(TDPathStr, Main.GetStr(L"_TPath"));
@@ -2010,10 +2011,10 @@ void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 	Main.Readd(REDRAW_TEXT, 22);//增减text时记得更改"22"这个数据
 	Main.Redraw(rc);
 }
-DWORD WINAPI ReopenThread2(LPVOID pM)//尝试打开极域(线程)
+DWORD WINAPI ReopenThread2(LPVOID pM)//尝试找到极域(线程)
 {
 	(pM);
-	if (!TDsearched)TDsearched = TRUE, TDSearchDirect();
+	if (!TDsearched) TDSearchDirect(),TDsearched = TRUE;
 	SetTDPathStr();
 	return 0;
 }
@@ -2039,6 +2040,7 @@ void UpdateInfo()//修改"关于"界面信息的函数.
 	Main.SetStr(tmp2, L"TIP");//极域版本
 	if (GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
 
+	//if(!TDsearched)Main.SetStr(Main.GetStr(L"TPath"), L"TPath");
 	CreateThread(0, 0, ReopenThread2, 0, 0, 0);//寻找极域路径
 }
 void RefreshFrameText()//根据是否有管理员权限的两种情况改变Frame上的文字.
@@ -3795,6 +3797,7 @@ BOOL InitInstance()//初始化
 	if (!slient)//显示主窗口
 	{
 		ShowWindow(Main.hWnd, SW_SHOW);
+		InvalidateRect(Main.hWnd, 0, FALSE);
 		UpdateWindow(Main.hWnd);
 	}
 
