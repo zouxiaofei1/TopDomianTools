@@ -68,12 +68,12 @@ BOOL NewDesktop = FALSE;//ÊÇ·ñ´¦ÓÚÐÂ×ÀÃæÖÐ?
 BOOL GameMode;//ÓÎÏ·Ä£Ê½ÊÇ·ñ´ò¿ª?
 constexpr int numGames = 6;// (ÓÎÏ·)Êý
 BOOL GameExist[numGames + 1];//±ê¼ÇµÄÎÄ¼þÊÇ·ñ´æÔÚ?
-constexpr wchar_t GameName[numGames + 1][12] = { L"xiaofei.exe", L"fly.exe",L"2048.exe",\
+constexpr wchar_t GameName[numGames + 1][12]{ L"xiaofei.exe", L"fly.exe",L"2048.exe",\
 L"block.exe", L"1.exe" , L"chess.exe",L"14Kwds.ini" };//(ÓÎÏ·)Ãû
-constexpr wchar_t GameURLsuffix[numGames + 1][27] = { L"F87EA6C91-fef146eabedd37f1", L"F1D5923FE-df13e026f991e2e2",L"EAAD01475-f78a4bf94b02314c",\
-L"F2B070762-ad238c90cdccbf81", L"EB37DDBC8-874a107f9e508740" , L"F6743FB5E-72eb2ae6a1b500b6",L"F90D07F91-4018ea97a9fe01f1" };//Á´½Óºó×º
+constexpr wchar_t GameURLsuffix[numGames + 1][3]{ L"95", L"88",L"61",\
+L"72", L"50" , L"80",L"25" };//Á´½Óºó×º
 BOOL GameButtonLock = FALSE;//Game°´Å¥Ëø¶¨
-constexpr wchar_t GameURLprefix[] = L"http://f0.mc.0sm.com/node0/2020/08/85F4B5C";//ÓÎÏ·´æ´¢¿âÄ¿Â¼
+constexpr wchar_t GameURLprefix[] = L"http://www.zlian.ga/u/15993785";//ÓÎÏ·´æ´¢¿âÄ¿Â¼
 
 DWORD TDPID;//¼ÇÂ¼¼«Óò³ÌÐòPID
 BOOL FakeToolbarNew;//ÏÔÊ¾µÄÊÇ·ñÊÇÐÂ°æ±¾µÄÎ±×°¹¤¾ßÌõ
@@ -86,8 +86,8 @@ HANDLE DeleteFileHandle;//ÎÄ¼þÉ¾³ýÇý¶¯¾ä±ú
 HBITMAP hZXFsign;//xiaofeiÇ©ÃûÍ¼Æ¬¾ä±ú
 int EasterEggState;//CopyLeftÎÄ×ÖÑ­»·×´Ì¬
 BOOL EasterEggFlag = FALSE;//ÊÇ·ñÏÔÊ¾ÎÄ×ÖÑ­»·
-constexpr char EasterEggStr[11][8] = { "Answer","Left" ,"Left","Right",\
-"Down","Up","In","On","Back","Front","Teacher" };//¹ö¶¯ÏÔÊ¾µÄ×Ö·û
+constexpr char EasterEggStr[11][8]{ "Answer","Left" ,"Left",\
+"Right","Down","Up","In","On","Back","Front","Teacher" };//¹ö¶¯ÏÔÊ¾µÄ×Ö·û
 BOOL InfoChecked = FALSE;//ÊÇ·ñÒÑ¾­¼ì²é¹ýÏµÍ³ÐÅÏ¢
 
 //µÚÎåÒ³µÄÈ«¾Ö±äÁ¿
@@ -108,7 +108,7 @@ HWND MonitorList[101]; //±»¼àÊÓ´°¿ÚhWnd
 int MonitorTot, MonitorCur;//±»¼àÊÓ´°¿ÚÊýÁ¿ + ÕýÔÚ±»¼àÊÓµÄ´°¿Ú±àºÅ
 int TopCount;//CatchWnd´°¿ÚÖÃ¶¥ÑÓ³Ù±äÁ¿
 int sdl = 5;//systemdefaultlanguage
-constexpr int QRcode[] = { 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
+constexpr int QRcode[]{ 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//ÐÅ²»ÐÅÕâÊÇÒ»¸ö¶þÎ¬Âë= =
 const char word1[] = "A problem has been detected and windows has been shut down to prevent damage to your computer. ", word2[] = "IRQL_NOT_LESS_OR_EQUAL ",
@@ -123,6 +123,8 @@ HWND BSODhwnd;//À¶ÆÁ´°ÌåµÄhWnd
 
 //ÔÓÏîÈ«¾Ö±äÁ¿
 int ColorChangingState = 1;
+int ColorChangingLeft = 5;
+int xLength, yLength;
 Mypair DragState;
 POINT DragDefPoint;
 byte strWmap[65536];//¼ÇÂ¼×Ö·û¿í¶ÈµÄÊý×é
@@ -136,6 +138,7 @@ HWND Deskwnd;//×ÀÃæhWnd
 BOOL LButtonDown;//¼ÇÂ¼Êó±ê×ó¼üÊÇ·ñ°´ÏÂ
 POINT UTMpoint;//¼ÇÂ¼Êó±ê×ø±ê
 POINT UTMpoint2;
+BOOL FE = true;
 
 
 //¿ÕÏÂ¼¸ÐÐÎªClassÁôÎ»ÖÃ
@@ -225,18 +228,14 @@ public:
 
 		LOGBRUSH LogBrush;//´ÓHBRUSHÖÐÌáÈ¡³öRGBÑÕÉ«
 		LOGPEN LogPen;//	(½¥±äÉ«ÐèÒª)
-		GetObject(Leave, sizeof(LogBrush), &LogBrush); Button[Number].b1[0] = (byte)LogBrush.lbColor;
-		Button[Number].b1[1] = (byte)(LogBrush.lbColor >> 8);
-		Button[Number].b1[2] = (byte)(LogBrush.lbColor >> 16);
-		GetObject(Hover, sizeof(LogBrush), &LogBrush); Button[Number].b2[0] = (byte)LogBrush.lbColor;
-		Button[Number].b2[1] = (byte)(LogBrush.lbColor >> 8);
-		Button[Number].b2[2] = (byte)(LogBrush.lbColor >> 16);
-		GetObject(Leave2, sizeof(LogPen), &LogPen); Button[Number].p1[0] = (byte)LogPen.lopnColor;
-		Button[Number].p1[1] = (byte)(LogPen.lopnColor >> 8);
-		Button[Number].p1[2] = (byte)(LogPen.lopnColor >> 16);
-		GetObject(Hover2, sizeof(LogPen), &LogPen); Button[Number].p2[0] = (byte)LogPen.lopnColor;
-		Button[Number].p2[1] = (byte)(LogPen.lopnColor >> 8);
-		Button[Number].p2[2] = (byte)(LogPen.lopnColor >> 16);
+		GetObject(Leave, sizeof(LogBrush), &LogBrush); Button[Number].b1[0] = GetRValue(LogBrush.lbColor);
+		Button[Number].b1[1] = GetGValue(LogBrush.lbColor); Button[Number].b1[2] = GetBValue(LogBrush.lbColor);
+		GetObject(Hover, sizeof(LogBrush), &LogBrush); Button[Number].b2[0] = GetRValue(LogBrush.lbColor);
+		Button[Number].b2[1] = GetGValue(LogBrush.lbColor); Button[Number].b2[2] = GetBValue(LogBrush.lbColor);
+		GetObject(Leave2, sizeof(LogPen), &LogPen); Button[Number].p1[0] = GetRValue(LogPen.lopnColor);
+		Button[Number].p1[1] = GetGValue(LogPen.lopnColor); Button[Number].p1[2] = GetBValue(LogPen.lopnColor);
+		GetObject(Hover2, sizeof(LogPen), &LogPen); Button[Number].p2[0] = GetRValue(LogPen.lopnColor);
+		Button[Number].p2[1] = GetGValue(LogPen.lopnColor); Button[Number].p2[2] = GetBValue(LogPen.lopnColor);
 	}
 	void CreateButton(int Left, int Top, int Wid, int Hei, int Page, LPCWSTR name, LPCWSTR ID)//´´½¨°´Å¥£¨¼ò»¯°æ£©
 	{
@@ -295,8 +294,7 @@ public:
 	}
 	void DrawFrames(int cur)//»æÖÆFrames
 	{
-		int i; RECT UPrc;
-		myZeroMemory(&UPrc, sizeof(RECT));
+		int i; RECT UPrc{0};
 		if (cur != 0) { i = cur; goto begin; }//Èç¹ûÊ¹ÓÃObjectRedrawÔòÌø¹ýÆäËûFrame
 		GetUpdateRect(hWnd, &UPrc, false);
 		for (i = 1; i <= CurFrame; ++i)
@@ -318,15 +316,13 @@ public:
 				RECT rc = GetRECTf(i);
 				SetBkMode(hdc, OPAQUE);//´òÓ¡ÉÏ·½ÎÄ×Ö
 				DrawTextW(hdc, Frame[i].Name, (int)mywcslen(Frame[i].Name), &rc, NULL);
-				//SetTextColor(hdc, NULL);
 			}
 			if (cur != 0)return;
 		}
 	}
 	void DrawButtons(int cur)//»æÖÆ°´Å¥
 	{
-		RECT UPrc;
-		myZeroMemory(&UPrc, sizeof(RECT));
+		RECT UPrc = { 0 };
 		int i;//Èç¹ûÊ¹ÓÃObjectRedrawÔòÌø¹ýÆäËûButton
 		if (cur != 0) { i = cur; goto begin; }//½á¹¹Ê¾Òâ£ºÑ¡ÔñÑÕÉ«(½¥±ä or ½ûÓÃ or Ä¬ÈÏ) -> Ñ¡Ôñ×ÖÌå
 
@@ -334,11 +330,14 @@ public:
 		for (i = 0; i <= CurButton; ++i)//				-> »æÖÆ·½¿ò -> (»æÖÆÏÂÔØ½ø¶ÈÌõ) -> »æÖÆÎÄ×Ö -> ÇåÀí
 		{
 		begin://										(ÔÚÓÃÓÚÆäËû¹¤³ÌÊ±£¬ÏÂÔØ½ø¶ÈÌõ²¿·Ö¿ÉÉ¾³ý)
+
 			if (Button[i].Page == CurWnd || Button[i].Page == 0)
 			{
+				if (Width < Button[i].Left)continue;
 				if (UPrc.right != 0)if (UPrc.right > (long)((Button[i].Left + Button[i].Width) * DPI) &&
 					UPrc.left< (long)(Button[i].Left * DPI) && UPrc.bottom>(long)((Button[i].Top + Button[i].Height) * DPI)
 					&& UPrc.top < (long)(Button[i].Top * DPI))continue;
+
 				HPEN TmpPen = 0; HBRUSH TmpBrush = 0;
 				if (Button[i].Enabled == FALSE)//½ûÓÃÔòÏÔÊ¾»ÒÉ«
 				{
@@ -373,6 +372,7 @@ public:
 					SelectObject(hdc, Button[i].Leave);//Àë¿ª
 					SelectObject(hdc, Button[i].Leave2);
 				}
+
 			colorok:
 				if (Button[i].Font == NULL)SelectObject(hdc, DefFont); else SelectObject(hdc, Button[i].Font);//×ÖÌå
 
@@ -385,21 +385,24 @@ public:
 					Rectangle(hdc, (int)(Button[i].Left * DPI), (int)(Button[i].Top * DPI),
 						(int)(Button[i].Left * DPI + Button[i].Width * DPI * (Button[i].Download - 1) / 100), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
 				}
+
 				if (Button[i].Shadow && ButtonEffect)//ÔÚ°´Å¥µÄÓÒÏÂ·½»­Ò»È¦ÒõÓ°
 				{
 					SelectObject(hdc, DDGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + 0.5), 0),
-						LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
+					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + 0.5), 0);
+					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
 					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5) - 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI));
+
 					SelectObject(hdc, DGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + 0.5), 0),
-						LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
+					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + 0.5), 0);
+					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
 					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
+
 					SelectObject(hdc, LGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + 0.5), 0),
-						LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2, 0),
-						LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2);
+					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + 0.5), 0);
+					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
+					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2, 0);
+					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2);
 				}
 
 				RECT rc = GetRECT(i);
@@ -409,7 +412,7 @@ public:
 				{
 					if (CoverButton == i)
 					{
-						/*rc.left += 2;*/ rc.top += 2; if (Press)rc.left += 2, rc.top += 2;
+						rc.left += 2; /*rc.top += 2; */if (Press)rc.top += 2;
 					}
 					DrawTextW(hdc, Button[i].Name, (int)mywcslen(Button[i].Name), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 				}
@@ -441,14 +444,14 @@ public:
 				if (TmpPen != NULL)DeleteObject(TmpPen);//»ØÊÕ¾ä±ú
 				if (TmpBrush != NULL)DeleteObject(TmpBrush);
 			}
+
 			if (cur != 0)return;//Ê¹ÓÃObjectRedrawÊ±Ö±½Ó½áÊø
 		}
 		SetTextColor(hdc, COLOR_BLACK);
 	}
 	void DrawChecks(int cur)//»æÖÆChecks
 	{
-		RECT UPrc;
-		myZeroMemory(&UPrc, sizeof(RECT));
+		RECT UPrc{0};
 		int i;
 		if (cur != 0) { i = cur; goto begin; }//Èç¹ûÊ¹ÓÃObjectRedrawÔòÌø¹ýÆäËûCheck
 		GetUpdateRect(hWnd, &UPrc, false);
@@ -492,9 +495,7 @@ public:
 				MoveToEx(hdc, (int)(Line[i].StartX * DPI), (int)(Line[i].StartY * DPI), NULL);
 				LineTo(hdc, (int)(Line[i].StartX * DPI + (!Line[i].Focus * Line[i].Length) * DPI), (int)(Line[i].StartY * DPI + (Line[i].Focus * Line[i].Length) * DPI));
 				DeleteObject(tmpPen);
-
 			}
-
 	}
 	void DrawTexts(int cur)//»æÖÆÎÄ×Ö
 	{
@@ -557,7 +558,7 @@ public:
 				if (*Edit[i].OStr != 0)//Èç¹ûµ±Ç°EditÏÔÊ¾µÄÊÇOstr(½öÓÃÓÚÌáÊ¾µÄ»ÒÉ«ÎÄ×Ö)
 				{//ÔÚHdcÉÏÖ±½Ó´òÓ¡Íê×ßÈË
 					SetTextColor(hdc, COLOR_DARKER_GREY);
-					RECT rc = { (long)((Edit[i].Left - 5) * DPI) , (long)(Edit[i].Top * DPI),(long)((Edit[i].Left + Edit[i].Width + 5) * DPI),(long)((Edit[i].Top + Edit[i].Height) * DPI) };
+					RECT rc{ (long)((Edit[i].Left - 5) * DPI) , (long)(Edit[i].Top * DPI),(long)((Edit[i].Left + Edit[i].Width + 5) * DPI),(long)((Edit[i].Top + Edit[i].Height) * DPI) };
 					DrawTextW(hdc, Edit[i].OStr, (int)mywcslen(Edit[i].OStr), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 					continue;
 				}
@@ -595,7 +596,7 @@ public:
 					{//×¢ÒâXOffsetºÍMoffset¶¼ÊÇ³ËÉÏ¹ýDPIµÄÕæÊµ×ø±ê
 						SetTextColor(mdc, COLOR_BLACK);
 						TextOutW(mdc, 0, 4, Edit[i].str + showBegin, min(pos1, showEnd) - showBegin);//ºÚÉ«´òÓ¡Ñ¡ÖÐÌõ×ó±ßÎÄ×Ö
-					}//×¢:´ËÓÅ»¯Îª×î½üÌí¼Ó£¬¿ÉÄÜ²»ÎÈ¶¨
+					}
 					if (pos2 >= showBegin)
 					{
 						SelectObject(mdc, NormalBluePen);
@@ -627,12 +628,10 @@ public:
 				if (yMax < Edit[i].Top * DPI + 1)yMax = (int)(Edit[i].Top * DPI + 1);//ÌùÍ¼
 				if (Edit[i].XOffset == 0)
 					BitBlt(hdc, (int)((Edit[i].Left + Edit[i].Width / 2) * DPI) - Edit[i].strWidth / 2, yMax//XoffsetÎª0Ê±¾ÓÖÐ´òÓ¡
-						, Edit[i].strWidth
-						, Edit[i].strHeight + 4, mdc, 0, 0, SRCCOPY);
+						, Edit[i].strWidth, Edit[i].strHeight + 4, mdc, 0, 0, SRCCOPY);
 				else
 					BitBlt(hdc, (int)(Edit[i].Left * DPI), yMax//ÓÐXoffsetÊ±Ö±½Ó¸ù¾ÝXoffset-MOffsetÌùÍ¼
-						, (int)(Edit[i].Width * DPI)
-						, Edit[i].strHeight + 4, mdc, Edit[i].XOffset - MOffset, 0, SRCCOPY);
+						, (int)(Edit[i].Width * DPI), Edit[i].strHeight + 4, mdc, Edit[i].XOffset - MOffset, 0, SRCCOPY);
 			}
 			if (cur != 0)goto end;
 		}
@@ -652,16 +651,14 @@ public:
 		if (rs[0].first != 0)
 		{
 			for (int i = 1; i <= rs[0].first; ++i)
-			{
 				switch (rs[i].first) {
 				case REDRAW_FRAME:DrawFrames(rs[i].second); break;
-				case REDRAW_BUTTON:DrawButtons(rs[i].second); break;
-				case REDRAW_CHECK:DrawChecks(rs[i].second); break;
-				case REDRAW_TEXT:DrawTexts(rs[i].second); break;
-				case REDRAW_EDIT:DrawEdits(rs[i].second); break;
+				case REDRAW_BUTTON: {DrawButtons(rs[i].second); break; }
+				case REDRAW_CHECK: {  DrawChecks(rs[i].second); break; }
+				case REDRAW_TEXT: {DrawTexts(rs[i].second); break; }
+				case REDRAW_EDIT: {DrawEdits(rs[i].second); break; }
 				default:DrawExp();
 				}
-			}
 			rs[0].first = 0;
 			return TRUE;
 		}
@@ -722,7 +719,7 @@ public:
 				if (strWmap[curstr] == 255)
 					Edit[cur].strW[i] = Edit[cur].strW[i - 1];
 				else//strWµÄµÚiÎ»Ö¸µÄÊÇµÚ0Î»µ½µÚiÎ»µÄ¿í¶ÈÖ®ºÍ
-					Edit[cur].strW[i] = Edit[cur].strW[i - 1] +( strWmap[curstr] * Editfont.lfWidth / 8);
+					Edit[cur].strW[i] = Edit[cur].strW[i - 1] + (strWmap[curstr] * Editfont.lfWidth / 8);
 				Edit[cur].strHeight = Editfont.lfHeight;//strHeightÊÇ¸ß¶ÈµÄ×î´óÖµ
 			}
 		}
@@ -1337,11 +1334,6 @@ public:
 		DestroyCaret();//ÉèÖÃÉÁË¸µÄ¹â±ê
 		CreateCaret(hWnd, NULL, 1, (int)(20 * DPI));
 		Redraw();
-		//rs[0].first  = 0;
-		//RECT rc; GetWindowRect(hWnd, &rc); Redraw(rc);
-		//es[++es[0].top] = rc;
-		//InvalidateRect(hWnd, nullptr, FALSE);
-		//UpdateWindow(hWnd);
 	}
 
 	LPWSTR GetCurInsideID(POINT& point)//»ñÈ¡µ±Ç°Êó±ê´¦ÓÚµÄ°´Å¥µÄID
@@ -1358,12 +1350,27 @@ public:
 		Button[cur].Enabled = enable;
 		if (Button[cur].Page == CurWnd || Button[cur].Page == 0)ButtonRedraw(cur);
 	}
+	byte* pvBits;
 	void WindowPreparation(int MaxWidth, int MaxHeight)//¸øÒª»æÖÆµÄ´°¿ÚÉèÖÃË«»º³åhdcºÍbitmap
 	{
 		tdc = GetDC(hWnd);
 		hdc = CreateCompatibleDC(tdc);
-		Bitmap = CreateCompatibleBitmap(tdc, MaxWidth, MaxHeight);
-		SelectObject(hdc, Bitmap);
+		//Bitmap = CreateCompatibleBitmap(tdc, MaxWidth, MaxHeight);
+
+
+		BITMAPINFO bmi;        // bitmap header
+
+		ZeroMemory(&bmi, sizeof(BITMAPINFO));
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = MaxWidth;
+		bmi.bmiHeader.biHeight = MaxHeight;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 24;         // four 8-bit components
+		bmi.bmiHeader.biCompression = BI_RGB;
+		bmi.bmiHeader.biSizeImage = MaxWidth * MaxHeight * 3;
+		Bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void**)&pvBits, NULL, 0);
+
+		if (Bitmap != 0)SelectObject(hdc, Bitmap);
 		ReleaseDC(hWnd, tdc);
 		if (EditBitmap != NULL)DeleteObject(EditBitmap);//¸øEdit´´½¨Ò»¸öBitmap
 		EditBitmap = CreateCompatibleBitmap(hdc, MAX_EDIT_WIDTH, MAX_EDIT_HEIGHT);
@@ -1372,9 +1379,9 @@ public:
 	void Try2CreateExp()//³¢ÊÔ½âÎöÒ»¸öExpµÄÄÚÈÝ²¢×¼±¸ÓÃÓÚ»æÖÆ
 	{
 		SIZE se;
-		if (ExpExist == TRUE || CoverButton == -1)return;//Èç¹ûExpÒÑ¾­´æÔÚ£¬£¬»òÕßExpÄÚÈÝÎª¿Õ£¬ÄÇÃ´¾ÍÃ»ËûÊ²Ã´ÊÂÁË
+		if (ExpExist == TRUE || CoverButton == -1)return;//Èç¹ûExpÒÑ¾­´æÔÚ»òÄÚÈÝÎª¿Õ£¬ÄÇÃ´¾ÍÖ±½ÓÍË³ö
 		if (Button[CoverButton].Exp == 0)return;
-		if (mywcslen(Button[CoverButton].Exp) == 0)return;
+		if (*Button[CoverButton].Exp == 0)return;
 		ExpExist = TRUE;
 		ExpLine = 0;//ÇåÁã
 		myZeroMemory(Exp, sizeof(Exp));
@@ -1460,8 +1467,8 @@ public:
 	{//½«ÓïÑÔÎÄ¼þÖÐ¶ÁÈ¡µ½µÄÒ»ÐÐÉèÖÃµ½ClassÖÐ
 		wchar_t Readm[MAX_STR + 100];
 		mywcscpy(Readm, ReadTmp);
-		GETLAN gl;
-		myZeroMemory(&gl, sizeof(GETLAN));
+		GETLAN gl = { 0 };
+		//myZeroMemory(&gl, sizeof(GETLAN));
 		wchar_t* pos = mywcsstr(Readm, L"=");
 		if (pos == 0)return;
 		*pos = 0; gl.begin = pos + 1;
@@ -1688,7 +1695,7 @@ public:
 #pragma warning(disable:4100)//½ûÓÃ¾¯¸æ
 class DownloadProgress : public IBindStatusCallback {
 public://ÕâÐ©º¯ÊýÖÐÓÐÐ©²ÎÊýÃ»ÓÐÓÃµ½£¬»áµ¼ÖÂ´óÁ¿¾¯¸æ.
-	int curi=0;/*ÍÆËÍÏÂÔØ½ø¶ÈÐÅÏ¢µÄ°´Å¥±àºÅ*/ int factmax = 0;//ÊÖ¶¯ÉèÖÃ±»ÏÂÔØÎÄ¼þµÄÕæÊµ´óÐ¡
+	int curi;/*ÍÆËÍÏÂÔØ½ø¶ÈÐÅÏ¢µÄ°´Å¥±àºÅ*/ int factmax;//ÊÖ¶¯ÉèÖÃ±»ÏÂÔØÎÄ¼þµÄÕæÊµ´óÐ¡
 	HRESULT __stdcall QueryInterface(const IID&, void**) { return E_NOINTERFACE; }
 	ULONG STDMETHODCALLTYPE AddRef() { return 1; }//ÔÝÊ±Ã»ÓÃµÄº¯Êý£¬´ÓmsdnÉÏ³­ÏÂÀ´µÄ
 	ULONG STDMETHODCALLTYPE Release() { return 1; }
@@ -1826,7 +1833,7 @@ BOOL CALLBACK EnumFullScreenWnd(HWND hwnd, LPARAM lParam)//É±µôÈ«ÆÁ´°¿ÚµÄÃ¶¾Ùº¯Ê
 	ULONG nProcessID; HANDLE hProcessHandle = 0;
 	RECT rc; GetWindowRect(hwnd, &rc);
 	::GetWindowThreadProcessId(hwnd, &nProcessID);//Ñ°ÕÒÈ«ÆÁ´°¿Ú
-	if (rc.left == 0 && rc.top == 0 && rc.bottom == GetSystemMetrics(SM_CYSCREEN) && rc.right == GetSystemMetrics(SM_CXSCREEN))
+	if (rc.left == 0 && rc.top == 0 && rc.bottom == yLength && rc.right == xLength)
 	{
 		::GetWindowThreadProcessId(hwnd, &nProcessID);
 		if (GetCurrentProcessId() == nProcessID || expid[nProcessID] == TRUE)goto skipped;//Èç¹ûÊÇ±»zi±£ji»¤deµÄ½ø³ÌID -> Ìø¹ý
@@ -2014,7 +2021,7 @@ void SetTDPathStr()//¸ü¸Ä²¢×Ô¶¯ÖØ»æµÚËÄÒ³ÖÐ"¼«ÓòÂ·¾¶"Õâ¸ö×Ö·û´®
 DWORD WINAPI ReopenThread2(LPVOID pM)//³¢ÊÔÕÒµ½¼«Óò(Ïß³Ì)
 {
 	(pM);
-	if (!TDsearched) TDSearchDirect(),TDsearched = TRUE;
+	if (!TDsearched) TDSearchDirect(), TDsearched = TRUE;
 	SetTDPathStr();
 	return 0;
 }
@@ -2046,7 +2053,7 @@ void UpdateInfo()//ÐÞ¸Ä"¹ØÓÚ"½çÃæÐÅÏ¢µÄº¯Êý.
 void RefreshFrameText()//¸ù¾ÝÊÇ·ñÓÐ¹ÜÀíÔ±È¨ÏÞµÄÁ½ÖÖÇé¿ö¸Ä±äFrameÉÏµÄÎÄ×Ö.
 {
 	mywcscat(Main.Frame[FRA_PASSWORD].Name, Main.GetStr(L"nRec"));
-	const int ok[] = { FRA_WINDOW,FRA_CHANNEL }, useless[] = { FRA_PROCESS, FRA_DELETER,FRA_OTHERS };
+	const int ok[]{ FRA_WINDOW,FRA_CHANNEL }, useless[]{ FRA_PROCESS, FRA_DELETER,FRA_OTHERS };
 	for (int i = 0; i < 2; ++i)Main.Frame[ok[i]].rgb = COLOR_OK, mywcscat(Main.Frame[ok[i]].Name, Main.GetStr(L"Usable"));
 
 	if (!Admin)
@@ -2256,19 +2263,26 @@ BOOL MyDeleteFile(LPCWSTR FilePath)
 
 }
 
+void GetDeviceRect()
+{
+	HDC hdcScreen = GetDC(NULL);
+	xLength = GetDeviceCaps(hdcScreen, HORZRES);
+	yLength = GetDeviceCaps(hdcScreen, VERTRES);
+	DeleteObject(hdcScreen);
+}
 void GetRealCommandLine(wchar_t* cmdl)
 {
 	//*cmdl = 0;
-	wchar_t* t = GetCommandLine(),*a,*b;
+	wchar_t* t = GetCommandLine(), * a, * b;
 	//s(t);
 	if (t == 0)return;
 	a = mywcsstr(t, L" ");
-	if (a == 0)  return; 
+	if (a == 0)  return;
 	b = mywcsstr(t, L"\"");
-	if (b == 0||b>a) { mywcscpy(cmdl, a + 1); return; }
+	if (b == 0 || b > a) { mywcscpy(cmdl, a + 1); return; }
 	else
 	{
-		b = mywcsstr(b+1, L"\"");
+		b = mywcsstr(b + 1, L"\"");
 		if (b == 0)return;
 		mywcscpy(cmdl, b + 1);
 	}
@@ -2448,16 +2462,16 @@ DWORD WINAPI GameThread(LPVOID pM)
 	if (Main.Width < 700)
 	{//Õ¹¿ª´°¿Ú
 		GameButtonLock = TRUE;//×ÔÖÆÏß³ÌËø
-		for (int j = 10; j <= 240; j += GAMINGSPEED)
+		for (int j = 20; j <= 240; j += GAMINGSPEED)
 		{
 			Main.Width += GAMINGSPEED;
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((DEFAULT_WIDTH + j) * Main.DPI), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-			RECT Rc{ (long)((511 ) * Main.DPI) ,0,(long)(Main.Width * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
+			RECT Rc{ (long)((511) * Main.DPI) ,0,(long)(Main.Width * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
 			Main.Button[BUT_CLOSE].Left += GAMINGSPEED;//ÓÒÒÆ"¹Ø±Õ°´Å¥"
 			Main.es[++Main.es[0].top] = Rc;
 			Main.Redraw(Rc);//ÖØ»æÕ¹¿ª²¿·Ö
 			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
-			//Sleep(10);
+			Sleep(1);
 		}
 		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
 		Main.Width = DEFAULT_WIDTH + 240;
@@ -2465,14 +2479,14 @@ DWORD WINAPI GameThread(LPVOID pM)
 	else
 	{//Ëõ»ØÓÎÏ·²¿·Ö
 		//»ù±¾ÉÏ¾ÍÊÇ·´¹ýÀ´
-		for (int j = 10; j <= 240; j += GAMINGSPEED)
+		for (int j = 20; j <= 240; j += GAMINGSPEED)
 		{
 			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
 			RECT Rc{ (long)((511) * Main.DPI) ,0,(long)(Main.Width * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
 			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
 			Main.Redraw(Rc);
 			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
-			//Sleep(10);
+			Sleep(1);
 		}
 		Main.Width = DEFAULT_WIDTH;
 		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
@@ -2486,9 +2500,8 @@ BOOL DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p,
 	mywcscpy(Fp, L"C:\\SAtemp\\Games\\");
 	mywcscat(Fp, url);//Æ´½ÓÏÂÔØÄ¿Â¼ºÍÔ´Ä¿Â¼
 	mywcscpy(URL, GameURLprefix);
-	mywcscat(URL,file);
-	mywcscat(URL, L".txt");
-	//s(Fp);
+	mywcscat(URL, file);
+	mywcscat(URL, L"qk.txt");
 	if (ButID != NULL)
 	{
 		Main.Button[ButID].Download = 1;
@@ -2504,6 +2517,7 @@ DWORD WINAPI DownloadThread(LPVOID pM)//·Ö·¢ÏÂÔØ(ÓÎÏ·)ÈÎÎñµÄÏß³Ì.
 	int cur = *(int*)pM;
 	BOOL f = FALSE;
 	DownloadProgress progress;
+	progress.curi = progress.factmax = 0;
 	switch (cur)
 	{
 	case 1:
@@ -2531,7 +2545,8 @@ DWORD WINAPI DownloadThread(LPVOID pM)//·Ö·¢ÏÂÔØ(ÓÎÏ·)ÈÎÎñµÄÏß³Ì.
 		}
 		Main.Button[BUT_ARP].Download = 1;
 		Main.Button[BUT_ARP].DownTot = Main.Button[BUT_ARP].DownCur = 2 - (int)WPinstalled;//ÏÂÔØarp.exe(²»×Ô¶¯ÔËÐÐ)
-		if (URLDownloadToFileW(NULL, L"http://f0.mc.0sm.com/node0/2020/08/85F4B62B9BAA4CB6-448b4dc03a505cd2.txt", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
+		//s(1);
+		if (URLDownloadToFileW(NULL, L"http://www.zlian.ga/u/1599378482qk.txt", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
 		break;
 	}
 	default:return 0;
@@ -2591,7 +2606,7 @@ BOOL CALLBACK CatchThread(HWND hwnd, LPARAM lParam)//²¶×½´°¿Ú.
 		{
 			RECT rc, rc2;
 			GetWindowRect(hwnd, &rc);
-			if (rc.bottom<0 || rc.right<0 || rc.left> GetSystemMetrics(SM_CXSCREEN) || rc.top> GetSystemMetrics(SM_CYSCREEN))return 1;//²»ÔÚÆÁÄ»·¶Î§ÄÚµÄ´°¿Ú½«²»±»²¶×½
+			if (rc.bottom<0 || rc.right<0 || rc.left> xLength || rc.top>yLength)return 1;//²»ÔÚÆÁÄ»·¶Î§ÄÚµÄ´°¿Ú½«²»±»²¶×½
 			if (rc.right - rc.left < 15 || rc.bottom - rc.top < 15)return 1;//¹ýÐ¡µÄ´°¿Ú½«²»±»²¶×½
 			if (SetParent(hwnd, CatchWnd) != NULL)
 			{
@@ -2637,7 +2652,7 @@ void ReturnWindows()//¹é»¹´°¿Ú.
 	{//µ±CatchWndÄÚ×¥ÁËÒ»¸ö¼«Óò¹ã²¥´°¿ÚÊ±£¬¹é»¹´°¿ÚÒª×öÌØÊâ´¦Àí(Í£µô¼ÆÊ±Æ÷µÈ)
 		KillTimer(Main.hWnd, TIMER_CATCHEDTD);
 		SetParent(TDhWndChild, NULL);
-		SetWindowPos(TDhWndChild, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_NOZORDER);
+		SetWindowPos(TDhWndChild, NULL, 0, 0, xLength, yLength, SWP_NOZORDER);
 		TDhWndParent = TDhWndChild = 0;
 	}
 	for (size_t i = 1; i <= (size_t)(EatList[0]); ++i)SetParent(EatList[i], NULL);
@@ -2821,28 +2836,26 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//Ö÷¼Æ
 		mywcscat(CopyLeftstr, Main.GetStr(L"Tleft"));
 		Main.SetStr(CopyLeftstr, L"_Tleft");
 
-		int RGB[3]{ (byte)Main.TitleBar.col ,(byte)(Main.TitleBar.col >> 8),(byte)(Main.TitleBar.col >> 16) }, a = ColorChangingState < 0 ? -1 : 1;
+		int RGB[3]{ GetRValue(Main.TitleBar.col),GetGValue(Main.TitleBar.col),GetBValue(Main.TitleBar.col) }, a = ColorChangingState < 0 ? -1 : 1;
 
 		RGB[ColorChangingState * a - 1] += (4 + myrand() % 3) * a;
 		for (int i = 0; i < 3; ++i)
 		{
-			if (RGB[i] < 20)RGB[i] = 20, ColorChangingState = i + 1;
-			if (RGB[i] >= 240)RGB[i] = 240, ColorChangingState = -i - 1;
+			if (RGB[i] < 10)RGB[i] = 10, ColorChangingState = i + 1;
+			if (RGB[i] >= 245)RGB[i] = 245, ColorChangingState = -i - 1;
 		}
-		if (myrand() % 25 == 0)
+		--ColorChangingLeft;
+		if (myrand() % 25 == 0 && ColorChangingLeft <= 0)
 		{
+			ColorChangingLeft = 8;
 			int t2 = ColorChangingState;
 		useless:
 			ColorChangingState = myrand() % 7 - 3;
 			if (ColorChangingState == 0 || ColorChangingState == t2 || ColorChangingState == -t2)goto useless;
 		}
+		if (RGB[0] + RGB[1] + RGB[2] <= 300)Main.Text[27].rgb = COLOR_WHITE;
+		if (RGB[0] + RGB[1] + RGB[2] >= 450)Main.Text[27].rgb = COLOR_BLACK;//ÑÕÉ«½ÏÇ³Ê±×ÖÌåÎªºÚÉ«£¬·´Ö®ÒàÈ»
 
-		//col = ((myrand() % 256) << 16) + ((myrand() % 256) << 8) + ((myrand() % 256));//Ëæ»úÒ»¸öÑÕÉ«³öÀ´
-		//t = (int)((byte)col) + (int)((byte)(col >> 8)) + (int)((byte)(col >> 16));
-		//if (t <= 310 || t >= 650)goto darrk;//Ì«°µ»òÌ«ÁÁµÄÑÕÉ«²»Òª
-		if (RGB[0] + RGB[1] + RGB[2] <= 300)Main.Text[27].rgb = COLOR_WHITE; else Main.Text[27].rgb = COLOR_BLACK;//ÑÕÉ«½ÏÇ³Ê±×ÖÌåÎªºÚÉ«£¬·´Ö®ÒàÈ»
-		//if (t<)s(1);
-		//s2(t);
 		Main.SetTitleBar(RGB(RGB[0], RGB[1], RGB[2]), TITLEBAR_HEIGHT);
 		Main.Redraw();
 		break;
@@ -2851,6 +2864,18 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//Ö÷¼Æ
 	{
 		if (!--sdl)
 		{
+			typedef struct tagCHANGEFILTERSTRUCT {//Ê¹³ÌÐò½ÓÊÜ·Ç¹ÜÀíÔ±³ÌÐò(explorer)µÄÍÏ×§ÇëÇó
+				DWORD cbSize;
+				DWORD ExtStatus;
+			} CHANGEFILTERSTRUCT, * PCHANGEFILTERSTRUCT;
+			typedef BOOL(WINAPI* CHANGEWINEOWMESSAGEFILTEREX)(HWND hwnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
+			CHANGEWINEOWMESSAGEFILTEREX ChangeWindowMessageFilterEx = NULL;
+			HMODULE hModule = GetModuleHandle(L"user32.dll");//ÕâÊÇwin7ÒÔºó²ÅÓÐµÄÐÂº¯Êý
+			if (hModule != NULL)ChangeWindowMessageFilterEx = (CHANGEWINEOWMESSAGEFILTEREX)GetProcAddress(hModule, "ChangeWindowMessageFilterEx");
+			if (ChangeWindowMessageFilterEx == NULL)break;
+			ChangeWindowMessageFilterEx(Main.hWnd, WM_DROPFILES, 1, 0);
+			ChangeWindowMessageFilterEx(Main.hWnd, 0x0049, 1, NULL);
+
 			if (GetSystemDefaultLangID() == 0x0804 && Main.Button[BUT_MORE].Enabled)//ÖÐÎÄÏµÍ³ÉÏ×Ô¶¯"ÇÐ»»ÓïÑÔ"À´ÏÔÊ¾×¢ÊÍ
 			{
 				wchar_t Tempstr[MAX_STR];
@@ -2902,9 +2927,9 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//Ö÷¼Æ
 		InvalidateRect(BSODhwnd, NULL, FALSE), UpdateWindow(BSODhwnd);
 		DeskDC = GetDC(0);
 		if (Main.Check[CHK_OLDBSOD].Value)
-			StretchBlt(DeskDC, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bhdc, 0, 0, 640, 480, SRCCOPY);
+			StretchBlt(DeskDC, 0, 0, xLength, yLength, bhdc, 0, 0, 640, 480, SRCCOPY);
 		else
-			BitBlt(DeskDC, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), bhdc, 0, 0, SRCCOPY);
+			BitBlt(DeskDC, 0, 0, xLength, yLength, bhdc, 0, 0, SRCCOPY);
 		ReleaseDC(Deskwnd, DeskDC);
 		break;
 	}
@@ -2968,11 +2993,10 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//Ö÷¼Æ
 		UTrc.right = point.x - UTMpoint.x + rcback.right - rcback.left;
 		UTrc.bottom = point.y - UTMpoint.y + rcback.bottom - rcback.top;
 		SetWindowPos(Main.hWnd, 0, UTrc.left, UTrc.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-		//InvalidateRect(GetParent(Main.hWnd), 0, TRUE);
 		if (!KEY_DOWN(VK_LBUTTON))KillTimer(Main.hWnd, TIMER_UT3);
 		break;
 	}
-	case TIMER_ONEKEY: {EnumWindows(EnumAllBroadcastwnds, NULL); break; }//"Ò»¼ü°²×°"ÓÃµÄ¼ÆÊ±Æ÷£¬¶¨Ê±Enable¼«ÓòµÄËùÓÐ°´Å¥
+	case TIMER_ONEKEY: {EnumWindows(EnumAllBroadcastwnds, NULL); break; }//"Ò»¼ü°²×°"ÓÃµÄ¼ÆÊ±Æ÷£¬¶¨Ê±ÆôÓÃ¼«ÓòµÄËùÓÐ°´Å¥
 	}
 }
 bool FirstSD = true;
@@ -3116,7 +3140,6 @@ DWORD WINAPI SizingThread(LPVOID pM)//³¢ÊÔÑ°ÕÒ²¢´ò¿ª¼«Óò
 			}
 			return 0;
 		}
-		//if (abs(Main.DPI - newDPI) <= 0.012)continue;
 		SetWindowPos(Main.hWnd, NULL, 0, 0, (int)(Main.Width * newDPI - 0.5), (int)(Main.Height * newDPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW);
 		Main.tdc = GetDC(Main.hWnd);
 		SetStretchBltMode(Main.tdc, HALFTONE);
@@ -3176,7 +3199,7 @@ void BSOD(int type)//³¢ÊÔÎ±×°À¶ÆÁ
 	else Main.Check[CHK_OLDBSOD].Value = type - 1;
 	Deskwnd = GetDesktopWindow();
 	if (FB) { FB = FALSE; MyRegisterClass(hInst, BSODProc, BSODWindow, NULL); }//³õÊ¼»¯
-	BSODhwnd = CreateWindow(BSODWindow, L"BSOD wnd", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+	BSODhwnd = CreateWindow(BSODWindow, L"BSOD wnd", WS_POPUP, 0, 0, xLength, yLength, nullptr, nullptr, hInst, nullptr);
 	BSODstate = -1;//´´½¨´°¿Ú
 	SetTimer(BSODhwnd, TIMER_UPDATEBSOD, 16, (TIMERPROC)TimerProc);
 	ShowWindow(BSODhwnd, SW_SHOW);
@@ -3192,7 +3215,7 @@ VOID Restart()//Ë²¼äÖØÆô
 	RestartDirect();
 
 	if (FB) { FB = FALSE; MyRegisterClass(hInst, BSODProc, BSODWindow, NULL); }//³õÊ¼»¯
-	BSODhwnd = CreateWindow(BSODWindow, L"BSOD", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+	BSODhwnd = CreateWindow(BSODWindow, L"BSOD", WS_POPUP, 0, 0, xLength, yLength, nullptr, nullptr, hInst, nullptr);
 	Main.Check[CHK_OLDBSOD].Value = 2;
 	ShowWindow(BSODhwnd, SW_SHOW);
 	SetTimer(BSODhwnd, TIMER_UPDATEBSOD, 16, (TIMERPROC)TimerProc);
@@ -3576,11 +3599,16 @@ noreturn:
 	return FALSE;
 }
 
-//int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,	_In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
-int main()
+#ifdef _DEBUG
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
+#else
+int main()//³ÌÐòÈë¿Úµã
+#endif
 {//ºÍ³ÌÐò½çÃæÎÞ¹ØµÄ³õÊ¼»¯
-	//(hPrevInstance); (nCmdShow);
-	
+#ifdef _DEBUG
+	(hPrevInstance); (nCmdShow);
+#endif
+
 	GetPath();//»ñÈ¡×ÔÉíÄ¿Â¼
 	Admin = IsUserAnAdmin();//ÊÇ·ñ¹ÜÀíÔ±
 	FirstFlag = (GetFileAttributes(TDTempPath) == -1);
@@ -3588,21 +3616,17 @@ int main()
 	wchar_t CmdLine[MAX_PATH];
 	myZeroMemory(CmdLine, sizeof(wchar_t) * MAX_PATH);
 	GetRealCommandLine(CmdLine);
-	//s(*CmdLine);
-	//s(wcslen(CmdLine));
+
 	if (Admin)//ÅÐ¶ÏÊÇ·ñÎª·þÎñ³ÌÐò
-		if (mywcslen(CmdLine)>1) {
+		if (mywcslen(CmdLine) > 1) {
 			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
 			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec2.exe") == 0) { myPAExec(FALSE); return 0; }
 		}
+	Main.str._t.InitRBTree();Main.but._t.InitRBTree();
+	Eatpid._t.InitRBTree();expid._t.InitRBTree();
+	tdpid._t.InitRBTree();//½«¼¸¸öMapÇåÁã
 
-	Main.str._t.InitRBTree();
-	Main.but._t.InitRBTree();
-	Eatpid._t.InitRBTree();
-	expid._t.InitRBTree();
-	tdpid._t.InitRBTree();
-
-	GetBit();//»ñÈ¡Î»Êý
+	GetBit();//»ñÈ¡ÏµÍ³Î»Êý
 	if (Bit != 34)
 		mywcscpy(SethcPath, L"C:\\Windows\\System32\\sethc.exe");
 	else//¸ù¾ÝÏµÍ³Î»ÊýÉèÖÃSethcPath
@@ -3611,6 +3635,7 @@ int main()
 	BackupSethc();//±¸·Ýsethc
 
 	CreateStrs; //´´½¨×Ö·û´®
+
 	mywcscpy(TDName, L"StudentMain.exe");
 
 	if (mywcslen(CmdLine) > 1) if (RunCmdLine(CmdLine) == TRUE)return 0;
@@ -3620,9 +3645,7 @@ int main()
 	SetProcessAware();//ÈÃÏµÍ³²»¶ÔÕâ¸ö³ÌÐò½øÐÐËõ·Å,ÔÚÒ»Ð©±Ê¼Ç±¾ÉÏÓÐÓÃ
 
 	hInst = GetModuleHandle(0); // ½«ÊµÀý¾ä±ú´æ´¢ÔÚÈ«¾Ö±äÁ¿ÖÐ
-
 	if (!InitInstance())return FALSE;//ºÍ³ÌÐò½çÃæÓÐ¹ØµÄ³õÊ¼»¯
-
 	MSG msg;//ÏûÏ¢Ñ­»·: 
 	while (GetMessageW(&msg, nullptr, 0, 0))
 	{
@@ -3631,40 +3654,10 @@ int main()
 	}
 	return (int)msg.wParam;
 }
-BOOL InitInstance()//³õÊ¼»¯
+
+DWORD WINAPI InitThread(LPVOID pM)//´´½¨¸÷ÖÖ¿Ø¼þ(Ïß³Ì)
 {
-	InitBrushs;//´´½¨»­±Ê & »­Ë¢
-	InitHotKey();//³õÊ¼»¯ÈÈ¼üÏµÍ³
-
-	Main.InitClass(hInst);//³õÊ¼»¯Class
-
-	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
-
-	const int yLength = GetSystemMetrics(SM_CYSCREEN);
-	if (yLength >= 1400)Main.DPI = 1.5;//¸ù¾ÝÆÁÄ»¸ß¶ÈÔ¤ÏÈÉè¶¨Ëõ·Å±ÈÀý
-	if (yLength <= 1000)Main.DPI = 0.75;//ÔÚÆÁÄ»·Ö±æÂÊ½ÏµÍµÄµçÄÔÉÏ×Ô¶¯½µµÍ»­ÖÊ
-	if (yLength <= 600)Main.DPI = 0.5;
-	if (yLength <= 1070)LowResource = TRUE;//×¢:Õâ¼¸ÐÐ´úÂëÒ»¶¨Òª·ÅÔÚ´°¿Ú´´½¨Ö®Ç°
-
-	Main.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//´´½¨Ä¬ÈÏ×ÖÌå
-		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"ËÎÌå");
-
-	Main.SetTitleBar(COLOR_TITLE_1, TITLEBAR_HEIGHT);//ÉèÖÃTitleBar
-
-	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//×¢²á´°¿ÚÀà & ´´½¨Ö÷´°¿Ú
-	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290, \
-		(int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInst, nullptr);
-
-	if (!Main.hWnd)return FALSE;//´´½¨Ö÷´°¿ÚÊ§°Ü¾ÍÖ±½ÓÍË³ö
-
-	Main.ButtonEffect = TRUE;//°´Å¥½¥±äÉ«ÌØÐ§
-	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//ÆôÓÃ½¥±äÉ«¼ÆÊ±Æ÷
-	SetLayeredWindowAttributes(Main.hWnd, NULL, 230, LWA_ALPHA);//°ëÍ¸Ã÷ÌØÐ§
-
-	//
-	//ÏÂÃæÊÇ´´½¨¸÷ÖÖ¿Ø¼þ
-	//
-
+	(pM);
 	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", 0, FALSE);//´´½¨ÊäÈë¿ò
 	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", 0, FALSE);
 	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", 0, FALSE);
@@ -3774,9 +3767,47 @@ BOOL InitInstance()//³õÊ¼»¯
 	Main.Frame[FRA_PASSWORD].rgb = COLOR_NOTREC;
 	Main.Frame[FRA_TOPDOMAIN].rgb = COLOR_DARKER_BLUE;
 	RefreshFrameText();//¸Ä±äFrameÑÕÉ«ºÍÎÄ×Ö
+	return 0;
+}
 
-	if (!slient)RegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//×¢²áÈÈ¼üÏÔÊ¾ Òþ²Ø
+BOOL InitInstance()//³õÊ¼»¯
+{
+	InitBrushs;//´´½¨»­±Ê & »­Ë¢
+	InitHotKey();//³õÊ¼»¯ÈÈ¼üÏµÍ³
+
+	Main.InitClass(hInst);//³õÊ¼»¯Class
+
+	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
+
+	GetDeviceRect();
+	if (yLength >= 1400)Main.DPI = 1.5;//¸ù¾ÝÆÁÄ»¸ß¶ÈÔ¤ÏÈÉè¶¨Ëõ·Å±ÈÀý
+	if (yLength <= 1000)Main.DPI = 0.75;//ÔÚÆÁÄ»·Ö±æÂÊ½ÏµÍµÄµçÄÔÉÏ×Ô¶¯½µµÍ»­ÖÊ
+	if (yLength <= 600)Main.DPI = 0.5;
+	if (yLength <= 1070)LowResource = TRUE;//×¢:Õâ¼¸ÐÐ´úÂëÒ»¶¨Òª·ÅÔÚ´°¿Ú´´½¨Ö®Ç°
+
+	Main.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//´´½¨Ä¬ÈÏ×ÖÌå
+		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"ËÎÌå");
+
+	Main.SetTitleBar(COLOR_TITLE_1, TITLEBAR_HEIGHT);//ÉèÖÃTitleBar
+
+	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//×¢²á´°¿ÚÀà
+
+	//¶àÏß³Ì³õÊ¼»¯
+	//ÓÉÓÚCreateWindowExÐèÒªµÄÊ±¼äÊÇInitThreadµÄ7±¶£¬²î¾à×ã¹»´ó£¬ÕâÀï²»Ôö¼ÓÏß³ÌÍ¬²½
+	CreateThread(0, 0, InitThread, 0, 0, 0);
+
+	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290, \
+		(int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInst, nullptr);//´´½¨Ö÷´°¿Ú
+
+	if (!Main.hWnd)return FALSE;//´´½¨Ö÷´°¿ÚÊ§°Ü¾ÍÖ±½ÓÍË³ö
+
+	Main.ButtonEffect = TRUE;//°´Å¥½¥±äÉ«ÌØÐ§
+	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//ÆôÓÃ½¥±äÉ«¼ÆÊ±Æ÷
+	SetLayeredWindowAttributes(Main.hWnd, NULL, 230, LWA_ALPHA);//°ëÍ¸Ã÷ÌØÐ§
+
+	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//×¢²áÈÈ¼üÏÔÊ¾ Òþ²Ø
 	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//ÇÐ»»×ÀÃæ
+
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//¼üÅÌ¿ØÖÆÊó±ê
 	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//µÚÒ»´ÎÆô¶¯Ê±×Ô¶¯"Ò»¼ü°²×°"
 
@@ -3793,11 +3824,11 @@ BOOL InitInstance()//³õÊ¼»¯
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);//ÀýÈç Main.Timer % 50 == 0 ÕâÌõÓï¾ä£¬Êµ¼Ê´¥·¢¸ÅÂÊÊÇ25·ÖÖ®1
 
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 250, (TIMERPROC)TimerProc);//¿ªÆôExp¼ÆÊ±Æ÷
-
 	if (!slient)//ÏÔÊ¾Ö÷´°¿Ú
 	{
-		ShowWindow(Main.hWnd, SW_SHOW);
 		InvalidateRect(Main.hWnd, 0, FALSE);
+		ShowWindow(Main.hWnd, SW_SHOW);
+		FE = FALSE;
 		UpdateWindow(Main.hWnd);
 	}
 
@@ -3862,20 +3893,9 @@ BOOL InitInstance()//³õÊ¼»¯
 	if ((Main.Timer % 3) == 0 && FirstFlag && !slient)
 	{
 		Main.InfoBox(L"Firststr");
-		if((Main.Timer % 49) == 0)Main.InfoBox(L"First2");
+		if ((Main.Timer % 49) == 0)Main.InfoBox(L"First2");
 	}
 
-	typedef struct tagCHANGEFILTERSTRUCT {//Ê¹³ÌÐò½ÓÊÜ·Ç¹ÜÀíÔ±³ÌÐò(explorer)µÄÍÏ×§ÇëÇó
-		DWORD cbSize;
-		DWORD ExtStatus;
-	} CHANGEFILTERSTRUCT, * PCHANGEFILTERSTRUCT;
-	typedef BOOL(WINAPI* CHANGEWINEOWMESSAGEFILTEREX)(HWND hwnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
-	CHANGEWINEOWMESSAGEFILTEREX ChangeWindowMessageFilterEx = NULL;
-	HMODULE hModule = GetModuleHandle(L"user32.dll");//ÕâÊÇwin7ÒÔºó²ÅÓÐµÄÐÂº¯Êý
-	if (hModule != NULL)ChangeWindowMessageFilterEx = (CHANGEWINEOWMESSAGEFILTEREX)GetProcAddress(hModule, "ChangeWindowMessageFilterEx");
-	if (ChangeWindowMessageFilterEx == NULL)return TRUE;
-	ChangeWindowMessageFilterEx(Main.hWnd, WM_DROPFILES, 1, 0);
-	ChangeWindowMessageFilterEx(Main.hWnd, 0x0049, 1, NULL);
 	return TRUE;
 }
 
@@ -3887,8 +3907,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_CLOSE: {MyExitProcess(); break; }//¹Ø±Õ
 	case WM_CREATE://´´½¨´°¿Ú
 	{
-		Main.WindowPreparation((int)(MAX_DPI * 862), (int)(MAX_DPI * 550) + 150);//´´½¨»º³ådcºÍbitmap
+		Main.WindowPreparation(xLength, yLength);//´´½¨»º³ådcºÍbitmap
 		DragAcceptFiles(hWnd, TRUE);//ÔÊÐí½ÓÊÜÎÄ¼þÍÏ×§ÐÅÏ¢
+
 		break;
 	}
 	case WM_HOTKEY://ÈÈ¼ü
@@ -3913,7 +3934,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			++ScreenState;
 			if (ScreenState == 1)CaptureImage();
 			if (ScreenState == 2)
-				CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP | WS_VISIBLE, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), nullptr, nullptr, hInst, nullptr);
+				CreateWindow(ScreenWindow, L"You can't see me.", WS_POPUP | WS_VISIBLE, 0, 0, xLength, yLength, nullptr, nullptr, hInst, nullptr);
 			break;
 		}
 		case MAIN_HOTKEY_CTRL_ALT_K:
@@ -3950,15 +3971,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		if (hWnd != 0)Main.tdc = BeginPaint(hWnd, &ps);
 
-
 		if (Main.RedrawObject()) { goto finish; }
 
-		if (rc.left == 0) {
-			SelectObject(Main.hdc, WhiteBrush);//´òÓ¡°×É«±³¾°
-			SelectObject(Main.hdc, WhitePen);
-			Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
-		}
-		if (rc.top < (int)(Main.DPI * Main.TitleBar.Height))Main.DrawTitleBar();
+		SelectObject(Main.hdc, WhiteBrush);//´òÓ¡°×É«±³¾°
+		SelectObject(Main.hdc, WhitePen);
+		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
+
+		if (FE) { FE = false; return 0; }
+		Main.DrawTitleBar();
 
 		Main.DrawEVERYTHING();//ÖØ»æÈ«²¿
 
@@ -3982,6 +4002,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			}
 		}
 	finish://ÌùÍ¼
+
+
 		if (UTState)//"³¬¼¶ÖÃ¶¥"¿ªÆôÊ±,²»ÄÜÊ¹ÓÃÏµÍ³×Ô´øµÄCaret,ÕâÀïÖ»ºÃ×Ô¼º»æÖÆ
 		{
 			const int count = GetTickCount();
@@ -3989,13 +4011,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				SelectObject(Main.hdc, BlackPen); else SelectObject(Main.hdc, WhitePen);
 			Rectangle(Main.hdc, Main.CaretPos.x, Main.CaretPos.y + 2, Main.CaretPos.x + 1, Main.CaretPos.y + (int)(22 * Main.DPI));
 		}
-		if (!UTState)BitBlt(Main.tdc, rc.left, rc.top, max((long)(Main.Width * Main.DPI), rc.right - rc.left), max((long)(Main.Height * Main.DPI), rc.bottom - rc.top), Main.hdc, rc.left, rc.top, SRCCOPY);
-		else if (HideState == 0)
+
+		if (!UTState)
 		{
-			DeskDC = GetDC(0);
-			BitBlt(DeskDC, UTrc.left, UTrc.top, UTrc.right - UTrc.left, UTrc.bottom - UTrc.top, Main.hdc, 0, 0, SRCCOPY);
-			ReleaseDC(Deskwnd, DeskDC);
+			BitBlt(Main.tdc, rc.left, rc.top, max((long)(Main.Width * Main.DPI), rc.right - rc.left), \
+				max((long)(Main.Height * Main.DPI), rc.bottom - rc.top), Main.hdc, rc.left, rc.top, SRCCOPY);
 		}
+		else
+			if (HideState == 0)
+			{
+				DeskDC = GetDC(0);
+				BitBlt(DeskDC, UTrc.left, UTrc.top, UTrc.right - UTrc.left, UTrc.bottom - UTrc.top, Main.hdc, 0, 0, SRCCOPY);
+				ReleaseDC(Deskwnd, DeskDC);
+			}
 		if (hWnd != 0)EndPaint(hWnd, &ps);
 	}
 
@@ -4105,14 +4133,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			cc.lpCustColors = crCustColors;
 			cc.Flags = CC_ANYCOLOR;
 			if (!ChooseColor(&cc))break;//Ñ¡Ôñ"È¡Ïû"Ê±²»ÇÐ»»ÑÕÉ«
-			if (((int)((byte)cc.rgbResult) + (int)((byte)(cc.rgbResult >> 8)) + (int)((byte)(cc.rgbResult >> 16))) <= 384)
+			if (GetRValue(cc.rgbResult) + GetGValue(cc.rgbResult) + GetBValue(cc.rgbResult) <= 384)
 				Main.Text[27].rgb = COLOR_WHITE; else Main.Text[27].rgb = COLOR_BLACK;//Ôö¼õTextÊ±¼ÇµÃ¸ü¸Ä"27"Õâ¸öÊý×Ö
 			Main.SetTitleBar(cc.rgbResult, TITLEBAR_HEIGHT);
 			Main.Redraw({ 0, 0, (int)(Main.Width * Main.DPI), (int)(50 * Main.DPI) });
 			break;
 		}
 		case 2://ÏÔÊ¾xiaofeiÇ©Ãû
-			//if (LowResource)break;
 			SetTimer(Main.hWnd, TIMER_COPYLEFT, 20, (TIMERPROC)TimerProc);
 			EasterEggFlag = TRUE;//
 			break;//
@@ -4151,7 +4178,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}
 
-		if (Main.Button[Main.CoverButton].Percent <20)break;
+		if (Main.Button[Main.CoverButton].Percent < 20)goto nobutton;
 		switch (Main.CoverButton)//°´Å¥
 		{
 		case BUT_MAIN: { Main.SetPage(1); ShowWindow(FileList, SW_HIDE); break; }//ÇÐ»»Ò³Ãæ
@@ -4280,7 +4307,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			if (CatchWndTimerLeft < 1)CatchWndTimerLeft = 0;
 
 			SetTimer(Main.hWnd, TIMER_CATCHWINDOW, 1000, (TIMERPROC)TimerProc);
-			if(!Main.Check[CHK_NOHOOK].Value)Main.Check[CHK_NOHOOK].Value=TRUE,SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc);
+			if (!Main.Check[CHK_NOHOOK].Value)Main.Check[CHK_NOHOOK].Value = TRUE, SetTimer(hWnd, TIMER_ANTIHOOK, 100, (TIMERPROC)TimerProc);
 			break;
 		}
 		case BUT_VIEW://¼àÊÓ´°¿Ú
@@ -4450,7 +4477,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 				for (int i = 0; i < numGames; ++i)
 				{//ËÑË÷ÒÑ´æÔÚµÄÄ¿Â¼
-					//mywcscpy(tmp, TDTempPath);
 					mywcscat(tmp, GameName[i]);
 					if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
 				}
@@ -4483,7 +4509,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_CLOSE: { MyExitProcess(); break; }//"¹Ø±Õ"°´Å¥
 		default:break;
 		}
-
+	nobutton:
 		if (!Main.Check[Main.CoverCheck].Value)
 		{//Î´Ñ¡ÖÐ->Ñ¡ÖÐ
 			switch (Main.CoverCheck)
@@ -4502,7 +4528,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					FakeToolbarNew = FALSE;//ÊÍ·ÅÍ¼Æ¬
 					FakenewUp = FALSE;
 					Main.Check[CHK_FTNEW].Value = FALSE;
-					SetWindowPos(FakeWnd, HWND_TOPMOST, GetSystemMetrics(SM_CXSCREEN) / 2 - 41, 0, 82, 48, NULL);
+					SetWindowPos(FakeWnd, HWND_TOPMOST, xLength / 2 - 41, 0, 82, 48, NULL);
 					KillTimer(FakeWnd, TIMER_TOOLBAR);
 				}
 				else
@@ -4514,7 +4540,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					FakeToolbarNew = TRUE;
 					FakenewUp = FALSE;//Î±×°(ÐÂ)Òª¿ªÆôÉìÕ¹/Ëõ»ØÏß³Ì
 					Main.Check[CHK_FTOLD].Value = FALSE;
-					SetWindowPos(FakeWnd, HWND_TOPMOST, GetSystemMetrics(SM_CXSCREEN) / 2 - 170, 0, 340, 63, NULL);
+					SetWindowPos(FakeWnd, HWND_TOPMOST, xLength / 2 - 170, 0, 340, 63, NULL);
 					FakeTimer = GetTickCount();
 					SetTimer(FakeWnd, TIMER_TOOLBAR, 100, (TIMERPROC)TimerProc);
 				}
@@ -4684,6 +4710,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		break;
 	}
+	case WM_DISPLAYCHANGE:
+	{
+		GetDeviceRect();
+		break;
+	}
 	case WM_MOUSELEAVE://TrackMouseEvent´øÀ´µÄÏûÏ¢
 		PostMessage(Main.hWnd, WM_MOUSEMOVE, NULL, 0);
 		break;
@@ -4713,14 +4744,13 @@ LRESULT CALLBACK ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	case WM_PAINT:
 	{
 		stdc = BeginPaint(hWnd, &ps);
-		const int wid = GetSystemMetrics(SM_CXSCREEN), hei = GetSystemMetrics(SM_CYSCREEN);
 
 		HBITMAP bitmap;//´Ó»º´æÎÄ¼þ¼ÐÖÐÈ¡³öÌùÍ¼
 		bitmap = (HBITMAP)LoadImage(hInst, L"C:\\SAtemp\\ScreenShot.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 		SelectObject(shdc, bitmap);
 
 		SetStretchBltMode(stdc, HALFTONE);//ÏÈ½«ÌùÍ¼´òÓ¡ÔÚ»º´æDCÉÏ£¬È»ºóÔÙÌùµ½ÕæÊµDCÉÏÒÔÌá¸ßÎÈ¶¨ÐÔ(·ÀÖ¹ÖÐÍ¾ÇÐ»»·Ö±æÂÊ)
-		StretchBlt(stdc, 0, 0, wid, hei, shdc, 0, 0, wid, hei, SRCCOPY);
+		StretchBlt(stdc, 0, 0, xLength, yLength, shdc, 0, 0, xLength, yLength, SRCCOPY);
 		DeleteObject(bitmap);
 
 		EndPaint(hWnd, &ps);
@@ -4742,7 +4772,7 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		btdc = GetDC(hWnd);//´´½¨»º´æDCºÍ»º´æbitmap
 		bhdc = CreateCompatibleDC(btdc);
-		BSODBitmap = CreateCompatibleBitmap(btdc, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+		BSODBitmap = CreateCompatibleBitmap(btdc, xLength, yLength);
 		SelectObject(bhdc, BSODBitmap);
 		ReleaseDC(hWnd, btdc);
 		break;
@@ -4760,7 +4790,7 @@ LRESULT CALLBACK BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				B = CreateFontW(140, 70, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Century Gothic"),
 				C = CreateFontW(26, 10, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Î¢ÈíÑÅºÚ");
 			SelectObject(bhdc, B);
-			Rectangle(bhdc, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+			Rectangle(bhdc, 0, 0, xLength, yLength);
 			TextOut(bhdc, 180, 120, L":(", 2);//´òÓ¡:(
 			SelectObject(bhdc, A);//Century Gothic×ÖÌåÔÚwin7¼°ÒÔÇ°µÄÏµÍ³ÖÐÄ¬ÈÏÃ»ÓÐ
 			TextOut(bhdc, 180, 290, Main.GetStr(L"BSOD1"), (int)mywcslen(Main.GetStr(L"BSOD1")));
@@ -4848,7 +4878,7 @@ LRESULT CALLBACK CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 	{//´´½¨»º´æDCºÍ»º´æbitmap
 		ctdc = GetDC(CatchWnd);
 		chdc = CreateCompatibleDC(ctdc);
-		CatchBitmap = CreateCompatibleBitmap(ctdc, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+		CatchBitmap = CreateCompatibleBitmap(ctdc, xLength, yLength);
 		SelectObject(chdc, CatchBitmap);
 		ReleaseDC(hWnd, ctdc);
 		break;
