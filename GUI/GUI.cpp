@@ -2010,7 +2010,7 @@ void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 		mywcscat(TDPathStr, Main.GetStr(L"TPunk"));
 	else
 		mywcscat(TDPathStr, TDPath);
-	if (mywcslen(TDPathStr) > 42)mywcscpy(TDPathStr + 41, L"...");
+	if (mywcslen(TDPathStr) > 45)mywcscpy(TDPathStr + 44, L"...");
 	Main.SetStr(TDPathStr, L"TPath");
 	if (Main.CurWnd != 4)return;//不在"关于"页面的时候就不用刷新了
 	RECT rc{ (int)(170 * Main.DPI), (int)(365 * Main.DPI),(int)(DEFAULT_WIDTH * Main.DPI),(int)(390 * Main.DPI) };
@@ -2046,8 +2046,6 @@ void UpdateInfo()//修改"关于"界面信息的函数.
 	CheckIP(tmp2);//ip地址
 	Main.SetStr(tmp2, L"TIP");//极域版本
 	if (GetTDVer(tmp2))Main.SetStr(tmp2, L"TTDv");
-
-	//if(!TDsearched)Main.SetStr(Main.GetStr(L"TPath"), L"TPath");
 	CreateThread(0, 0, ReopenThread2, 0, 0, 0);//寻找极域路径
 }
 void RefreshFrameText()//根据是否有管理员权限的两种情况改变Frame上的文字.
@@ -2063,6 +2061,7 @@ void RefreshFrameText()//根据是否有管理员权限的两种情况改变Frame上的文字.
 		Main.Frame[FRA_PROCESS].rgb = COLOR_NOTREC;
 		mywcscat(Main.Frame[FRA_PROCESS].Name, Main.GetStr(L"nRec"));
 	}
+	Main.Frame[FRA_GAMES].rgb = COLOR_GREEN;
 }
 void GetPath()//得到程序路径 & ( 程序路径 + 程序名 ).
 {
@@ -3740,14 +3739,14 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateText(170, 340, 4, L"TTDv", NULL);
 	Main.CreateText(375, 340, 4, L"TIP", NULL);
 	Main.CreateText(170, 365, 4, L"TPath", NULL);
-	Main.CreateLine(170, 400, 420, LINE_X, 4, COLOR_BLACK);
-	Main.CreateText(170, 417, 4, L"_Tleft", NULL);
-	Main.CreateText(170, 442, 4, L"Tleft2", NULL);
+	Main.CreateLine(170, 398, 420, LINE_X, 4, COLOR_BLACK);
+	Main.CreateText(170, 416, 4, L"_Tleft", NULL);
+	Main.CreateText(170, 441, 4, L"Tleft2", NULL);
 
 	Main.CreateText(240, 455, 5, L"nolg", COLOR_DARKEST_GREY);
-	Main.CreateText(177, 380, 5, L"swlg", COLOR_DARKEST_GREY);
+	Main.CreateText(177, 375, 5, L"swlg", COLOR_DARKEST_GREY);
 
-	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 ");
+	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 - 需下载 ");
 	Main.CreateFrame(169, 69, 136, 171, 4, L"");
 
 	Main.CreateArea(20, 10, 32, 32, 0);//极域图标
@@ -3803,7 +3802,7 @@ BOOL InitInstance()//初始化
 
 	Main.ButtonEffect = TRUE;//按钮渐变色特效
 	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
-	SetLayeredWindowAttributes(Main.hWnd, NULL, 230, LWA_ALPHA);//半透明特效
+	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
 
 	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
 	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
@@ -3826,10 +3825,8 @@ BOOL InitInstance()//初始化
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 250, (TIMERPROC)TimerProc);//开启Exp计时器
 	if (!slient)//显示主窗口
 	{
-		InvalidateRect(Main.hWnd, 0, FALSE);
-		ShowWindow(Main.hWnd, SW_SHOW);
-		FE = FALSE;
-		UpdateWindow(Main.hWnd);
+		ShowWindow(Main.hWnd, SW_SHOW);FE = FALSE;
+		Main.Redraw();
 	}
 
 	Main.CreateButton(185, 155, 110, 45, 2, L"应用", L"ApplyCh");//为了加快启动速度而在显示主窗口后创建的按钮
@@ -3865,8 +3862,8 @@ BOOL InitInstance()//初始化
 	Main.CreateButton(304, 412, 140, 60, 3, L"System权限CMD", L"sysCMD");
 	Main.CreateButton(455, 412, 105, 60, 3, L"干掉360", L"Killer");//32
 
-	Main.CreateButton(490, 415, 100, 50, 4, L"帮助文档", L"more");
-	Main.CreateButton(490, 477, 100, 50, 4, L"系统信息", L"info");//34
+	Main.CreateButton(490, 414, 100, 50, 4, L"帮助文档", L"more");
+	Main.CreateButton(490, 476, 100, 50, 4, L"系统信息", L"info");//34
 
 	Main.CreateCheck(180, 70, 5, 100, L" 窗口置顶");
 	Main.CreateCheck(180, 100, 5, 160, L" Ctrl+R 紧急蓝屏");
@@ -3879,8 +3876,8 @@ BOOL InitInstance()//初始化
 	Main.CreateCheck(180, 310, 5, 110, L" 缩小/放大");
 	Main.CreateCheck(180, 340, 5, 245, L" 使用ProcessHacker结束进程");
 
-	Main.CreateButton(470, 410, 105, 50, 5, L"永久隐藏", L"hidest");
-	Main.CreateButton(470, 470, 105, 50, 5, L"清理并退出", L"clearup");//36
+	Main.CreateButton(470, 404, 105, 50, 5, L"永久隐藏", L"hidest");
+	Main.CreateButton(470, 464, 105, 50, 5, L"清理并退出", L"clearup");//36
 
 	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");//37
 	Main.CreateButton(680, 95, 120, 50, 0, L"小飞猜词", L"G1");
@@ -4213,7 +4210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (FileList == NULL)
 			{
-				FileList = CreateWindowW(L"ListBox", 0, WS_CHILD | LBS_STANDARD, (int)(180 * Main.DPI), (int)(410 * Main.DPI), \
+				FileList = CreateWindowW(L"ListBox", 0, WS_CHILD | LBS_STANDARD, (int)(180 * Main.DPI), (int)(404 * Main.DPI), \
 					(int)(265 * Main.DPI), (int)(125 * Main.DPI), Main.hWnd, (HMENU)1, Main.hInstance, 0);
 				//创建语言文件选择ListBox
 				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
