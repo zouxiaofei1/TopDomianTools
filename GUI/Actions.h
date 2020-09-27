@@ -11,6 +11,20 @@ VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
 #define SE_SHUTDOWN_PRIVILEGE  0x13
 
+bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
+{
+	wchar_t tmp0;
+	wchar_t* tmp1 = mywcsstr(zxf, L"\"");
+	if (tmp1 == 0)return false;
+	wchar_t* tmp2 = mywcsstr(tmp1 + 1, L"\"");
+	if (tmp2 == 0)return false;
+	tmp0 = *tmp2;
+	*tmp2 = 0;
+	mywcscpy(zxf2, tmp1 + 1);
+	*tmp2 = tmp0;
+	return true;
+}
+
 constexpr unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
 {
 	constexpr unsigned int seed = 131;

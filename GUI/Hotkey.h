@@ -1,6 +1,6 @@
 //用GetAsyncKeyState函数自定义的快捷键系统
-//特点是不会和其他的快捷键冲突
-//缺点则是适用范围不广
+//优点是不会和其他的快捷键冲突
+//缺点则是不能在虚拟桌面中使用
 //
 //不是很稳定，尚处于测试阶段
 //by zouxiaofei1 2015 - 2020
@@ -10,8 +10,6 @@
 #include "GUI.h"
 #pragma warning(disable:4996)
 #define MAX_HOTKEY 55
-//void s();
-//void s(int a);
 
 struct MYHOTKEY
 {

@@ -15,7 +15,6 @@
 #pragma warning(disable:6031)//·µ»ØÖµ±»ºöÂÔ:ImpersonateLoggedOnUser
 #pragma once
 #include "stdafx.h"
-#include "mystd.h"
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_RAND_S
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS 

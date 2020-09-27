@@ -4,7 +4,6 @@
 //头文件
 #include "stdafx.h"
 #include "GUI.h"
-#include "mystd.h"
 #include "TestFunctions.h"
 #include "Hotkey.h"
 #include "myProcessHacker.h"
@@ -174,19 +173,12 @@ public:
 		++CurString;
 		if (Str != NULL)//默认仅复制指针(危险!)
 #ifdef _DEBUG
-		{
-			wchar_t* b = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * (mywcslen(Str) + 1));
-
-			str[Hash(ID)] = b;
-
-
+			str[Hash(ID)] = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * (mywcslen(Str) + 1)),
 			mywcscpy(str[Hash(ID)], Str);
-		}
 #elif _WIN64
-			str[Hash(ID)] = (wchar_t*)HeapAlloc(GetProcessHeap(), 0, sizeof(wchar_t) * (mywcslen(Str) + 1));
-		mywcscpy(str[Hash(ID)], Str);
+			str[Hash(ID)] = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * (mywcslen(Str) + 1)),
+			mywcscpy(str[Hash(ID)], Str);
 #else
-
 			str[Hash(ID)] = (LPWSTR)Str;
 #endif
 	}
@@ -2015,7 +2007,7 @@ void SetTDPathStr()//更改并自动重绘第四页中"极域路径"这个字符串
 	if (Main.CurWnd != 4)return;//不在"关于"页面的时候就不用刷新了
 	RECT rc{ (int)(170 * Main.DPI), (int)(365 * Main.DPI),(int)(DEFAULT_WIDTH * Main.DPI),(int)(390 * Main.DPI) };
 	Main.es[++Main.es[0].top] = rc;
-	Main.Readd(REDRAW_TEXT, 22);//增减text时记得更改"22"这个数据
+	Main.Readd(REDRAW_TEXT, 24);//增减text时记得更改"24"这个数据
 	Main.Redraw(rc);
 }
 DWORD WINAPI ReopenThread2(LPVOID pM)//尝试找到极域(线程)
@@ -2852,8 +2844,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 			ColorChangingState = myrand() % 7 - 3;
 			if (ColorChangingState == 0 || ColorChangingState == t2 || ColorChangingState == -t2)goto useless;
 		}
-		if (RGB[0] + RGB[1] + RGB[2] <= 300)Main.Text[27].rgb = COLOR_WHITE;
-		if (RGB[0] + RGB[1] + RGB[2] >= 450)Main.Text[27].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
+		if (RGB[0] + RGB[1] + RGB[2] <= 300)Main.Text[29].rgb = COLOR_WHITE;
+		if (RGB[0] + RGB[1] + RGB[2] >= 450)Main.Text[29].rgb = COLOR_BLACK;//颜色较浅时字体为黑色，反之亦然
 
 		Main.SetTitleBar(RGB(RGB[0], RGB[1], RGB[2]), TITLEBAR_HEIGHT);
 		Main.Redraw();
@@ -3731,6 +3723,8 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateText(325, 75, 4, L"Tcoder", NULL);//"关于"中的一堆文字
 	Main.CreateText(325, 100, 4, L"Tver", NULL);
 	Main.CreateText(372, 125, 4, L"Tver2", NULL);
+	Main.CreateText(325, 150, 4, L"Tweb", NULL);
+	Main.CreateText(372, 150, 4, L"Tweb2", COLOR_WEB_BLUE);
 	Main.CreateText(170, 255, 4, L"Ttip1", NULL);
 	Main.CreateText(170, 280, 4, L"Ttip2", NULL);
 	Main.CreateText(170, 315, 4, L"Tbit", NULL);//一些系统信息的text
@@ -3742,7 +3736,7 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateLine(170, 398, 420, LINE_X, 4, COLOR_BLACK);
 	Main.CreateText(170, 416, 4, L"_Tleft", NULL);
 	Main.CreateText(170, 441, 4, L"Tleft2", NULL);
-
+	
 	Main.CreateText(240, 455, 5, L"nolg", COLOR_DARKEST_GREY);
 	Main.CreateText(177, 375, 5, L"swlg", COLOR_DARKEST_GREY);
 
@@ -3752,8 +3746,9 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateArea(20, 10, 32, 32, 0);//极域图标
 	Main.CreateArea(170, 70, 135, 170, 4);//zxf头像
 	Main.CreateArea(170, 365, 80, 20, 4);//自选极域路径
-	if (!Admin)Main.CreateArea(176, 15, 85, 18, 0);//以管理员权限重启
-
+	
+	Main.CreateArea(176, 15, 85, 18, 0);//以管理员权限重启
+Main.CreateArea(370, 148, 170, 40, 4);//
 	if (Admin == 0)Main.CreateText(60, 17, 0, L"Tmain", COLOR_WHITE);
 	else Main.CreateText(60, 17, 0, L"Tmain2", COLOR_WHITE);
 
@@ -4119,9 +4114,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		Main.LeftButtonUp();
 		if (DragState.first > 0) { DragState.first = FALSE; break; }
 		const POINT point = Main.GetPos();
-
+		
 		switch (Main.CoverArea)
 		{
+		//s(Main.CoverArea);
 		case 1://点击左上角logo切换颜色
 		{//(隐藏功能)
 			CHOOSECOLOR cc;
@@ -4131,15 +4127,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			cc.Flags = CC_ANYCOLOR;
 			if (!ChooseColor(&cc))break;//选择"取消"时不切换颜色
 			if (GetRValue(cc.rgbResult) + GetGValue(cc.rgbResult) + GetBValue(cc.rgbResult) <= 384)
-				Main.Text[27].rgb = COLOR_WHITE; else Main.Text[27].rgb = COLOR_BLACK;//增减Text时记得更改"27"这个数字
+				Main.Text[29].rgb = COLOR_WHITE; else Main.Text[29].rgb = COLOR_BLACK;//增减Text时记得更改"27"这个数字
 			Main.SetTitleBar(cc.rgbResult, TITLEBAR_HEIGHT);
 			Main.Redraw({ 0, 0, (int)(Main.Width * Main.DPI), (int)(50 * Main.DPI) });
 			break;
 		}
 		case 2://显示xiaofei签名
+		{
 			SetTimer(Main.hWnd, TIMER_COPYLEFT, 20, (TIMERPROC)TimerProc);
 			EasterEggFlag = TRUE;//
 			break;//
+		}
 		case 3:
 		{//手动选择极域路径
 			OPENFILENAMEW ofn;
@@ -4170,10 +4168,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			}
 			break;
 		}
-		case 4:
-			if (RunWithAdmin(Name))ExitProcess(0);//以管理员权限重启
+		case 4: 
+		{if(!Admin)if (RunWithAdmin(Name))ExitProcess(0);//以管理员权限重启
+			break;
+			
+		}
+		case 5:
+		{
+			//s(12345);
+			ShellExecute(NULL, L"open", L"https://tdt.mysxl.cn", NULL, NULL, SW_SHOW);
+			//RunEXE(L"www.baidu.com",0,0); 
 			break;
 		}
+		}
+
 
 		if (Main.Button[Main.CoverButton].Percent < 20)goto nobutton;
 		switch (Main.CoverButton)//按钮

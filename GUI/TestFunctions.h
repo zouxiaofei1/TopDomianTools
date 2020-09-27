@@ -19,12 +19,7 @@ void s(int a)//当程序正式发布时可以去掉这几个函数
 	myitow(a, tmp, 0);
 	MessageBox(NULL, tmp, L"", NULL);
 }
-//void s(double a)
-//{
-//	char tmp[34];
-//	_gcvt_s(tmp, a, MAX_NUM);
-//	MessageBoxA(NULL, tmp ,0, NULL);
-//}
+
 void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
 {
@@ -55,12 +50,6 @@ public:
 		elapsed_ += (end_time.QuadPart - begin_time_.QuadPart) * 1000000 / freq_.QuadPart;
 		::s((int)(elapsed_));
 	}
-	//微秒
-	//double elapsed()
-	//{
-	//	return static_cast<double>(elapsed_);
-	//}
-	//毫秒
 	double ms()
 	{
 		return elapsed_ / 1000.0;
@@ -72,20 +61,6 @@ private:
 
 };
 
-
-bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
-{
-	wchar_t tmp0;
-	wchar_t* tmp1 = mywcsstr(zxf, L"\"");
-	if (tmp1 == 0)return false;
-	wchar_t* tmp2 = mywcsstr(tmp1 + 1, L"\"");
-	if (tmp2 == 0)return false;
-	tmp0 = *tmp2;
-	*tmp2 = 0;
-	mywcscpy(zxf2, tmp1 + 1);
-	*tmp2 = tmp0;
-	return true;
-}
 
 //
 //为了减少程序体积，从网上抄来的红黑树map代码
@@ -578,61 +553,3 @@ public:
 
 	RBTree<K, V> _t;
 };
-
-//void gdiRectangleAlpha(HDC hdc, const RECT* rect, COLORREF color)
-//{
-//	BYTE* g_pBits;
-//	HDC g_hMemDC;
-//	HBITMAP g_hBmp, g_hOldBmp;
-//	if (!rect || !hdc)return;
-//
-//	int x, y;
-//
-//	byte r = GetRValue(color);
-//	byte g = GetGValue(color);
-//	byte b = GetBValue(color);
-//	COLORREF clSrc;
-//	//unsigned char rSrc,gSrc, bSrc;
-//
-//	g_hMemDC = ::CreateCompatibleDC(hdc);
-//
-//	if (!g_hMemDC)return;
-//	int iWidth = rect->right - rect->left;
-//	int iHeight = rect->bottom - rect->top;
-//
-//	BYTE bmibuf[sizeof(BITMAPINFO) + 256 * sizeof(RGBQUAD)];
-//	myZeroMemory(bmibuf, sizeof(bmibuf));
-//	BITMAPINFO pbmi;// = (BITMAPINFO*)bmibuf;
-//	pbmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-//	pbmi.bmiHeader.biWidth = iWidth;
-//	pbmi.bmiHeader.biHeight = iHeight;
-//	pbmi.bmiHeader.biPlanes = 1;
-//	pbmi.bmiHeader.biBitCount = 24;
-//	pbmi.bmiHeader.biCompression = BI_RGB;
-//	g_hBmp = ::CreateDIBSection(g_hMemDC, &pbmi, DIB_RGB_COLORS, (void**)&g_pBits, 0, 0);
-//
-//	if (!g_hBmp)DeleteDC(g_hMemDC);
-//
-//	g_hOldBmp = (HBITMAP)::SelectObject(g_hMemDC, g_hBmp);
-//
-//	//BitBlt(g_hMemDC, 0, 0, iWidth, iHeight, hdc, 0, 0, SRCCOPY);
-//	tw a;
-//	for (y = 0; y < iHeight; y++)
-//	{
-//		for (x = 0; x < iWidth; x++)
-//		{
-//			/*rSrc = g_pBits[y * iWidth * 3 + x * 3 + 2];
-//			gSrc = g_pBits[y * iWidth * 3 + x * 3 + 1];
-//			bSrc = g_pBits[y * iWidth * 3 + x * 3];*/
-//			g_pBits[y * iWidth * 3 + x * 3 + 2] =r;
-//			g_pBits[y * iWidth * 3 + x * 3 + 1] =g;
-//			g_pBits[y * iWidth * 3 + x * 3] =b;
-//		}
-//	}
-//	a.s();
-//	BitBlt(hdc, rect->left, rect->top, iWidth, iHeight, g_hMemDC, 0, 0, SRCCOPY);
-//	SelectObject(g_hMemDC, g_hOldBmp);
-//	DeleteObject(g_hBmp);
-//	DeleteDC(g_hMemDC);
-//	ReleaseDC(NULL, hdc);
-//}
