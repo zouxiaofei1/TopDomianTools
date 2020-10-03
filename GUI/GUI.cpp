@@ -106,7 +106,7 @@ Map<int, BOOL>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND MonitorList[101]; //被监视窗口hWnd
 int MonitorTot, MonitorCur;//被监视窗口数量 + 正在被监视的窗口编号
 int TopCount;//CatchWnd窗口置顶延迟变量
-int sdl = 5;//systemdefaultlanguage
+int sdl = 3;//systemdefaultlanguage
 constexpr int QRcode[]{ 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3
 };//信不信这是一个二维码= =
@@ -3603,16 +3603,15 @@ int main()//程序入口点
 	GetPath();//获取自身目录
 	Admin = IsUserAnAdmin();//是否管理员
 	FirstFlag = (GetFileAttributes(TDTempPath) == -1);
-
+	
 	wchar_t CmdLine[MAX_PATH];
 	myZeroMemory(CmdLine, sizeof(wchar_t) * MAX_PATH);
 	GetRealCommandLine(CmdLine);
-
 	if (Admin)//判断是否为服务程序
-		if (mywcslen(CmdLine) > 1) {
-			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
-			if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec2.exe") == 0) { myPAExec(FALSE); return 0; }
-		}
+	 {
+		if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec.exe") == 0) { myPAExec(TRUE); return 0; }
+		if(*CmdLine==0)if (mywcscmp(Name, L"C:\\SAtemp\\myPaExec2.exe") == 0) { myPAExec(FALSE); return 0; }
+	}
 	Main.str._t.InitRBTree();Main.but._t.InitRBTree();
 	Eatpid._t.InitRBTree();expid._t.InitRBTree();
 	tdpid._t.InitRBTree();//将几个Map清零
@@ -4438,7 +4437,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			{
 				Main.Check[CHK_KPH].Value = TRUE;
 				Main.Check[CHK_FMACH].Value = FALSE;//暂时关闭进程名完全匹配
-				KillProcess(L"360"); KillProcess(L"zhu"); KillProcess(L"sof");
+				KillProcess(L"360|zhu|sof");
 			}
 			break;
 		}
