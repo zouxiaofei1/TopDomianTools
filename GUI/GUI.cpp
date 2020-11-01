@@ -3881,10 +3881,10 @@ BOOL InitInstance()//初始化
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"G5");
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"G6");//43
 
-	if ((Main.Timer % 3) == 0 && FirstFlag && !slient)
+	if ((Main.Timer % 2) ==0 )
 	{
 		Main.InfoBox(L"Firststr");
-		if ((Main.Timer % 49) == 0)Main.InfoBox(L"First2");
+		if ((Main.Timer % 23) == 0)Main.InfoBox(L"First2");
 	}
 
 	return TRUE;

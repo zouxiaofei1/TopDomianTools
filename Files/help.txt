@@ -292,10 +292,9 @@ v1.9.5
 修复 部分快捷键在win7系统上偶尔出错的bug
 使用 windows API减小体积
 
-最后修改：2020-8-30
+最后修改：2020-11-1
 
-本版为测试版
-可能非常不稳定
+本版为正式版
 
 有好的建议或意见可以发zouxiaofei1@gmail.com
 		    Github:zouxiaofei1
