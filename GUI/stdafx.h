@@ -28,4 +28,4 @@
 #include <Psapi.h>
 #include <WtsApi32.h>
 
-#include "mystd.h"//自定义的字符串操作头文件
+//#include "mystd.h"//自定义的字符串操作头文件

@@ -2890,11 +2890,20 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计
 				Main.ButtonRedraw(i);
 			}
 		}
-		if (Main.CoverButton != -1 && Main.Button[Main.CoverButton].Percent < 100)
+		if (Main.CoverButton != -1)
 		{//在鼠标上的按钮颜色以双倍速度变深
-			Main.Button[Main.CoverButton].Percent += 3 * Delta;
-			if (Main.Button[Main.CoverButton].Percent > 100)Main.Button[Main.CoverButton].Percent = 100;
-			Main.ButtonRedraw(Main.CoverButton);
+			if (Main.Press&& Main.Button[Main.CoverButton].Percent != PRESS_PERCENTAGE)
+			{
+				if (Main.Button[Main.CoverButton].Percent > PRESS_PERCENTAGE)Main.Button[Main.CoverButton].Percent -= 3 * Delta; else Main.Button[Main.CoverButton].Percent += 3 * Delta;
+				if (PRESS_PERCENTAGE-7 < Main.Button[Main.CoverButton].Percent && PRESS_PERCENTAGE+7 > Main.Button[Main.CoverButton].Percent)Main.Button[Main.CoverButton].Percent = PRESS_PERCENTAGE;
+				Main.ButtonRedraw(Main.CoverButton);
+			}
+			if (!Main.Press && Main.Button[Main.CoverButton].Percent < 100)
+			{
+				Main.Button[Main.CoverButton].Percent += 3 * Delta;
+				if (Main.Button[Main.CoverButton].Percent > 100)Main.Button[Main.CoverButton].Percent = 100;
+				Main.ButtonRedraw(Main.CoverButton);
+			}
 		}
 		break;
 	}
@@ -3103,7 +3112,7 @@ void ReopenTD()//在已知路径的情况下，重新打开极域电子教室
 		else if (!RunEXE(TDPath, NULL, nullptr))Main.InfoBox(L"StartFail");
 	}
 }
-DWORD WINAPI SizingThread(LPVOID pM)//尝试寻找并打开极域
+DWORD WINAPI SizingThread(LPVOID pM)//改变窗口大小
 {
 	(pM);
 	if (Main.CurWnd == 5)ShowWindow(FileList, SW_HIDE);
@@ -3881,7 +3890,7 @@ BOOL InitInstance()//初始化
 	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"G5");
 	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"G6");//43
 
-	if ((Main.Timer % 2) ==0 )
+	if ((Main.Timer % 2) ==0 &&FirstFlag&&!slient)
 	{
 		Main.InfoBox(L"Firststr");
 		if ((Main.Timer % 23) == 0)Main.InfoBox(L"First2");
@@ -4058,7 +4067,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 
 		if (Main.TestInside())
-		{
+		{//点在控件内 -> 触发控件特效
 			if (KEY_DOWN(VK_CONTROL))
 			{
 				POINT point = Main.GetPos();
@@ -4089,8 +4098,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			else
 				Main.LeftButtonDown();
 		}
-		else//点在控件内 -> 触发控件特效
-		{
+		else
+		{//点在外面 -> 拖动窗口
 			if (UTState)
 			{//UltraTopMost时依靠计时器来拖动窗口
 				GetCursorPos(&UTMpoint);
@@ -4099,8 +4108,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				SetTimer(Main.hWnd, TIMER_UT3, 1, (TIMERPROC)TimerProc);
 			}
 			else
-			{
-				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);//点在外面 -> 拖动窗口
+			{//否则直接PostMessage来拖动
+				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
 				SetWindowPos(Main.hWnd, 0, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOZORDER);
 			}
 		}
