@@ -726,7 +726,7 @@ public:
 		{
 
 			Edit[cur].OStr[0] = 0;
-			if (Edit[cur].str != NULL)if (*Edit[cur].str != NULL)HeapFree(GetProcessHeap(), 0, Edit[cur].str);
+			if (Edit[cur].str != NULL)/*if (*Edit[cur].str != NULL)*/HeapFree(GetProcessHeap(), 0, Edit[cur].str);
 			Edit[cur].strLength = (int)mywcslen(Newstr);
 
 			Edit[cur].str = (wchar_t*)HeapAlloc(GetProcessHeap(), 0, (Edit[cur].strLength + 1) * sizeof(wchar_t));
@@ -771,8 +771,8 @@ public:
 				* EditTemp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * (len + len2));
 			if (ClipBoardTemp == 0 || EditTemp == 0)return;
 			MultiByteToWideChar(CP_ACP, 0, buffer, -1, ClipBoardTemp, (int)(len + 1));
-			GlobalUnlock(hData);
 			CloseClipboard();
+			GlobalUnlock(hData);
 
 			int pos1 = min(Edit[cur].Pos1, Edit[cur].Pos2), pos2 = max(Edit[cur].Pos1, Edit[cur].Pos2);
 			if (pos1 == -1)
@@ -784,7 +784,6 @@ public:
 				Edit[cur].str[pos2] = t;//在光标后面加入剪切板中字符并拼接
 				mywcscat(EditTemp, &Edit[cur].str[pos2]);
 				Edit[cur].Pos1 += (int)mywcslen(ClipBoardTemp);
-				HeapFree(GetProcessHeap(), 0, ClipBoardTemp);
 				SetEditStrOrFont(EditTemp, 0, cur);
 				RefreshXOffset(cur);
 				RefreshCaretByPos(cur);
@@ -795,12 +794,13 @@ public:
 				mywcscpy(EditTemp, Edit[cur].str);
 				mywcscat(EditTemp, ClipBoardTemp);//将选择部分替换成剪切板中字符并拼接
 				mywcscat(EditTemp, &Edit[cur].str[pos2]);
-				Edit[cur].Pos1 += (int)mywcslen(ClipBoardTemp); HeapFree(GetProcessHeap(), 0, ClipBoardTemp);
+				Edit[cur].Pos1 += (int)mywcslen(ClipBoardTemp); 
 				Edit[cur].Pos2 = -1;
 				SetEditStrOrFont(EditTemp, 0, cur);
 				RefreshXOffset(cur);
 				RefreshCaretByPos(cur);
 			}
+			HeapFree(GetProcessHeap(), 0, ClipBoardTemp);
 			HeapFree(GetProcessHeap(), 0, EditTemp);//清理内存
 			EditRedraw(cur);//重绘控件
 		}
