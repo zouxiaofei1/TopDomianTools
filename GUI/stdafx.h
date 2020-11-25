@@ -1,7 +1,12 @@
 // stdafx.h : 标准系统包含文件的包含文件，
 // 或是经常使用但不常更改的
 // 特定于项目的包含文件
-//by zouxiaofei1 2015 - 2020
+//
+//ps:在这里的头文件会被预编译到.obj文件内，
+//一定程度上能加快编译速度
+//不过有时会出现乱七八糟的问题
+//
+//by zouxiaofei1 2015 - 2021
 
 #pragma once
 #define WINVER          _WIN32_WINNT_WINXP
@@ -11,7 +16,6 @@
 #define WIN32_LEAN_AND_MEAN             // 从 Windows 头中排除极少使用的资料
 // Windows 头文件: 
 #include <windows.h>
-
 
 // TODO: 在此处引用程序需要的其他头文件
 #define _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS 
@@ -27,5 +31,3 @@
 #include <sddl.h>
 #include <Psapi.h>
 #include <WtsApi32.h>
-
-//#include "mystd.h"//自定义的字符串操作头文件

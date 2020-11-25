@@ -1,9 +1,8 @@
 //用GetAsyncKeyState函数自定义的快捷键系统
-//优点是不会和其他的快捷键冲突
-//缺点则是不能在虚拟桌面中使用
+//不会和其他的快捷键冲突
+//缺点是不能在虚拟桌面中使用
 //
-//不是很稳定，尚处于测试阶段
-//by zouxiaofei1 2015 - 2020
+//by zouxiaofei1 2015 - 2021
 
 #pragma once
 #include "stdafx.h"

@@ -3,7 +3,7 @@
 用于检验本人电脑键盘鼠标录入以及屏幕显示的机械、光电性能，并不代表本人观点。如需要详查请直接与键盘鼠标显示器发明者及生产厂商法人代表联系。
 
 
-极域破解 v1.9.5 C++ Edition ——综合性的信息课堂解决方案
+极域破解 v1.9.6 C++ Edition ——综合性的信息课堂解决方案
 
 一个解决学生在信息课上烦恼的程序 , 可以方便地退出极域电子教室
 
@@ -13,26 +13,6 @@
 
 鼠标悬停在按钮上可以看到其具体的使用方法
 
-
-
-本程序支持命令行调用部分功能
-不支持一次调用多个命令
--enablebut 一键安装
--sethc 安装sethc
--unsethc 卸载sethc
--killtop 全自动防控制
--antishutdown 防教师关机
--retd 重新打开极域
--BSOD 蓝屏
--reboot 瞬间重启
--vp 尝试读取密码
--rekill "程序名"
--del "文件名"
--clear 清除密码
--change "密码"
--changepasswd "密码"
--channel "频道"
--top 窗口置顶运行
 
 
 版本支持：支持winXP~win10所有系统，无需运行库
@@ -93,6 +73,30 @@
 	@angla.tesla
 	tangptr@126.com
 	wj32
+
+
+
+本程序可以用命令行调用部分功能
+不支持一次调用多个命令
+不区分大小写
+-Antihutdown          防教师关机
+-BSOD                	蓝屏
+-change "密码"	更改密码
+-changepswd "密码"	更改密码(2010)
+-channel "频道"	更改频道
+-clear	   	清除密码
+-del "文件名"     	删除文件
+-enablebut          	一键安装
+-killtop		全自动防控制
+-reboot		瞬间重启
+-rekill "程序名"	连续结束进程
+-retd	             	重新打开极域
+-sethc		安装sethc
+-slient		隐藏运行
+-top	         	窗口置顶运行
+-unsethc		卸载sethc
+-vp	        	尝试读取密码
+
 
 更新历史：
 
@@ -291,6 +295,10 @@ v1.9.5
 增加 窗口拖动缩放功能
 修复 部分快捷键在win7系统上偶尔出错的bug
 使用 windows API减小体积
+
+v1.9.6
+修复 包括输入框内存泄漏在内的2处bug
+增强 文件粉碎机功能
 
 最后修改：2020-11-1
 

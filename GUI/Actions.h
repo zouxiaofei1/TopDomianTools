@@ -1,6 +1,6 @@
 //为了减短GUI.cpp长度
 //一部分和主程序中Class、全局变量没有关系函数被放在这里
-//by zouxiaofei1 2015 - 2020
+//by zouxiaofei1 2015 - 2021
 
 #pragma once
 #include "stdafx.h"
@@ -25,9 +25,9 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//命令行调用找到"双引号"
 	return true;
 }
 
-constexpr unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
+const unsigned int Hash(const wchar_t* str)//获取一个字符串的"散列值"
 {
-	constexpr unsigned int seed = 131;
+	const unsigned int seed = 131;
 	unsigned int hash = 0;
 
 	while (*str)hash = hash * seed + (*str++);
@@ -218,7 +218,7 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 //#ifndef _WIN64
 	myZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 //#endif
-	const bool f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si,&pi);
+	const BOOL f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si,&pi);
 	if(pi.hProcess)CloseHandle(pi.hProcess);
 	if(pi.hThread)CloseHandle(pi.hThread);
 	return f;
@@ -370,7 +370,7 @@ __forceinline void SetProcessAware()
 #pragma warning(disable:4244)
 #pragma warning(disable:4312)
 void change(void* Src, bool wow)
-{//改极域的knock密码
+{//2016版极域的Knock密码
 	unsigned int v5, v10;
 	BYTE* v6, * v7, v8, * v9, * i;
 	HKEY phkResult;//键值的句柄
@@ -382,9 +382,16 @@ void change(void* Src, bool wow)
 	else//根据系统位数打开键值所在的目录
 		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
 
-	v5 = (myrand() % 40 + 83) & 0xFFFFFFFC;//随机得到加密后密码的长度，向下取整为4的倍数
+	//这里介绍2016、2017版Knock密码的加密方式
+	//
+	//极域在2016年对加密方式进行了较大的更改。
+	//比如，密码键值被换了一个目录，换到了TopDomain\e-Learning Class\Student目录存储
+	//还有就是，密码的加密强度变大了一些(不过还是不大)
+	//这段代码是2018年用IDA反编译得来的，所以变量名和风格会有些奇怪
+	//
+	v5 = (myrand() % 40 + 83) & 0xFFFFFFFC;//首先，随机得到加密后密码的长度，向下取整为4的倍数
 	v6 = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, v5);//申请相应的内存空间
-	if (v6 == 0)return;
+	if (v6 == 0)return;//密文储存在v6中
 	v7 = v6;//v7是指向v6开头的指针
 	if (v5 >> 1)
 	{//先给v6每个位上都写上随机值
@@ -399,7 +406,7 @@ void change(void* Src, bool wow)
 
 	v8 = myrand() % (v5 - 68) + 2;//取一个大小为2 - 57的随机值
 	*v6 = v8;//v6的第一位和最后一位都标上这个值
-	v6[v5 - 1] = v8;//以这个值为加密后密码字段的开始
+	v6[v5 - 1] = v8;//以这个值为密码字段的开始，将这个值记为v8
 	if (Src && mywcslen((const wchar_t*)Src))//如果密码不为空，将密码明文先复制到v8处
 		mymemcpy(&v6[v8], Src, 2 * mywcslen((const wchar_t*)Src) + 2);
 	else
@@ -416,18 +423,19 @@ void change(void* Src, bool wow)
 		i += 4;
 	}
 
-	DWORD ret, dwSize = 999, dwType = REG_BINARY; BYTE data[1000];
-	ret = RegQueryValueExW(phkResult, L"Knock", 0, &dwType, (LPBYTE)data, &dwSize);//尝试读取键值
-	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);
-	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//尝试读取键值
-	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);
-	HeapFree(GetProcessHeap(), 0, v6);//然后设到Knock中
+	DWORD ret, dwSize = 999, dwType = REG_BINARY; BYTE data[1000];//尝试打开键值，然后将v6设到Knock和Knock1中
+	ret = RegQueryValueExW(phkResult, L"Knock", 0, &dwType, (LPBYTE)data, &dwSize);
+
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);//总体来说，极域的Knock密码对于大多数学生而言非常有迷惑性----
+	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//同样地，对极域的代理商似乎也有迷惑性
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);//所以他们给程序加了后门:mythware_super_password，无视限制的超级密码
+	HeapFree(GetProcessHeap(), 0, v6);//于是非常有迷惑性的密码就这样没用了。
 	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
 
-BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileType)
-{//释放指定资源
+BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileType)//释放指定资源
+{
 	if (GetFileAttributes(strFileName) != INVALID_FILE_ATTRIBUTES) { return TRUE; }//资源已存在->退出
 
 	DWORD   dwWrite = 0;// 资源大小  

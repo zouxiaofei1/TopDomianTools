@@ -2,7 +2,7 @@
 //自定义的用于减少程序体积的字符串函数
 //尚处于测试阶段，不一定稳定
 //
-//by zouxiaofei1 2015 - 2020
+//by zouxiaofei1 2015 - 2021
 //
 
 int statu = GetTickCount();

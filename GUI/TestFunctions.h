@@ -1,6 +1,6 @@
 ﻿//为了减短GUI.cpp长度
 //一部分调试用函数、测试中的函数将被放在这里
-//by zouxiaofei1 2015 - 2020
+//by zouxiaofei1 2015 - 2021
 
 #pragma once
 #include "stdafx.h"
@@ -15,7 +15,6 @@ void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
 void s(int a)//当程序正式发布时可以去掉这几个函数
 {
 	wchar_t tmp[20];
-	//myZeroMemory(tmp, sizeof(wchar_t) * 20);
 	myitow(a, tmp, 0);
 	MessageBox(NULL, tmp, L"", NULL);
 }
@@ -24,7 +23,6 @@ void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
 void s2(int a)
 {
 	wchar_t tmp[34];
-	//myZeroMemory(tmp, sizeof(wchar_t) * 34);
 	myitow(a, tmp, MAX_NUM); mywcscat(tmp, L"\n");
 	OutputDebugString(tmp);
 }

@@ -1,5 +1,5 @@
 //这是TopDomainTools工程源代码的主文件
-//by zouxiaofei1 2015 - 2020
+//by zouxiaofei1 2015 - 2021
 
 //头文件
 #include "stdafx.h"
@@ -9,8 +9,8 @@
 #include "myProcessHacker.h"
 #include "Actions.h"
 #include "myPaExec.h"
-#pragma comment(lib, "urlmon.lib")//下载文件用的Lib
-#pragma comment(lib,"Imm32.lib")//自定义输入法位置用的Lib
+#pragma comment(lib, "urlmon.lib")//用于下载文件用
+#pragma comment(lib,"Imm32.lib")//自定义输入法位置
 #pragma comment(lib, "ws2_32.lib")//Winsock API 库
 
 #pragma warning(disable:6320)
@@ -24,7 +24,6 @@ LRESULT CALLBACK	FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 BOOL SearchTool(LPCWSTR lpPath, int type);
 
-//自己定义的全局变量 有点乱
 
 //"全局"的全局变量
 HINSTANCE hInst;//当前实例，CreateWindow&LoadIcon时需要
@@ -128,6 +127,7 @@ Mypair DragState;
 POINT DragDefPoint;
 byte strWmap[65536];//记录字符宽度的数组
 BOOL slient = FALSE;//是否命令行
+BOOL noshowwnd = FALSE;//是否默认隐藏窗口
 HANDLE hdlWrite;//命令行窗口的句柄
 RECT UTrc;//UT"窗口"贴图的位置
 BOOL UTState = FALSE;//是否启用"超级置顶"
@@ -689,7 +689,7 @@ public:
 		else SelectObject(mdc, DefFont), GetObject(DefFont, sizeof(LOGFONTW), &Editfont);
 
 		if (Edit[cur].strW != 0)HeapFree(GetProcessHeap(), 0, Edit[cur].strW);//删除旧的宽度
-		Edit[cur].strW = (int*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(int) * (Edit[cur].strLength + 1));
+		Edit[cur].strW = (int*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(int) * (Edit[cur].strLength + 2));
 		if (Edit[cur].strW == 0)return;
 		SIZE se;
 		GetTextExtentPoint32(mdc, Edit[cur].str, 1, &se);
@@ -1347,20 +1347,20 @@ public:
 	{
 		tdc = GetDC(hWnd);
 		hdc = CreateCompatibleDC(tdc);
-		//Bitmap = CreateCompatibleBitmap(tdc, MaxWidth, MaxHeight);
+		Bitmap = CreateCompatibleBitmap(tdc, MaxWidth, MaxHeight);
 
 
-		BITMAPINFO bmi;        // bitmap header
+		//BITMAPINFO bmi;        // bitmap header
 
-		ZeroMemory(&bmi, sizeof(BITMAPINFO));
-		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		bmi.bmiHeader.biWidth = MaxWidth;
-		bmi.bmiHeader.biHeight = MaxHeight;
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = 24;         // four 8-bit components
-		bmi.bmiHeader.biCompression = BI_RGB;
-		bmi.bmiHeader.biSizeImage = MaxWidth * MaxHeight * 3;
-		Bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void**)&pvBits, NULL, 0);
+		//ZeroMemory(&bmi, sizeof(BITMAPINFO));
+		//bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		//bmi.bmiHeader.biWidth = MaxWidth;
+		//bmi.bmiHeader.biHeight = MaxHeight;
+		//bmi.bmiHeader.biPlanes = 1;
+		//bmi.bmiHeader.biBitCount = 24;         // four 8-bit components
+		//bmi.bmiHeader.biCompression = BI_RGB;
+		//bmi.bmiHeader.biSizeImage = MaxWidth * MaxHeight * 3;
+		//Bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void**)&pvBits, NULL, 0);
 
 		if (Bitmap != 0)SelectObject(hdc, Bitmap);
 		ReleaseDC(hWnd, tdc);
@@ -1476,7 +1476,7 @@ public:
 			if (gl.Width != -1)Button[cur].Width = gl.Width;
 			if (gl.Height != -1)Button[cur].Height = gl.Height;
 			if (gl.str1 != NULL)mywcscpy(Button[cur].Name, gl.str1);
-			if (Button[cur].Exp != nullptr)if (*Button[cur].Exp != NULL)
+			if (Button[cur].Exp != nullptr)//if (*Button[cur].Exp != NULL)
 			{
 				HeapFree(GetProcessHeap(), 0, Button[cur].Exp);
 				Button[cur].Exp = 0;
@@ -1713,6 +1713,7 @@ public://这些函数中有些参数没有用到，会导致大量警告.
 		}
 		return S_OK;
 	}
+	DownloadProgress(){curi = factmax = 0;}
 };
 
 BOOL CALLBACK EnumChildwnd(HWND hwnd, LPARAM lParam)//查找"屏幕广播"子窗口的枚举函数.
@@ -2029,7 +2030,7 @@ void UpdateInfo()//修改"关于"界面信息的函数.
 	GetOSDisplayString(tmp);//系统版本
 	mywcscpy(tmp2, Main.GetStr(L"Twinver")); mywcscat(tmp2, tmp);
 	Main.SetStr(tmp2, L"Twinver");
-	if (Bit == 34)f = GetFileAttributes(L"C:\\windows\\sysnative\\cmd.exe"); else f = GetFileAttributes(L"C:\\windows\\system32\\cmd.exe");
+	if (Bit == 34)f = GetFileAttributes(L"C:\\windows\\sysnative\\cmd.exe"); else f = GetFileAttributes(L"C:\\Windows\\System32\\cmd.exe");
 	mywcscpy(tmp2, Main.GetStr(L"Tcmd"));//是否有cmd
 	if (f != -1)mywcscat(tmp2, Main.GetStr(L"TcmdOK")); else mywcscat(tmp2, Main.GetStr(L"TcmdNO"));
 
@@ -2085,7 +2086,7 @@ BOOL BackupSethc()//备份sethc.exe.
 	return CopyFile(SethcPath, L"C:\\SAtemp\\sethc", TRUE);//因为大多数机子上是有还原卡的嘛
 }
 
-bool EnableTADeleter()
+BOOL EnableTADeleter()
 {//尝试和DeleteFile驱动通信.
 	if (DeleteFileHandle != 0)return TRUE;//已经和驱动连接上了 -> 退出
 	wchar_t DriverPath[MAX_PATH];
@@ -2115,7 +2116,7 @@ bool EnableTADeleter()
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		0x40
 	);
-	return (bool)DeleteFileHandle;
+	return (BOOL)DeleteFileHandle;
 }
 
 BOOL EnableKPH()
@@ -2162,7 +2163,7 @@ void SwitchLanguage(LPWSTR FilePath)//改变语言的函数
 
 	int type = 0; //标识控件类型的变量
 	DWORD NumberOfBytesRead;
-	const bool ANSI = mywcsstr(FilePath, L"ANSI");//为了节省空间，英语类语言文件用ANSI编码存储
+	const BOOL ANSI = (BOOL)mywcsstr(FilePath, L"ANSI");//为了节省空间，英语类语言文件用ANSI编码存储
 
 	HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 	if (!hHeap)return;
@@ -2204,7 +2205,7 @@ void SwitchLanguage(LPWSTR FilePath)//改变语言的函数
 	if (CatchWnd != NULL)SetWindowText(CatchWnd, Main.GetStr(L"Title2"));
 	RefreshFrameText();//Frame文字
 
-	Main.EnableButton(BUT_MORE, !(bool)mywcsstr(FilePath, L"English"));//几个文字会改变的按钮
+	Main.EnableButton(BUT_MORE, !(BOOL)mywcsstr(FilePath, L"English"));//几个文字会改变的按钮
 	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQs"));
 	if (GameMode == 1)mywcscpy(Main.Button[BUT_GAMES].Name, Main.GetStr(L"Gamee"));
 	if (SethcInstallState)mywcscpy(Main.Button[BUT_SETHC].Name, Main.GetStr(L"unSet"));
@@ -3413,7 +3414,7 @@ void AutoChangePassword(wchar_t* a, int type)//自动更改密码
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 	else//打开键值
 		ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
-	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }//打开失败
+	if (ret != 0) { Main.InfoBox(L"ACFail"); RegCloseKey(hKey); return; }//打开失败退出
 	if (type == 1)
 	{
 		ret = RegQueryValueExW(hKey, L"UninstallPasswd", 0, &dwType2, (LPBYTE)tmp, &dwSize2);//尝试读取键值
@@ -3423,29 +3424,29 @@ void AutoChangePassword(wchar_t* a, int type)//自动更改密码
 	if (type == 2)mywcscpy(tmp, L"Passwd"), mywcscat(tmp, a);//是否在之前加上Passwd
 	else mywcscpy(tmp, a);
 	ret = RegSetValueEx(hKey, L"UninstallPasswd", 0, REG_SZ, (const BYTE*)&tmp, sizeof(wchar_t) * (DWORD)mywcslen(tmp));
-	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }//失败
+	if (ret != 0) { Main.InfoBox(L"ACUKE"); RegCloseKey(hKey); return; }
 nobasic:
 	RegCloseKey(hKey);
-	if (type == 1)//额外修改key和knock异或加密
+	if (type == 1)//额外修改Key和Knock异或加密
 	{
-		mywcscpy(tmp, L"Passwd");//下面说说knock密码的加密方式
-		BYTE data[2000];//这是2018年用IDA研究出来的，以后加密方式可能会变
-		mywcscat(tmp, a);//具体就是，采用UNICODE编码，转化为二进制后
-		const int len = (int)mywcslen(tmp) * 2;//把他们和0x4350u异或，得到的值前8位存在一个BYTE数组的偶数位，
+		mywcscpy(tmp, L"Passwd");//这里先介绍一下2015版Key密码的加密方式
+		BYTE data[2000];//2015版密码不再存于原来的UninstallPasswd中，而是加密放到了同一个文件夹中的Key键值里。
+		mywcscat(tmp, a);//具体就是，将输入的UNICODE编码文字转化为二进制，
+		const int len = (int)mywcslen(tmp) * 2;//然后把它们和0x4350u异或，得到的值前8位存在一个BYTE数组的偶数位，
 		for (int i = 0; i < len; ++i)tmp[i] ^= 0x4350u;//后8位存在一个BYTE数组的奇数位
 		for (int i = 0; i < len; ++i)//有时密码比较短，后面的空位直接用随机数值补齐
-		{//这样就使得密码很多时候看起来像是非对称加密得来的，有一定迷惑性(吧)
+		{//这样就得到了Key中的密文。解密时把这个过程反过来就行了
 			data[i * 2 + 1] = tmp[i] >> 8;
 			data[i * 2] = (BYTE)tmp[i] - (tmp[i] >> 8 << 8);
-		}//然后，就没了。只是一个异或而已，强度并不大。
+		}
 		if (Bit != 64)
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
-		else//这里是2015年版的异或加密，保存在Key中
+		else
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\TopDomain\\e-learning Class Standard\\1.00", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
 
-		ret = RegQueryValueExW(hKey, L"Key", 0, &dwType, (LPBYTE)tmp, &dwSize2);//尝试读取键值
+		ret = RegQueryValueExW(hKey, L"Key", 0, &dwType, (LPBYTE)tmp, &dwSize2);//尝试打开键值
 		if (ret != 0)goto nokey;
-		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char) * len);
+		RegSetValueEx(hKey, L"Key", 0, REG_BINARY, (const BYTE*)data, sizeof(char) * len);//更改键值
 	nokey:
 		if (Bit != 64)change(a, FALSE); else change(a, TRUE);//这里是2016版的异或加密，保存在Knock中
 	}
@@ -3484,6 +3485,11 @@ BOOL RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		TOP = TRUE;
 		CreateThread(NULL, 0, TopThread, NULL, 0, NULL);
 		goto noreturn;//FALSE表示继续运行
+	}
+	if (mywcsstr(str, L"-slient") != NULL)
+	{
+		noshowwnd = TRUE;
+		goto noreturn;
 	}
 	pid = GetParentProcessID(GetCurrentProcessId());
 	console = AttachConsole(pid);//附加到父进程命令行上
@@ -3561,9 +3567,9 @@ BOOL RunCmdLine(LPWSTR str)//解析启动时的命令行并执行
 		AutoDelete(tmp, TRUE);
 		goto okreturn;
 	}
-	if (mywcsstr(str, L"-changepasswd") != NULL)//前后二者顺序不能调换
-	{//因为changepasswd包括change这个字符串
-		wchar_t tmp[MAX_PATH], * tmp1 = mywcsstr(str, L"-changewithpasswd");
+	if (mywcsstr(str, L"-changepswd") != NULL)//前后二者顺序不能调换
+	{//因为changepswd包括change这个字符串
+		wchar_t tmp[MAX_PATH], * tmp1 = mywcsstr(str, L"-changepswd");
 		myZeroMemory(tmp, sizeof(wchar_t) * MAX_PATH);
 		if (!Findquotations(tmp1, tmp))goto error;
 		AutoChangePassword(tmp, 2);
@@ -3826,7 +3832,7 @@ BOOL InitInstance()//初始化
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);//例如 Main.Timer % 50 == 0 这条语句，实际触发概率是25分之1
 
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 250, (TIMERPROC)TimerProc);//开启Exp计时器
-	if (!slient)//显示主窗口
+	if (!slient&&!noshowwnd)//显示主窗口
 	{
 		ShowWindow(Main.hWnd, SW_SHOW);FE = FALSE;
 		Main.Redraw();
@@ -3945,10 +3951,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		case MAIN_HOTKEY_LEFTKEY: {mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, 0, 0, 0, 0); break; }//左键
 		case MAIN_HOTKEY_RIGHTKEY: { mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0); break; }//右键
-		case MAIN_HOTKEY_MOVELEFT: {mouse_event(MOUSEEVENTF_MOVE, 0xffffffff - (DWORD)(10 * Main.DPI) + 1, 0, 0, 0); break; }//左移
-		case MAIN_HOTKEY_MOVEUP: {mouse_event(MOUSEEVENTF_MOVE, 0, 0xffffffff - (DWORD)(10 * Main.DPI) + 1, 0, 0); break; }//上移
-		case MAIN_HOTKEY_MOVERIGHT: {mouse_event(MOUSEEVENTF_MOVE, (DWORD)(10 * Main.DPI), 0, 0, 0); break; }//右移
-		case MAIN_HOTKEY_MOVEDOWN: {mouse_event(MOUSEEVENTF_MOVE, 0, (DWORD)(10 * Main.DPI), 0, 0); break; }//下移
+		case MAIN_HOTKEY_MOVELEFT: {mouse_event(MOUSEEVENTF_MOVE, 0xffffffff - 9, 0, 0, 0); break; }//左移
+		case MAIN_HOTKEY_MOVEUP: {mouse_event(MOUSEEVENTF_MOVE, 0, 0xffffffff -9, 0, 0); break; }//上移
+		case MAIN_HOTKEY_MOVERIGHT: {mouse_event(MOUSEEVENTF_MOVE, 10, 0, 0, 0); break; }//右移
+		case MAIN_HOTKEY_MOVEDOWN: {mouse_event(MOUSEEVENTF_MOVE, 0, 10, 0, 0); break; }//下移
 		case MAIN_HOTKEY_RESTART_TD: {if (TDPID == 0)CreateThread(NULL, 0, ReopenThread, NULL, 0, NULL); break; }//重新打开极域
 		default:Main.EditHotKey((int)wParam); break;//分派Edit操作的热键信息
 		}
@@ -4042,12 +4048,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	case WM_COMMAND://当控件接收到消息时会触发这个
 	{
 		if (HIWORD(wParam) == LBN_SELCHANGE) {//TDT中只用了List一个控件，所以下面的内容肯定是文件选择框了= =
-			wchar_t LanguageName[MAX_PATH], LanguagePath[MAX_PATH];
+			wchar_t *LanguageName=(wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t)* MAX_PATH),
+				*LanguagePath= (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH);
 			SendMessage(FileList, LB_GETTEXT, ::SendMessage(FileList, LB_GETCURSEL, 0, 0), (LPARAM)LanguageName);
 			mywcscpy(LanguagePath, TDTempPath);
 			mywcscat(LanguagePath, L"language\\");
 			mywcscat(LanguagePath, LanguageName);
 			SwitchLanguage(LanguagePath);//根据点击的内容合成字符串，然后切换语言
+			HeapFree(GetProcessHeap(), 0, LanguageName);
+			HeapFree(GetProcessHeap(), 0, LanguagePath);
 		}
 		break;
 	}
@@ -4125,7 +4134,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		
 		switch (Main.CoverArea)
 		{
-		//s(Main.CoverArea);
 		case 1://点击左上角logo切换颜色
 		{//(隐藏功能)
 			CHOOSECOLOR cc;
@@ -4149,9 +4157,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 3:
 		{//手动选择极域路径
 			OPENFILENAMEW ofn;
-			wchar_t strFile[MAX_PATH], str2[MAX_PATH];
-			myZeroMemory(str2, sizeof(wchar_t) * MAX_PATH);
-			myZeroMemory(strFile, sizeof(wchar_t) * MAX_PATH);
+			wchar_t *strFile=(wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,sizeof(wchar_t)* MAX_PATH), 
+				*str2=(wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t)* MAX_PATH);
 			myZeroMemory(&ofn, sizeof(OPENFILENAMEW));
 			if (*TDPath != 0)
 			{
@@ -4174,22 +4181,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				TDsearched = TRUE;
 				SetTDPathStr();
 			}
+			HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE,strFile);
+			HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, str2);
 			break;
 		}
 		case 4: 
 		{if(!Admin)if (RunWithAdmin(Name))ExitProcess(0);//以管理员权限重启
 			break;
-			
 		}
 		case 5:
 		{
-			//s(12345);
 			ShellExecute(NULL, L"open", L"https://tdt.mysxl.cn", NULL, NULL, SW_SHOW);
-			//RunEXE(L"www.baidu.com",0,0); 
 			break;
 		}
 		}
-
 
 		if (Main.Button[Main.CoverButton].Percent < 20)goto nobutton;
 		switch (Main.CoverButton)//按钮
@@ -4326,17 +4331,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_VIEW://监视窗口
 		{
 			AutoCreateCatchWnd();
-			wchar_t tmpstr[MAX_STR * 4];
-			mywcscpy(tmpstr, Main.Edit[EDIT_PROCNAME].str);
+			wchar_t *Tempstr= (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH*4);
+			if (wcslen(Main.Edit[EDIT_PROCNAME].str) > 1000)*(Main.Edit[EDIT_PROCNAME].str + 1000) = 0;
+			mywcscpy(Tempstr, Main.Edit[EDIT_PROCNAME].str);
 			MonitorTot = 0;
 			ReturnWindows();
-			FindMonitoredhWnd(tmpstr);
+			FindMonitoredhWnd(Tempstr);
 			if (MonitorTot != 0)MonitorCur = 1; else MonitorCur = 0;
 			SetTimer(Main.hWnd, TIMER_UPDATECATCH, 33, (TIMERPROC)TimerProc);//注意:这里的timerproc是绑定在Main上的
 			AutoRegisterHotKey(CatchWnd, CATCH_HOTKEY_WNDLEFT, MOD_ALT, VK_LEFT);
 			AutoRegisterHotKey(CatchWnd, CATCH_HOTKEY_WNDRIGHT, MOD_ALT, VK_RIGHT);
 			AutoRegisterHotKey(CatchWnd, CATCH_HOTKEY_ESCAPE, NULL, VK_ESCAPE);//注册热键
 			AutoRegisterHotKey(CatchWnd, CATCH_HOTKEY_WNDSHOW, MOD_ALT, 'H');
+			HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, Tempstr);
 			break;
 		}
 		case BUT_RELS: {ReturnWindows(); break; }//释放窗口
@@ -4452,13 +4459,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		case BUT_MORE://关于
 		{//(可能多数人都读不懂吧)
-			wchar_t tmp[MAX_PATH], tmp2[MAX_PATH];
+			wchar_t *tmp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH), 
+				*tmp2 = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH);
 			mywcscpy(tmp, L"Notepad ");
 			mywcscpy(tmp2, TDTempPath);
 			mywcscat(tmp2, L"help.txt");
 			ReleaseRes(tmp2, FILE_HELP, L"JPG");
 			mywcscat(tmp, tmp2);
 			if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
+			HeapFree(GetProcessHeap(), 0, tmp);
+			HeapFree(GetProcessHeap(), 0, tmp2);
 			break;
 		}
 		case BUT_SYSINF://系统信息
