@@ -215,12 +215,12 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 	myZeroMemory(&s, sizeof(STARTUPINFO));
 	if (si == nullptr)si = &s;
 	PROCESS_INFORMATION pi;
-//#ifndef _WIN64
+	//#ifndef _WIN64
 	myZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-//#endif
-	const BOOL f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si,&pi);
-	if(pi.hProcess)CloseHandle(pi.hProcess);
-	if(pi.hThread)CloseHandle(pi.hThread);
+	//#endif
+	const BOOL f = CreateProcess(NULL, CmdLine, NULL, NULL, FALSE, flag, NULL, NULL, si, &pi);
+	if (pi.hProcess)CloseHandle(pi.hProcess);
+	if (pi.hThread)CloseHandle(pi.hThread);
 	return f;
 }
 
