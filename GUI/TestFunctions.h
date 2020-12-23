@@ -9,55 +9,55 @@
 #pragma warning(disable:4996)
 #pragma warning(disable:26812)
 
-//void s() { MessageBox(NULL, 0, 0, NULL); }
-//void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
-//void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
-//void s(int a)//当程序正式发布时可以去掉这几个函数
-//{
-//	wchar_t tmp[20];
-//	myitow(a, tmp, 0);
-//	MessageBox(NULL, tmp, L"", NULL);
-//}
-//
-//void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
-//void s2(int a)
-//{
-//	wchar_t tmp[34];
-//	myitow(a, tmp, MAX_NUM); mywcscat(tmp, L"\n");
-//	OutputDebugString(tmp);
-//}
-//void s2() { OutputDebugString(L"0\n"); }
-//
-//#define beg tw a;
-//#define edd a.s();
-//class tw//调试用的微秒级计时器
-//{
-//public:
-//	tw()//定义时自动开始
-//		: elapsed_(0)
-//	{
-//		QueryPerformanceFrequency(&freq_);
-//		QueryPerformanceCounter(&begin_time_);
-//	}
-//	~tw() {}
-//public:
-//	void s()
-//	{//结束时自动打印时间
-//		LARGE_INTEGER end_time;
-//		QueryPerformanceCounter(&end_time);
-//		elapsed_ += (end_time.QuadPart - begin_time_.QuadPart) * 1000000 / freq_.QuadPart;
-//		::s((int)(elapsed_));
-//	}
-//	double ms()
-//	{
-//		return elapsed_ / 1000.0;
-//	}
-//	long long elapsed_;
-//private:
-//	LARGE_INTEGER freq_;
-//	LARGE_INTEGER begin_time_;
-//
-//};
+void s() { MessageBox(NULL, 0, 0, NULL); }
+void s(LPCWSTR a) { MessageBox(NULL, a, 0, NULL); }//调试用MessageBox
+void s(LPCSTR a) { MessageBoxA(NULL, a, 0, NULL); }
+void s(int a)//当程序正式发布时可以去掉这几个函数
+{
+	wchar_t tmp[20];
+	myitow(a, tmp, 0);
+	MessageBox(NULL, tmp, L"", NULL);
+}
+
+void s2(LPCWSTR a) { OutputDebugString(a); }//调试用OutputDebugString
+void s2(int a)
+{
+	wchar_t tmp[34];
+	myitow(a, tmp, MAX_NUM); mywcscat(tmp, L"\n");
+	OutputDebugString(tmp);
+}
+void s2() { OutputDebugString(L"0\n"); }
+
+#define beg tw a;
+#define edd a.s();
+class tw//调试用的微秒级计时器
+{
+public:
+	tw()//定义时自动开始
+		: elapsed_(0)
+	{
+		QueryPerformanceFrequency(&freq_);
+		QueryPerformanceCounter(&begin_time_);
+	}
+	~tw() {}
+public:
+	void s()
+	{//结束时自动打印时间
+		LARGE_INTEGER end_time;
+		QueryPerformanceCounter(&end_time);
+		elapsed_ += (end_time.QuadPart - begin_time_.QuadPart) * 1000000 / freq_.QuadPart;
+		::s((int)(elapsed_));
+	}
+	double ms()
+	{
+		return elapsed_ / 1000.0;
+	}
+	long long elapsed_;
+private:
+	LARGE_INTEGER freq_;
+	LARGE_INTEGER begin_time_;
+
+};
 
 
 //

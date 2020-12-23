@@ -1947,6 +1947,12 @@ BOOL KillProcess(LPCWSTR ProcessName)//根据进程名结束进程
 #pragma warning(default:28182)
 #pragma warning(default:28183)
 
+int statu;
+int myrand() {//注意: GetTickCount得到的值并非实时改变，而是每18ms改变一次，因此其最小精度为18ms(摘自百度百科)
+	statu = 214013 * statu + 2531011;//将GetTickCount取模时如果和18的最大公约数不是1，就会使概率不正确
+	return statu >> 16 & ((1 << 15) - 1);//例如  GetTickCount() % 50 == 0 这条语句，实际触发概率是25分之1
+}//所以myrand要比GetTickCount直接取模要好
+
 BOOL GetTDVer(wchar_t* source)//获取极域版本
 {//返回值复制到source里
 	if (source == NULL)return FALSE;//连source都没有当然直接退出
@@ -2000,7 +2006,7 @@ void TDSearchDirect()//寻找极域路径
 }
 void SetTDPathStr()//更改并重绘第四页"极域路径"这个字符串
 {
-	if (!TDsearched)return;
+	if (TDsearched != TRUE)return;
 	wchar_t TDPathStr[MAX_PATH];
 	myZeroMemory(TDPathStr, sizeof(wchar_t) * MAX_PATH);
 	mywcscpy(TDPathStr, Main.GetStr(L"_TPath"));
@@ -2020,7 +2026,13 @@ void SetTDPathStr()//更改并重绘第四页"极域路径"这个字符串
 DWORD WINAPI ReopenThread2(LPVOID pM)//尝试找到极域(线程)
 {
 	(pM);
-	if (!TDsearched) TDSearchDirect(), TDsearched = TRUE;
+	if (TDsearched == FALSE)
+	{
+		TDsearched = 2;
+		TDSearchDirect();
+		TDsearched = TRUE;
+	}
+	while (TDsearched == 2)Sleep(1);
 	SetTDPathStr();
 	return 0;
 }
@@ -2428,6 +2440,42 @@ __forceinline void UnMouseKey() { for (int i = MAIN_HOTKEY_LEFTKEY; i <= MAIN_HO
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(MouseHook, nCode, wParam, lParam); }//空的全局钩子函数
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) { return CallNextHookEx(KeyboardHook, nCode, wParam, lParam); }//防止极域钩住这些
 
+DWORD WINAPI SoundThread(LPVOID pM)//寻找并删除声音
+{
+	(pM);
+	
+	if (!Admin) { Main.InfoBox(L"DSR3Fail");  return 0; }
+	wchar_t ButtonBackup[51], tmpstr[260],RealTDPath[260];
+	mywcscpy(ButtonBackup, Main.Button[BUT_DSOUND].Name);
+	mywcscpy(Main.Button[BUT_DSOUND].Name, Main.GetStr(L"Deleting"));
+	Main.EnableButton(BUT_DSOUND, FALSE);
+	while (TDsearched == 2)Sleep(1);//其他线程正在寻找极域时等待
+	if (TDsearched == TRUE)goto suc; else TDsearched = 2;
+	TDSearchDirect();//寻找极域
+	TDsearched = TRUE;
+suc:
+	if (*TDPath == 0)
+	{
+		mywcscpy(Main.Button[BUT_DSOUND].Name, ButtonBackup);
+		Main.EnableButton(BUT_DSOUND, TRUE);
+		Main.InfoBox(L"noTDF"); 
+		return 0;
+	}
+	mywcscpy(RealTDPath, TDPath);
+	for (int i = (int)mywcslen(RealTDPath) - 1; i >= 0; --i)
+		if (RealTDPath[i] == L'\\') {//把程序名字符串中最后一个"\\"后面的字符去掉就是路径
+			RealTDPath[i + 1] = 0; break;
+		}
+	mywcscpy(tmpstr, RealTDPath);
+	mywcscat(tmpstr, L"Logout.wav");
+	AutoDelete(tmpstr, TRUE);
+	mywcscpy(tmpstr, RealTDPath);
+	mywcscat(tmpstr, L"Login.wav");
+	AutoDelete(tmpstr, TRUE);
+	mywcscpy(Main.Button[BUT_DSOUND].Name, Main.GetStr(L"Deleted"));
+	Main.ButtonRedraw(BUT_DSOUND);
+	return 0;
+}
 DWORD WINAPI DeleteThread(LPVOID pM)
 {//删除文件(夹)的线程.
 	(pM);//防止删除一个超大文件夹时主界面卡顿过久
@@ -3119,10 +3167,8 @@ DWORD WINAPI SizingThread(LPVOID pM)//改变窗口大小
 	(pM);//经常使用可能导致整个程序崩溃
 	if (Main.CurWnd == 5)ShowWindow(FileList, SW_HIDE);
 	UTState = true;//暂时没能找出原因
-
 	while (1)
 	{
-
 		POINT point;
 		GetCursorPos(&point);
 		RECT rc;
@@ -3156,19 +3202,22 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试寻找并打开极域
 {
 	(pM);
 	if (Main.Button[BUT_RETD].Enabled == FALSE)return 0;
-	if (!TDsearched)
+	if (TDsearched != TRUE)
 	{
 		wchar_t tmpstr[MAX_PATH];
 		myZeroMemory(tmpstr, sizeof(wchar_t) * MAX_STR);
-		TDsearched = TRUE;
 		if (!slient)
 		{
 			mywcscpy(tmpstr, Main.Button[BUT_RETD].Name);
 			mywcscpy(Main.Button[BUT_RETD].Name, Main.GetStr(L"starting"));
 			Main.EnableButton(BUT_RETD, FALSE);
 		}
+		while (TDsearched == 2)Sleep(1);
+		if (TDsearched == TRUE)goto suc; else TDsearched = 2;
 		//各种目录都找一遍就行了
 		TDSearchDirect();
+
+	suc:
 		if (!slient)
 		{
 			mywcscpy(Main.Button[BUT_RETD].Name, tmpstr);
@@ -3804,7 +3853,9 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateArea(170, 365, 80, 20, 4);//自选极域路径
 
 	Main.CreateArea(176, 15, 85, 18, 0);//以管理员权限重启
-	Main.CreateArea(370, 148, 170, 40, 4);//
+	Main.CreateArea(370, 148, 170, 40, 4);//网站
+	Main.CreateArea(515, 466, 50, 8, 4);//360
+
 	if (Admin == 0)Main.CreateText(60, 17, 0, L"Tmain", COLOR_WHITE);
 	else Main.CreateText(60, 17, 0, L"Tmain2", COLOR_WHITE);
 
@@ -3859,11 +3910,11 @@ BOOL InitInstance()//和界面有关的初始化
 
 	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
 	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
-
+	statu = GetTickCount();
 	Main.Timer = myrand();
 	if ((Main.Timer % 49) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
-	
+
 	if (!LowResource)
 	{
 		LanguageID = GetSystemDefaultLangID();
@@ -3873,18 +3924,18 @@ BOOL InitInstance()//和界面有关的初始化
 			ReleaseLanguageFiles(TDTempPath, 1, Tempstr);
 			SwitchLanguage(Tempstr);
 		}
-		if (LanguageID && !FirstFlag && Main.Timer % 17 == 0)
+		if (LanguageID == 0x0804 && !FirstFlag && (Main.Timer % 34) == 0)
 		{
 			AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//显示帮助时自动"一键安装"
 			SYSTEMTIME systm;
 			GetLocalTime(&systm);
 			int helpID = systm.wDay % 12 + 1;
-			wchar_t DHstr[255],t1[10];
+			wchar_t DHstr[255], t1[10];
 			mywcscpy(DHstr, L"每日提示:\n(");
 			myitow(helpID, t1, 10);
 			mywcscat(DHstr, t1);
 			mywcscat(DHstr, L"\\");
-			if (helpID == 12)mywcscat(DHstr, L"12)\n\n"); else mywcscat(DHstr, L"?)\n\n");
+			if (helpID == 12)mywcscat(DHstr, L"12)\n"); else mywcscat(DHstr, L"?)\n");
 			mywcscat(DHstr, DailyHelp[helpID]);
 			Main.InfoBox(DHstr);
 		}
@@ -3915,9 +3966,10 @@ BOOL InitInstance()//和界面有关的初始化
 
 	Main.CreateButton(345, 385, 115, 55, 2, L"自动捕捉极域", L"catchTD");
 	Main.CreateButton(480, 385, 115, 55, 2, L"防止教师关机", L"ANTI-");
-	Main.CreateButton(345, 460, 115, 55, 2, L"显示于安全桌面", L"desktop");
-	Main.CreateButton(480, 460, 115, 55, 2, L"自动防控制", L"auto-5");//24
 
+	Main.CreateButton(345, 460, 115, 55, 2, L"删除极域声音", L"delsound");
+	Main.CreateButton(480, 460, 115, 55, 2, L"自动防控制", L"auto-5");//24
+	
 	Main.CreateButton(520, 102, 36, 36, 3, L"...", L"viewfile");
 	Main.CreateButton(436, 151, 120, 55, 3, L"打开文件夹", L"folder");
 	Main.CreateButton(325, 151, 97, 55, 3, L"开始粉碎", L"Delete");
@@ -3927,8 +3979,8 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(324, 280, 100, 60, 3, L"快速重启", L"Res");
 
 	Main.CreateButton(192, 412, 100, 60, 3, L"ARP攻击", L"ARP");
-	Main.CreateButton(304, 412, 140, 60, 3, L"System权限CMD", L"sysCMD");
-	Main.CreateButton(455, 412, 105, 60, 3, L"干掉360", L"Killer");//32
+	Main.CreateButton(304, 412, 105, 60, 3, L"高权限CMD", L"sysCMD");
+	Main.CreateButton(420, 412, 140, 60, 3, L"显示于安全桌面", L"desktop");//32
 
 	Main.CreateButton(490, 414, 100, 50, 4, L"帮助文档", L"more");
 	Main.CreateButton(490, 476, 100, 50, 4, L"系统信息", L"info");//34
@@ -3958,7 +4010,7 @@ BOOL InitInstance()//和界面有关的初始化
 	if ((Main.Timer % 2) == 0 && FirstFlag && !slient)
 	{
 		Main.InfoBox(L"Firststr");
-		if ((Main.Timer % 23) == 0)Main.InfoBox(L"First2");
+		if ((Main.Timer % 23) == 0 && LanguageID == 0x0804)Main.InfoBox(L"First2");
 	}
 
 	return TRUE;
@@ -4245,8 +4297,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		break;
 		}
 		case 5:
-		{
+		{//打开网站
 			ShellExecute(NULL, L"open", L"https://tdt.mysxl.cn", NULL, NULL, SW_SHOW);
+			break;
+		}
+		case 6://驱动结束360
+		{
+			if (!EnableKPH()) Main.InfoBox(L"DrvFail"); else   Main.Check[CHK_KPH].Value = TRUE;
+			Main.Check[CHK_FMACH].Value = FALSE;//暂时关闭进程名完全匹配
+			Main.SetEditStrOrFont(L"360|zhu|sof", 0, EDIT_TDNAME);
 			break;
 		}
 		}
@@ -4460,13 +4519,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			ShutdownDeleter();
 			break;
 		}
-		case BUT_SDESK:
-		{//用自制的PaExec把自己运行在安全桌面上
-			if (!Admin) { Main.InfoBox(L"StartFail"); break; }
-			CopyFile(Name, L"C:\\SAtemp\\myPaExec2.exe", FALSE);
-			UnloadNTDriver(L"myPaExec2");
-			LoadNTDriver(L"myPaExec2", L"C:\\SAtemp\\myPaExec2.exe", FALSE);
-			UnloadNTDriver(L"myPaExec2");
+		case BUT_DSOUND:
+		{//删除极域声音文件
+			CreateThread(NULL, 0, SoundThread, 0, 0, NULL);
 			break;
 		}
 		case BUT_AUTO: { KillFullScreen(); break; }//自动关闭置顶进程
@@ -4496,16 +4551,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			LoadNTDriver(L"myPaExec", L"C:\\SAtemp\\myPaExec.exe", FALSE);
 			break;
 		}
-		case BUT_360://驱动结束360
-		{
-			Main.InfoBox(L"360Start");
-			if (!EnableKPH())Main.InfoBox(L"DrvFail");
-			else
-			{
-				Main.Check[CHK_KPH].Value = TRUE;
-				Main.Check[CHK_FMACH].Value = FALSE;//暂时关闭进程名完全匹配
-				KillProcess(L"360|zhu|sof");
-			}
+		case BUT_SDESK:
+		{//用自制的PaExec把自己运行在安全桌面上
+			if (!Admin) { Main.InfoBox(L"StartFail"); break; }
+			CopyFile(Name, L"C:\\SAtemp\\myPaExec2.exe", FALSE);
+			UnloadNTDriver(L"myPaExec2");
+			LoadNTDriver(L"myPaExec2", L"C:\\SAtemp\\myPaExec2.exe", FALSE);
+			UnloadNTDriver(L"myPaExec2");
 			break;
 		}
 		case BUT_MORE://关于

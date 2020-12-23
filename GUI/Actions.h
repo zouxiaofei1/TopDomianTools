@@ -369,6 +369,7 @@ __forceinline void SetProcessAware()
 }
 #pragma warning(disable:4244)
 #pragma warning(disable:4312)
+int myrand();
 void change(void* Src, bool wow)
 {//2016°æ¼«ÓòµÄKnockÃÜÂë
 	unsigned int v5, v10;

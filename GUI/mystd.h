@@ -5,12 +5,6 @@
 //by zouxiaofei1 2015 - 2021
 //
 
-int statu = GetTickCount();
-int myrand() {//注意: GetTickCount得到的值并非实时改变，而是每18ms改变一次，因此其最小精度为18ms(摘自百度百科)
-	statu = 214013 * statu + 2531011;//将GetTickCount取模时如果和18的最大公约数不是1，就会使概率不正确
-	return statu >> 16 & ((1 << 15) - 1);//例如  GetTickCount() % 50 == 0 这条语句，实际触发概率是25分之1
-}//所以myrand要比GetTickCount直接取模要好
-
 unsigned int mywcslen(const wchar_t* wstr)
 {
 	int i = 0;
