@@ -71,16 +71,6 @@ BOOL NewDesktop = FALSE;//是否处于新桌面中?
 bool FirstSD = true;//是否是第一次切换桌面?
 
 //第二、三页的全局变量
-BOOL GameMode;//游戏模式是否打开?
-constexpr int numGames = 6;// (游戏)数
-BOOL GameExist[numGames + 1];//标记的文件是否存在?
-constexpr wchar_t GameName[numGames + 1][12]{ L"xiaofei.exe", L"fly.exe",L"2048.exe",\
-L"block.exe", L"1.exe" , L"chess.exe",L"14Kwds.ini" };//(游戏)名
-constexpr wchar_t GameURLsuffix[numGames + 1][3]{ L"51", L"57",L"62",\
-L"67", L"73" , L"79",L"84" };//游戏存储库后缀
-BOOL GameButtonLock = FALSE;//Game按钮锁定
-constexpr wchar_t GameURLprefix[] = L"http://www.zlian.ga/u/16084525";//游戏存储库目录前缀
-
 DWORD TDPID;//极域程序的进程ID
 BOOL FakeToolbarNew;//显示的是否是新版本的伪装工具条
 DWORD FakeTimer;//记录伪装工具条缩回时间的变量
@@ -2085,7 +2075,6 @@ void RefreshFrameText()//根据是否有管理员权限来改变Frame上的文�
 		Main.Frame[FRA_PROCESS].rgb = COLOR_NOTREC;
 		mywcscat(Main.Frame[FRA_PROCESS].Name, Main.GetStr(L"nRec"));
 	}
-	Main.Frame[FRA_GAMES].rgb = COLOR_GREEN;
 }
 void GetPath()//得到程序路径 & ( 程序路径 + 程序名 )
 {
@@ -2238,9 +2227,7 @@ void SwitchLanguage(LPWSTR FilePath)//切换语言的函数
 	if (CatchWnd != NULL)SetWindowText(CatchWnd, Main.GetStr(L"Title2"));
 	RefreshFrameText();//Frame文字
 
-	Main.EnableButton(BUT_MORE, !(BOOL)mywcsstr(FilePath, L"English"));//处理几个文字会改变的按钮
-	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQs"));
-	if (GameMode == 1)mywcscpy(Main.Button[BUT_GAMES].Name, Main.GetStr(L"Gamee"));
+	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQs"));//处理几个文字会改变的按钮
 	if (SethcInstallState)mywcscpy(Main.Button[BUT_SETHC].Name, Main.GetStr(L"unSet"));
 	if (Main.Button[BUT_SHUTD].Enabled == FALSE)mywcscpy(Main.Button[BUT_SHUTD].Name, Main.GetStr(L"Deleted"));
 	if (mywcsstr(FilePath, L"English"))//修改"不是管理员"文字的范围
@@ -2500,105 +2487,6 @@ DWORD WINAPI DeleteThread(LPVOID pM)
 	HeapFree(GetProcessHeap(), 0, Tempstr);
 	return 0;
 }
-
-DWORD WINAPI GameThread(LPVOID pM)//展开 or 缩回游戏窗口的线程
-{
-	UNREFERENCED_PARAMETER(pM);
-	if (Main.Width < 700)
-	{//展开窗口
-		GameButtonLock = TRUE;//自制线程锁
-		for (int j = 20; j <= 240; j += GAMINGSPEED)
-		{
-			Main.Width += GAMINGSPEED;
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((DEFAULT_WIDTH + j) * Main.DPI), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-			RECT Rc{ (long)((511) * Main.DPI) ,0,(long)(Main.Width * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
-			Main.Button[BUT_CLOSE].Left += GAMINGSPEED;//右移"关闭按钮"
-			Main.es[++Main.es[0].top] = Rc;
-			Main.Redraw(Rc);//重绘展开部分
-			if (UTState)UTrc.right += (int)(GAMINGSPEED * Main.DPI);
-			Sleep(1);
-		}
-		if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
-		Main.Width = DEFAULT_WIDTH + 240;
-	}
-	else
-	{//缩回游戏部分
-		//基本上就是反过来
-		for (int j = 20; j <= 240; j += GAMINGSPEED)
-		{
-			::SetWindowPos(Main.hWnd, NULL, 0, 0, (int)((Main.Width - j) * Main.DPI), (int)(Main.Height * Main.DPI - 0.5), SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
-			RECT Rc{ (long)((511) * Main.DPI) ,0,(long)(Main.Width * Main.DPI) ,(long)(Main.Height * Main.DPI - 0.5) };
-			Main.Button[BUT_CLOSE].Left -= GAMINGSPEED;
-			Main.Redraw(Rc);
-			if (UTState)UTrc.right -= (int)(GAMINGSPEED * Main.DPI);
-			Sleep(1);
-		}
-		Main.Width = DEFAULT_WIDTH;
-		if (UTState)UTrc.right = UTrc.left + (int)(DEFAULT_WIDTH * Main.DPI);
-	}
-	GameButtonLock = FALSE;//关闭线程锁
-	return 0;
-}
-BOOL DownloadGames(const wchar_t* url, const wchar_t* file, DownloadProgress* p, int ButID, int tot, int cur, int maxs)//下载文件
-{
-	wchar_t Fp[501], URL[121];
-	mywcscpy(Fp, L"C:\\SAtemp\\Games\\");
-	mywcscat(Fp, url);//拼接下载目录和源目录
-	mywcscpy(URL, GameURLprefix);
-	mywcscat(URL, file);
-	mywcscat(URL, L"qk.ini");
-	if (ButID != NULL)
-	{
-		Main.Button[ButID].Download = 1;
-		Main.Button[ButID].DownTot = tot;
-		Main.Button[ButID].DownCur = cur;
-		p->curi = ButID;
-		p->factmax = maxs;
-	}
-	return URLDownloadToFileW(NULL, URL, Fp, 0, p) == S_OK;
-}
-DWORD WINAPI DownloadThread(LPVOID pM)//分发下载文件任务的线程.
-{
-	int cur = *(int*)pM;
-	BOOL f = FALSE;
-	DownloadProgress progress;
-	progress.curi = progress.factmax = 0;
-	switch (cur)
-	{
-	case 1:
-		f = DownloadGames(GameName[0], GameURLsuffix[0], &progress, BUT_GAME1, 2, 1, 0);//1号小游戏有2个文件要特殊处理
-		DownloadGames(GameName[6], GameURLsuffix[6], &progress, BUT_GAME1, 2, 2, 899000);//14000词库.ini
-		break;//由于某些原因无法得到其大小，要在后面直接指定
-	case 2:case 3:case 4:case 5:case 6:
-		//下载第2~6个游戏
-		f = DownloadGames(GameName[cur - 1], GameURLsuffix[cur - 1], &progress, BUT_GAME1 + cur - 1, 1, 1, 0);
-		break;
-	case 7:
-	{//ARP攻击
-		BOOL WPinstalled = TRUE;
-		const wchar_t WPPath[] = L"C:\\SAtemp\\WinPcap.exe";
-		progress.curi = BUT_ARP;
-		if (GetFileAttributes(L"C:\\Windows\\System32\\wpcap.dll") == -1)//WinPcap未安装
-		{
-			if (!Main.YesNoBox(L"WPAsk"))return 0;
-			//是否同意下载WinPcap?
-			WPinstalled = FALSE;
-			Main.Button[BUT_ARP].Download = Main.Button[BUT_ARP].DownCur = 1;
-			Main.Button[BUT_ARP].DownTot = 2;
-			if (URLDownloadToFileW(NULL, L"http://download.skycn.com/hao123-soft-online-bcs/soft/W/WinPcap_4.1.3.exe", WPPath, 0, &progress) == S_OK)RunWithAdmin((LPWSTR)WPPath);
-			else return 0;//下载后以管理员身份运行
-		}
-		Main.Button[BUT_ARP].Download = 1;
-		Main.Button[BUT_ARP].DownTot = Main.Button[BUT_ARP].DownCur = 2 - (int)WPinstalled;//下载arp.exe(不自动运行)
-		if (URLDownloadToFileW(NULL, L"http://www.zlian.ga/u/1608452808qk.ini", L"C:\\SAtemp\\arp.exe", 0, &progress) != S_OK)return 0;
-		break;
-	}
-	default:return 0;
-	}
-	GameExist[cur - 1] = f;
-	return 0;
-}
-
 void SearchLanguageFiles()//在当前目录里寻找语言文件
 {
 	if (LanguageSearched)return;
@@ -2812,12 +2700,6 @@ BOOL RefreshTDstate()//刷新极域的状态
 	Main.Redraw(rc);
 	return TRUE;
 }
-void CreateDownload(int cur)//创建下载游戏线程的外壳函数
-{
-	CreateThread(NULL, 0, DownloadThread, &cur, 0, NULL);
-	Sleep(1);//新线程内需要用到传入的参数，
-	return;//有时候线程内还没备份好参数，主线程内就把参数清空了
-}//因此这里最好延迟1ms.
 
 void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主计时器
 {
@@ -3809,7 +3691,6 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateText(240, 455, 5, L"nolg", COLOR_DARKEST_GREY);
 	Main.CreateText(177, 375, 5, L"swlg", COLOR_DARKEST_GREY);
 
-	Main.CreateFrame(655, 75, 170, 420, 0, L" 游戏 - 需下载 ");
 	Main.CreateFrame(169, 69, 136, 171, 4, L"");
 
 	Main.CreateArea(20, 10, 32, 32, 0);//极域图标
@@ -3966,12 +3847,6 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(470, 464, 105, 50, 5, L"清理并退出", L"clearup");//36
 
 	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");//37
-	Main.CreateButton(680, 95, 120, 50, 0, L"小飞猜词", L"G1");
-	Main.CreateButton(680, 160, 120, 50, 0, L"Flappy Bird", L"G2");
-	Main.CreateButton(680, 225, 120, 50, 0, L"2048", L"G3");
-	Main.CreateButton(680, 290, 120, 50, 0, L"俄罗斯方块", L"G4");
-	Main.CreateButton(680, 355, 120, 50, 0, L"见缝插针", L"G5");
-	Main.CreateButton(680, 420, 120, 50, 0, L"五子棋", L"G6");//43
 
 	if (!LowResource)
 	{
@@ -4496,16 +4371,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_BSOD: { BSOD(0); break; }//蓝屏
 		case BUT_RESTART: { Restart(); break; }//快速重启
 		case BUT_ARP:
-		{//和Gamexx按钮一样的待遇
-			if (Main.Button[BUT_ARP].DownTot != 0)break;
-			wchar_t tmp[MAX_PATH];
-			mywcscpy(tmp, TDTempPath);
-			mywcscat(tmp, L"arp.exe");
-			if (GetFileAttributes(tmp) != -1)//arp.exe文件存在
-			{//直接运行
-				if (!RunEXE(tmp, NULL, nullptr))Main.InfoBox(L"StartFail");
-			}//下载
-			else CreateDownload(7);
+		{
 			break;
 		}
 		case BUT_SYSCMD:
@@ -4557,47 +4423,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			break;
 		}//永久隐藏
 		case BUT_CLEAR: { ClearUp(); break; }//清理文件并退出
-		case BUT_GAMES:
+		case BUT_CLOSE:
 		{
-			if (GameMode == 0)
-			{//准备展开游戏界面
-				wchar_t tmp[MAX_PATH];
-				mywcscpy(tmp, TDTempPath);
-				mywcscat(tmp, L"Games\\");//创建games目录
-				CreateDirectory(tmp, NULL);
-
-				for (int i = 0; i < numGames; ++i)
-				{//搜索已存在的目录
-					mywcscat(tmp, GameName[i]);
-					if (GetFileAttributes(tmp) != -1)GameExist[i] = TRUE;
-				}
-
-				mywcscpy(Main.Button[Main.CoverButton].Name, Main.GetStr(L"Gamee"));//把按钮名变成"停止"
-				GameMode = 1;
-				if (!GameButtonLock)GameButtonLock = TRUE, CreateThread(NULL, 0, GameThread, 0, 0, NULL);//创建展开动画线程
-				else GameMode = 0, mywcscpy(Main.Button[Main.CoverButton].Name, Main.GetStr(L"Games"));
-			}
-			else
-			{//关闭游戏界面
-				GameMode = 0;
-				mywcscpy(Main.Button[Main.CoverButton].Name, Main.GetStr(L"Games"));
-				if (!GameButtonLock)GameButtonLock = TRUE, CreateThread(NULL, 0, GameThread, 0, 0, NULL);
-				else GameMode = 1, mywcscpy(Main.Button[Main.CoverButton].Name, Main.GetStr(L"Gamee"));
-			}
-			Main.ButtonRedraw(Main.CoverButton);
-			break;
+			MyExitProcess();
 		}
-		case BUT_GAME1:case BUT_GAME2:case BUT_GAME3:case BUT_GAME4:case BUT_GAME5:case BUT_GAME6: {//hangman and so on
-			if (GameExist[Main.CoverButton - BUT_GAME1])
-			{
-				wchar_t TempPath[MAX_PATH];
-				mywcscpy(TempPath, L"C:\\SAtemp\\Games\\");
-				mywcscat(TempPath, GameName[Main.CoverButton - BUT_GAME1]);
-				if (!RunEXE(TempPath, NULL, nullptr))Main.InfoBox(L"StartFail");
-			}
-			else { CreateDownload(Main.CoverButton - BUT_GAME1 + 1); }break;
-		}
-		case BUT_CLOSE: { MyExitProcess(); break; }//"关闭"按钮
 		default:break;
 		}
 	nobutton:
@@ -4684,7 +4513,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			case CHK_KEYCTRL: {RegMouseKey(); break; }//键盘控制鼠标
 			case CHK_DPI: {Main.SetDPI(0.75); ::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
 				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), 0);
-				if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }//缩小/放大
+				if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; if (!LowResource)
+				{
+					HRGN rgn;
+					RECT rc;
+					GetWindowRect(Main.hWnd, &rc);
+					rc.bottom -= rc.top; rc.right -= rc.left;
+					rc.top = rc.left = 0;
+					rgn = CreateRoundRectRgn(rc.left, rc.top, rc.right, rc.bottom, 10, 10);
+					SetWindowRgn(Main.hWnd, rgn, TRUE);
+				}
+				}//缩小/放大
 			case CHK_KPH:
 			{//使用KProcessHacker结束进程
 				if (!EnableKPH())Main.InfoBox(L"DrvFail"), Main.Check[CHK_KPH].Value = !Main.Check[CHK_KPH].Value;
@@ -4725,7 +4564,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				Main.SetDPI(1.5);
 				::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
 				SetWindowPos(FileList, 0, (int)(180 * Main.DPI), (int)(410 * Main.DPI), (int)(265 * Main.DPI), (int)(120 * Main.DPI), 0);
-				if (UTState)GetWindowRect(Main.hWnd, &UTrc); break; }
+				if (UTState)GetWindowRect(Main.hWnd, &UTrc); if (!LowResource)
+				{
+					HRGN rgn;
+					RECT rc;
+					GetWindowRect(Main.hWnd, &rc);
+					rc.bottom -= rc.top; rc.right -= rc.left;
+					rc.top = rc.left = 0;
+					rgn = CreateRoundRectRgn(rc.left, rc.top, rc.right, rc.bottom, 10, 10);
+					SetWindowRgn(Main.hWnd, rgn, TRUE);
+				}break; }
 			case CHK_UT:
 			{
 				noULTRA();

@@ -37,19 +37,13 @@ more = "Nothing",-1,-1,-1,-1
 info = "System Info",-1,-1,-1,-1
 hidest = "Hide Forever",-1,-1,-1,-1
 clearup = "Clear ->Quit",-1,-1,-1,-1
-G1 = "Hangman",-1,-1,-1,-1
-G2 = "Flappy Bird",-1,-1,-1,-1
-G3 = "2048",-1,-1,-1,-1
-G4 = "Tetris",-1,-1,-1,-1
-G5 = "xiaofei",-1,-1,-1,-1
-G6 = "Chess",-1,-1,-1,-1
 </Buttons>
 <Checks>
 C1 = " Mask Toolbar(old)",-1,-1,170
 C2 = " Mask Toolbar(new)",-1,-1,170
 C3 = " Mask Icon",-1,-1,110
 C4 = " Start TD on VDesk",-1,-1,170
-C5 = " Ctrl+Y Start TD",-1,-1,160
+C5 = " Ctrl+Y to Start TD",-1,-1,160
 C6 = " Load Driver",-1,-1,130
 C7 = " On Top",-1,-1,80
 C8 = " Ctrl+R BSOD",-1,-1,120
@@ -174,7 +168,6 @@ F5 = " Process ",-1,-1,-1,-1
 F6 = " Deleter ",-1,-1,-1,-1
 F7 = " Power ",-1,-1,-1,-1
 F8 = " Others ",-1,-1,-1,-1
-F9 = " Games ",-1,-1,-1,-1
 </Frames>
 <Edits>
 E4 = "Enter Channel",-1,-1,-1,-1
