@@ -1,3 +1,4 @@
+ver=303
 <Main>
 <Buttons>
 P1 = "Major Function",-1,-1,-1,-1
@@ -43,7 +44,7 @@ C1 = " Mask Toolbar(old)",-1,-1,170
 C2 = " Mask Toolbar(new)",-1,-1,170
 C3 = " Mask Icon",-1,-1,110
 C4 = " Start TD on VDesk",-1,-1,170
-C5 = " Ctrl+Y to Start TD",-1,-1,160
+C5 = " Ctrl+Y Start TD",-1,-1,160
 C6 = " Load Driver",-1,-1,130
 C7 = " On Top",-1,-1,80
 C8 = " Ctrl+R BSOD",-1,-1,120
@@ -92,8 +93,6 @@ Tmain = "TopDomainTools v1.9.6 Not an Admin"
 Tmain2 = "TopDomainTools v1.9.6"
 CPAsk1 = "Are you sure to change the password to'"
 CPAsk2 = "'?"
-Loaded = "Downloaded"
-Loading = "Downloading "
 Useless = "- Unusable "
 Usable = "- Usable "
 Rec = "- Recommended "
@@ -109,8 +108,6 @@ TTDold = "2010 or older"
 TIP = "IP addr: "
 TcmdOK = "Exist"
 TcmdNO = "Not Exist"
-Games = "Games"
-Gamee = "End"
 Deleted = "Deleted"
 Installed = "Installed"
 sSethc = "Sethc"
@@ -175,3 +172,20 @@ E5 = "Enter New Password",-1,-1,-1,-1
 E6  = "View File/Folder",-1,-1,-1,-1
 </Edits>
 </Main>
+<TDR>
+<Buttons>
+shutdown = "Shutdown",-1,-1,-1,-1
+restart = "Reboot",-1,-1,-1,-1
+cmd = "CMD command",-1,-1,-1,-1
+net = "Open Netpage",-1,-1,-1,-1
+text = "Send Message",-1,-1,-1,-1
+exit = "Exteacher",-1,-1,-1,-1
+rwindow = "Windowfy APPs",-1,-1,-1,-1
+rclose = "Close APPs",-1,-1,-1,-1
+switch = "Set Net Card",-1,-1,120,-1
+</Buttons>
+<Checks>
+C1 = " ver2015 ~ ver2017",-1,-1,170
+C2 = " ver2010 & ver2012",-1,-1,170
+</Checks>
+</TDR>

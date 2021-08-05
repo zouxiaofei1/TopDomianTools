@@ -1,6 +1,6 @@
-#pragma once
-//�Զ�������ڼ��ٳ���������ַ�������
-//�д��ڲ��Խ׶Σ���һ���ȶ�
+﻿#pragma once
+//×Ô¶¨ÒåµÄÓÃÓÚ¼õÉÙ³ÌÐòÌå»ýµÄ×Ö·û´®º¯Êý
+//ÉÐ´¦ÓÚ²âÊÔ½×¶Î£¬²»Ò»¶¨ÎÈ¶¨
 //
 //by zouxiaofei1 2015 - 2021
 //
@@ -16,8 +16,135 @@ unsigned int mywcslen(const wchar_t* wstr)
 	}
 	return i;
 }
+void myitoa(unsigned long val, char* buf, unsigned radix)
+{
+	char* p;/*pointer to traverse string*/
+	char* firstdig;/*pointer to first digit*/
+	char temp;/*temp char*/
+	unsigned digval;/*value of digit*/
+
+	p = buf;
+	firstdig = p;/*save pointer to first digit*/
+
+	do {
+		digval = (unsigned)(val % radix);
+		val /= radix;/*get next digit*/
+
+		/*convert to ascii and store */
+		if (digval > 9)
+			*p++ = (char)(digval - 10 + 'a ');/*a letter*/
+		else
+			*p++ = (char)(digval + '0 ');/*a digit*/
+	} while (val > 0);
+
+	/*We now have the digit of the number in the buffer,but in reverse
+	order.Thus we reverse them now.*/
+
+	*p-- = '\0 ';/*terminate string;p points to last digit*/
+
+	do {
+		temp = *p;
+		*p = *firstdig;
+		*firstdig = temp;/*swap *p and *firstdig*/
+		--p;
+		++firstdig;/*advance to next two digits*/
+	} while (firstdig < p);/*repeat until halfway*/
+}
+int myatoi(char* str) {
+	int data = 0, i = 0;
+	int sign = 1;
+
+	/* 略过空白 */
+	while (*str == ' ') {
+		str++;
+	}
+
+	if (*str == '-' || *str == '+') {
+		sign = 1 - 2 * (*str++ == '-');/* 耍了个小聪明，也可以分开写 */
+	}
+
+	while ((*str >= '0') && (*str <= '9')) {
+		/* 每次取得新值前检测是否在[0，2,147,483,647]之间，防止溢出 */
+		if (data > INT_MAX / 10 || (data == INT_MAX / 10 && (str[i] > '7'))) {/* 7为常量值的最后一位数字，正负均满足要求 */
+			if (sign == -1) {
+				return INT_MIN;
+			}
+			else {
+				return INT_MAX;
+			}
+		}
+
+		data = data * 10 + (*str++ - '0');
+	}
+
+	return data * sign;
+}
+
+char* mystrrchr(const char* str, int ch)
+{
+	char* start = (char*)str;
+	while (*str++)/*get the end of the string*/
+		;
+	while (--str != start && *str != (char)ch)
+		;
+	if (*str == (char)ch)
+		return((char*)str);
+	return NULL;
+
+}
+
+char* mystrcat(char* dst, const char* src)
+{
+	char* temp = dst;
+	while (*temp != '\0')
+		temp++;
+	while ((*temp++ = *src++) != '\0');
+
+	return dst;
+}
+
+char* mystrcpy(char* _Dest, const char* _Source)
+{
+	if (NULL == _Dest || NULL == _Source)
+		return NULL;
+	char* ret = _Dest;
+	int i = 0;
+	for (i = 0; _Source[i] != '\0'; i++)
+	{
+		_Dest[i] = _Source[i];
+	}
+	_Dest[i] = '\0';
+	return ret;
+}
+
+int mystrlen(const char* StrDest)
+{
+	int i;
+	i = 0;
+	while ((*StrDest++) != '\0')
+	{
+		i++;
+	}//这个循环体意思是从字符串第一个字符起计数，只遇到字符串结束标志'\0’才停止计数
+	return i;
+}
 
 wchar_t* mywcscpy(wchar_t* dest, const wchar_t* source)
+{
+	if (NULL == dest || NULL == source)
+	{
+		return NULL;
+	}
+	else
+	{
+		wchar_t* p = dest;
+		while (*dest++ = *source++)
+		{
+		}
+		return p;
+	}
+}
+
+wchar_t* myscpy(wchar_t* dest, const wchar_t* source)
 {
 	if (NULL == dest || NULL == source)
 	{
@@ -131,10 +258,10 @@ int mywtoi(wchar_t* str) {
 
 	return rst;
 }
-wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)//const����Դ�ַ���
+wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)//const±£»¤Ô´×Ö·û´®
 {
 	int len = mywcslen(str);
-	wchar_t* last = str + len - 1;//����һ������last��ָ��str�����һ���ַ�
+	wchar_t* last = str + len - 1;//¶¨ÒåÒ»¸ö±äÁ¿last£¬Ö¸ÏòstrµÄ×îºóÒ»¸ö×Ö·û
 
 	while (last != str)
 	{
@@ -142,7 +269,7 @@ wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)//const����Դ�ַ���
 			return last;
 		last--;
 	}
-	return NULL;//���û���ҵ�����������һ��NULLָ��
+	return NULL;//Èç¹ûÃ»ÓÐÕÒµ½£¬º¯Êý·µ»ØÒ»¸öNULLÖ¸Õë
 }
 void* mymemcpy(void* dest, const void* src, size_t n)
 {
@@ -161,7 +288,7 @@ void myZeroMemory(void* source,  size_t dwsize)
 	__asm
 	{
 		mov ecx, dwsize
-		//ecx: ѭ������
+		//ecx: Ñ­»·´ÎÊý
 		xor eax, eax
 		mov edi, [source]
 		rep stos[edi]
@@ -239,28 +366,28 @@ void mywcscat(wchar_t* dst, const wchar_t* src)
 void myitow(int num, wchar_t* str, int radix)
 {
 	(radix);
-	/* ������ */
+	/* Ë÷Òý±í */
 	wchar_t index[] = L"0123456789";
-	unsigned unum; /* �м���� */
+	unsigned unum; /* ÖÐ¼ä±äÁ¿ */
 	int i = 0, j, k;
-	/* ȷ��unum��ֵ */
-	if (num < 0) /* ʮ���Ƹ��� */
+	/* È·¶¨unumµÄÖµ */
+	if (num < 0) /* Ê®½øÖÆ¸ºÊý */
 	{
 		unum = (unsigned)-num;
 		str[i++] = L'-';
 	}
-	else unum = (unsigned)num; /* ������� */
-	/* ���� */
+	else unum = (unsigned)num; /* ÆäËüÇé¿ö */
+	/* ÄæÐò */
 	do
 	{
 		str[i++] = index[unum % 10];
 		unum /= 10;
 	} while (unum);
 	str[i] = 0;
-	/* ת�� */
-	if (str[0] == L'-') k = 1; /* ʮ���Ƹ��� */
+	/* ×ª»» */
+	if (str[0] == L'-') k = 1; /* Ê®½øÖÆ¸ºÊý */
 	else k = 0;
-	/* ��ԭ���ġ�/2����Ϊ��/2.0������֤��num��16~255֮�䣬radix����16ʱ��Ҳ�ܵõ���ȷ��� */
+	/* ½«Ô­À´µÄ¡°/2¡±¸ÄÎª¡°/2.0¡±£¬±£Ö¤µ±numÔÚ16~255Ö®¼ä£¬radixµÈÓÚ16Ê±£¬Ò²ÄÜµÃµ½ÕýÈ·½á¹û */
 	wchar_t temp;
 	for (j = k; j <= (i - 1) / (float)2.0; j++)
 	{
