@@ -141,7 +141,7 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-__forceinline void CheckIP(wchar_t* a)//取本机的ip地址  
+void CheckIP(wchar_t* a)//取本机的ip地址  
 {
 	WSADATA wsaData;
 #ifndef _WIN64

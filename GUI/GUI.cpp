@@ -34,6 +34,7 @@ wchar_t Path[MAX_PATH], Name[MAX_PATH], TDTempPath[] = L"C:\\SAtemp\\";
 //程序路径 and 路径+程序名 and 缓存路径(注意Path最后有"\")
 int xLength, yLength;//屏幕的真实长宽像素数量
 int LanguageID;//系统默认语言
+BOOL InitFinish = FALSE, InitThreadFinish = FALSE;
 
 //和绘图有关的全局变量
 HINSTANCE hInst;//当前实例，CreateWindow & LoadIcon 时需要
@@ -80,18 +81,6 @@ DWORD FakeTimer;//记录伪装工具条缩回时间的变量
 BOOL FakenewUp = FALSE;//伪装工具条是否缩回 - 刚开始时为FALSE
 BOOL FakeThreadLock = FALSE;//伪装工具条窗口伸缩线程锁
 HANDLE DeleteFileHandle;//文件删除驱动句柄
-char ip[30];//自己的主ip
-char Allips[20][30];//自己的所有ip
-int numofips, curips;//ip数量 & 当前显示的ip
-struct SearchThreadStruct
-{
-	int ipBegin;
-	int ipEnd;
-	char* ip123;
-	int ii;
-};
-struct IPandi { char* ip; int i; };
-char IPsearched[30][256];//判断ip是否被寻找过 0->未寻找 1->只寻找过ip 2->完全寻找
 
 //第四页的全局变量
 HBITMAP hZXFsign;//xiaofei签名图片句柄
@@ -149,6 +138,25 @@ HWND Deskwnd;//桌面hWnd
 BOOL LButtonDown;//记录鼠标左键是否按下
 POINT UTMpoint;//记录鼠标坐标
 POINT UTMpoint2;
+
+//TDR全局变量
+wchar_t ip[30];//自己的主ip
+char Allips[20][30];//自己不同网卡的所有ip
+int numofips, curips;//ip数量 & 当前显示的ip
+struct SearchThreadStruct//标识查找ip信息的结构体
+{
+	int ipBegin;//开始ip
+	int ipEnd;//结束ip
+	char* ip123;//ip的前三段
+	int ii;//网卡编号
+};
+struct IPandi
+{
+	char* ip;//ip地址
+	int i; //网卡编号
+};
+char IPsearched[30][256];//判断ip是否被寻找过 0->未寻找 1->只寻找过ip 2->完全寻找
+int SearchThreadCount;
 
 //杂项全局变量
 Mypair DragState;
@@ -1415,7 +1423,10 @@ public:
 		InvalidateRect(hWnd, nullptr, FALSE);
 		UpdateWindow(hWnd);
 	}//添加要刷新的控件~
-	void Readd(int type, int cur) { rs[++rs[0].first] = { type,cur }; }//1=Frame,2=Button,3=Check,4=Text,5=Edit
+	void Readd(int type, int cur) {
+
+		rs[++rs[0].first] = { type,cur };
+	}//1=Frame,2=Button,3=Check,4=Text,5=Edit
 
 
 	BOOL GetLanguage(GETLAN& getlan)//将语言文件解析成可用的信息
@@ -2224,10 +2235,18 @@ void SwitchLanguage(LPWSTR FilePath)//切换语言的函数
 	if (OneClick)mywcscpy(Main.Button[BUT_ONEK].Name, Main.GetStr(L"unQs"));//处理几个文字会改变的按钮
 	if (SethcInstallState)mywcscpy(Main.Button[BUT_SETHC].Name, Main.GetStr(L"unSet"));
 	if (Main.Button[BUT_SHUTD].Enabled == FALSE)mywcscpy(Main.Button[BUT_SHUTD].Name, Main.GetStr(L"Deleted"));
-	if (mywcsstr(FilePath, L"English"))//修改"不是管理员"文字的范围
-		Main.Area[4].Left = 230, Main.Area[4].Width = 110; else Main.Area[4].Left = 176, Main.Area[4].Width = 85;
-
+	if (mywcsstr(FilePath, L"English"))
+	{
+		Main.Area[4].Left = 230, Main.Area[4].Width = 110;
+		Main.Text[10].Left = 230;
+	}
+	else {
+		Main.Area[4].Left = 176, Main.Area[4].Width = 85;
+		Main.Text[10].Left = 250;
+	}
+	Main.CurWnd *= 2;
 	UpdateCatchedWindows();//更新被捕窗口的个数
+	Main.CurWnd /= 2;
 	Main.Redraw();//全部重绘
 	if (TDR.hWnd)
 	{
@@ -2716,12 +2735,11 @@ void MakeIPstr(wchar_t* dst, wchar_t* s1, const wchar_t* s2, const wchar_t* s3, 
 void SetTextBar(const wchar_t* a)
 {
 	TDR.SetStr(a, L"textstr");
-	TDR.Readd(4, 11);
-	RECT rc{ (LONG)(15 * TDR.DPI),(LONG)(470 * TDR.DPI),(LONG)(500 * TDR.DPI),(LONG)(492 * TDR.DPI) };
-	TDR.es[++TDR.es[0].top] = rc;
+	TDR.Readd(4, 9);
+	RECT rc{ (LONG)(15 * TDR.DPI),(LONG)(425 * TDR.DPI),(LONG)(455 * TDR.DPI),(LONG)(455 * TDR.DPI) };
+	//TDR.es[++TDR.es[0].top] = rc;
 	TDR.Redraw(rc);
 }
-
 constexpr int shut2010a[] = { 0x444d4f43, 0x00000100, 0x2a020000, 0x9bd1fe53, 0x669de042, 0x87e18bbd, 0x9142d81e, 0x204e0000, 0xc0a85001, 0x1d020000,\
 	0x1d020000, 0x00020000, 0x00000000 , 0x14000010, 0x0f000000, 0x01000000, 0x00000000, 0x5965085e, 0x065c7351, 0xed95a860, 0x8476a18b, 0x977b3a67, 0x02300000 };
 constexpr int shut2010b[] = { 0x444d4f43, 0x00000100, 0x2a020000, 0xb9844a23, 0x8f350b48, 0x8f3bab04, 0xba51fc2a, 0x204e0000, 0xc0a85001, 0x1d020000, \
@@ -2744,7 +2762,7 @@ constexpr int shut2016d[] = { 0x444d4f43, 0x00000100, 0xc6000000, 0x41e2e939, 0x
 	0x01000000, 0x04000020, 0x00000000, 0x00000000, 0x01000000, 0xe102030b, 0xa617e102, 0x030ca917, 0x0100112b, 0x00001000, 0x01000000, 0x01000000, 0x5e010000, \
 	0x31003100, 0x02000000, 0x00500000, 0xa0050000, 0x01000000, 0x19000000, 0x4b000000, 0x00000000, 0xc0a85001, 0x04000000, 0x0c000000, 0x10000000, 0x00000000, \
 	0x2003e001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, \
-	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x01000000, 0x00000000};//0x0000 was removed
+	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x01000000, 0x00000000 };//0x0000 was removed
 constexpr int text2016a[] = { 0x444d4f43, 0x00000100, 0x6e030000, 0x242db8d1, 0x58f0ed43, 0x91864d05, 0x6192f70e, 0x204e0000, 0xc0a85001, 0x61030000, 0x61030000, \
 	0x00020000, 0x00000000, 0x0f000000, 0x01000000 };//0x010000
 constexpr int text2016b[] = { 0x444d4f43, 0x00000100, 0x9e030000, 0x8c3518c4, 0x67025946, 0x8264292b, 0x99a6bb4a, 0x204e0000, 0xc0a85001, 0x91030000, 0x91030000, \
@@ -2752,84 +2770,58 @@ constexpr int text2016b[] = { 0x444d4f43, 0x00000100, 0x9e030000, 0x8c3518c4, 0x
 constexpr int text2016c[] = { 0x444d4f43, 0x00000100, 0x38000000, 0x9e95d1b0, 0x9e6ac742, 0x9a9054ac, 0xbe11e403, 0x204e0000, 0xc0a85001, 0x85010000, 0x85010000, \
 	0x00020000, 0x00000000, 0x18000000 };//0x000000 was removed
 
-void translateTDRstr(const int* from, char* to,int len)
+void translateTDRstr(const int* from, char to[], int lenfr, int lento)
 {
-	myZeroMemory(to, sizeof(to));
-	//int len = sizeof(from) / sizeof(int);
-		s(len);
-	/*for (int i = 0; i <; ++i)
-	{if(i)
-	}*/
+	myZeroMemory(to, lento);
+	for (int i = 0; i < lenfr; ++i)
+	{
+		to[i * 4] = (char)(from[i] >> 24);
+		to[i * 4 + 1] = (char)((from[i] >> 16) - ((from[i] >> 24) << 8));
+		to[i * 4 + 2] = (char)((from[i] >> 8) - ((from[i] >> 16) << 8));
+		to[i * 4 + 3] = (char)(from[i] - ((from[i] >> 8) << 8));
+	}
 	return;
 }
-void shutdown2010(char* a, int cse)
+void TDRsend(const char* addr, USHORT port, const char* str, int len)
 {
 	WORD wVersionRequested;
 	WSADATA wsaData;
-	int err;
 
 	wVersionRequested = MAKEWORD(1, 1);
 
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)return;
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)return;
 
-	if (LOBYTE(wsaData.wVersion) != 1 ||
-		HIBYTE(wsaData.wVersion) != 1)
-	{
-		WSACleanup();
-		return;
-	}
+	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1) { WSACleanup(); return; }
+
 	SOCKET sockClient = socket(AF_INET, SOCK_DGRAM, 0);
 	SOCKADDR_IN addrSrv;
 
-	addrSrv.sin_addr.S_un.S_addr = inet_addr(a);
+	addrSrv.sin_addr.S_un.S_addr = inet_addr(addr);
 	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_port = htons(4605);
-	char aa[583],bb[583],cc[583];
-	translateTDRstr(shut2010a, aa,sizeof(shut2010a)/sizeof(int));
+	addrSrv.sin_port = htons(port);
 
-	if (cse == 1)
-	{
-		aa[19] = (char)GetTickCount();
-		sendto(sockClient, aa, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
-	if (cse == 2)
-	{
-		bb[19] = (char)GetTickCount();
-		sendto(sockClient, bb, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
-	if (cse == 3)
-	{
-		cc[19] = (char)GetTickCount();
-		cc[20] = (char)(GetTickCount() * 2);
-		sendto(sockClient, cc, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
+	sendto(sockClient, str, len, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
+
 	closesocket(sockClient);
 	WSACleanup();
 	return;
 }
+
 void filestart(bool start)//在发送文件前需要执行这个函数
 {//但同时，它能让教师端认为同时有多个老师在线，因此能让教师端退出
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int err;
+	WORD wVersionRequested; WSADATA wsaData;
 
 	wVersionRequested = MAKEWORD(1, 1);
 
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)return;
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)return;
 
-	if (LOBYTE(wsaData.wVersion) != 1 ||
-		HIBYTE(wsaData.wVersion) != 1)
-	{
-		WSACleanup();
-		return;
-	}
+	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1) { WSACleanup(); return; }
+
 	SOCKET sockClient = socket(AF_INET, SOCK_DGRAM, 0);
 	SOCKADDR_IN addrSrv;
 
 	wchar_t tmp[100];
-	char tmp2[100]; size_t t; int i = 0;
+	char tmp2[100];  int i = 0;
 	mywcscpy(tmp, TDR.Edit[4].str);
 	myitow(i, tmp, 10);
 	if (i > 200) {//隐藏的自定义广播端口功能
@@ -2842,11 +2834,10 @@ void filestart(bool start)//在发送文件前需要执行这个函数
 	addrSrv.sin_family = AF_INET;
 	addrSrv.sin_port = htons(5512);
 
-	char bb[61] = { 0 };
-	char aa[25] = { 0 };
-	char cc[72] = { 0 };
-
-
+	char aa[30], bb[65], cc[80];
+	translateTDRstr(starta, aa, sizeof(starta) / sizeof(int), 30);
+	translateTDRstr(startb, bb, sizeof(startb) / sizeof(int), 65);
+	translateTDRstr(startc, cc, sizeof(startc) / sizeof(int), 80);
 	if (start)
 		sendto(sockClient, bb, 61, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)),
 		sendto(sockClient, cc, 72, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
@@ -2858,61 +2849,30 @@ void filestart(bool start)//在发送文件前需要执行这个函数
 	return;
 }
 
-void shutdown2016(char* a, int cse)
+void shutdown2016(char* addr, int Case)
 {
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int err;
-
-	wVersionRequested = MAKEWORD(1, 1);
-
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)return;
-
-	if (LOBYTE(wsaData.wVersion) != 1 ||
-		HIBYTE(wsaData.wVersion) != 1)
-	{
-		WSACleanup();
-		return;
-	}
-	SOCKET sockClient = socket(AF_INET, SOCK_DGRAM, 0);
-	SOCKADDR_IN addrSrv;
-
-	addrSrv.sin_addr.S_un.S_addr = inet_addr(a);
-	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_port = htons(4705);
-	char aa[583] = { 0 };
-	char bb[583] = { 0 };
-	char cc[583] = { 0 };
-	char dd[226] = { 0 };
-	if (cse == 1)
-	{
-		aa[19] = (char)GetTickCount();
-		sendto(sockClient, aa, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
-	if (cse == 2)
-	{
-		bb[19] = (char)GetTickCount();
-		sendto(sockClient, bb, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
-	if (cse == 3)
-	{
-		cc[19] = (char)GetTickCount();
-		cc[20] = (char)(GetTickCount() * 2);
-		sendto(sockClient, cc, 582, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-	}
-	if (cse == 4)
-	{
-		dd[19] = (char)GetTickCount();
-		dd[20] = (char)(GetTickCount() * 2);
-		sendto(sockClient, dd, 226, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-
-	}
-	closesocket(sockClient);
-	WSACleanup();
+	char aa[583], bb[583], cc[583], dd[226];
+	translateTDRstr(shut2016a, aa, sizeof(shut2016a) / sizeof(int), 583);
+	translateTDRstr(shut2016b, bb, sizeof(shut2016b) / sizeof(int), 583);
+	translateTDRstr(shut2016c, cc, sizeof(shut2016c) / sizeof(int), 583);
+	translateTDRstr(shut2016d, dd, sizeof(shut2016d) / sizeof(int), 226);
+	if (Case == 1) { aa[19] = (char)GetTickCount(); TDRsend(addr, 4705, aa, 582); }
+	if (Case == 2) { bb[19] = (char)GetTickCount(); TDRsend(addr, 4705, bb, 582); }
+	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4705, cc, 582); }
+	if (Case == 4) { dd[19] = (char)GetTickCount(); dd[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4705, dd, 226); }
 	return;
 }
-
+void shutdown2010(char* addr, int Case)
+{
+	char aa[583], bb[583], cc[583];
+	translateTDRstr(shut2010a, aa, sizeof(shut2010a) / sizeof(int), 583);
+	translateTDRstr(shut2010b, bb, sizeof(shut2010b) / sizeof(int), 583);
+	translateTDRstr(shut2010c, cc, sizeof(shut2010c) / sizeof(int), 583);
+	if (Case == 1) { aa[19] = (char)GetTickCount(); TDRsend(addr, 4605, aa, 582); }
+	if (Case == 2) { bb[19] = (char)GetTickCount(); TDRsend(addr, 4605, bb, 582); }
+	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4605, cc, 582); }
+	return;
+}
 void act2016(int Case)//将关机or重启命令依次执行(2015~2017版)
 {
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
@@ -2921,7 +2881,7 @@ void act2016(int Case)//将关机or重启命令依次执行(2015~2017版)
 	for (int i = a; i <= b; ++i)
 	{
 		wchar_t tmp[100], num[10];
-		char tmp2[100]; size_t t;
+		char tmp2[100];
 		myitow(i, num, 10);
 		MakeIPstr(tmp, TDR.Edit[4].str, TDR.Edit[5].str, TDR.Edit[6].str, num);
 		WideCharToMultiByte(CP_ACP, 0, tmp, -1, tmp2, 100, NULL, NULL);
@@ -2942,7 +2902,7 @@ void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 	for (int i = a; i <= b; ++i)
 	{
 		wchar_t tmp[100], num[10];
-		char tmp2[100]; size_t t;
+		char tmp2[100];
 		myitow(i, num, 10);
 		MakeIPstr(tmp, TDR.Edit[4].str, TDR.Edit[5].str, TDR.Edit[6].str, num);
 		WideCharToMultiByte(CP_ACP, 0, tmp, -1, tmp2, 100, NULL, NULL);
@@ -2958,58 +2918,33 @@ void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 	}
 	SetTextBar(TDR.GetStr(L"cmdok"));
 }
-
-void text2016(char* a, int cse, char* text, int len)
+void text2016(const char* addr, int Case, char text[], int len)
 {
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int err;
-
-	wVersionRequested = MAKEWORD(1, 1);
-
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)return;
-
-	if (LOBYTE(wsaData.wVersion) != 1 ||
-		HIBYTE(wsaData.wVersion) != 1)
-	{
-		WSACleanup();
-		return;
-	}
-	SOCKET sockClient = socket(AF_INET, SOCK_DGRAM, 0);
-	SOCKADDR_IN addrSrv;
-
-	addrSrv.sin_addr.S_un.S_addr = inet_addr(a);
-	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_port = htons(4705);
-	char aa[906] = { 0 };
-	char bb[955] = { 0 };
-	char cc[955] = { 0 };
-	if (cse == 1)
+	char aa[910], bb[960], cc[960];
+	translateTDRstr(text2016a, aa, sizeof(text2016a) / sizeof(int), sizeof(aa));
+	translateTDRstr(text2016b, bb, sizeof(text2016b) / sizeof(int), sizeof(bb));
+	translateTDRstr(text2016c, cc, sizeof(text2016c) / sizeof(int), sizeof(cc));
+	if (Case == 1)//cmd
 	{
 		aa[19] = (char)GetTickCount();
-		aa[20] = (char)(myrand() * 2);
-		for (int i = 60; i < 60 + len * 2; ++i)aa[i] = text[i - 60];
-		sendto(sockClient, aa, 906, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
+		aa[20] = (char)GetTickCount() * 2;
+		for (int j = 59; j < 60 + len * 2; ++j, aa[j] = text[j - 60]);
+		TDRsend(addr, 4705, aa, 906);
 	}
-	if (cse == 2)
+	if (Case == 2)//web
 	{
 		cc[19] = (char)GetTickCount();
 		cc[20] = (char)(GetTickCount() * 2);
-		for (int i = 60; i < 60 + len * 2; ++i)cc[i] = text[i - 60];
-		sendto(sockClient, cc, 955, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-
+		for (int j = 59; j < 60 + len * 2; ++j, cc[j] = text[j - 60]);
+		TDRsend(addr, 4705, cc, 955);
 	}
-	if (cse == 3)
+	if (Case == 3)//text
 	{
 		bb[19] = (char)GetTickCount();
 		bb[20] = (char)(GetTickCount() * 2);
-		for (int i = 56; i < 56 + len * 2; ++i)bb[i] = text[i - 56];
-		sendto(sockClient, bb, 955, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
+		for (int j = 55; j < 56 + len * 2; ++j, bb[j] = text[j - 56]);
+		TDRsend(addr, 4705, bb, 955);
 	}
-
-	closesocket(sockClient);
-	WSACleanup();
 	return;
 }
 
@@ -3024,51 +2959,27 @@ void act2016text(int Case, wchar_t* text)//将带有文字的命令依次执行
 	char txt2[2001];
 	myZeroMemory(txt2, sizeof(txt2));
 	for (int i = 0; i < (int)l; ++i) {
-		txt2[i * 2 + 1] = (txt[i] >> 8); txt2[i * 2] = txt[i] - ((txt[i] >> 8) << 8);
+		txt2[i * 2 + 1] = (txt[i] >> 8); txt2[i * 2] = (char)txt[i] - ((txt[i] >> 8) << 8);
 	}
 	for (int i = a; i <= b; ++i)
 	{
 		wchar_t tmp[100], num[10];
-		char tmp2[100]; size_t t;
+		char tmp2[100];
 		myitow(i, num, 10);
 		MakeIPstr(tmp, TDR.Edit[4].str, TDR.Edit[5].str, TDR.Edit[6].str, num);
 		WideCharToMultiByte(CP_ACP, 0, tmp, -1, tmp2, 100, NULL, NULL);
-		wchar_t txt[25] = L"发送中:";
-		mywcscat(txt, tmp);
-		SetTextBar(txt);
+		wchar_t txt3[25] = L"发送中:";
+		mywcscat(txt3, tmp);
+		SetTextBar(txt3);
 		text2016(tmp2, Case, txt2, l * 2);
 	}
 }
 
-void CheckIP()//取本机的ip地址  
+void SendIP2Edit(wchar_t* newip)//将获得的IP地址应用到Edit中
 {
-	WSADATA wsaData;
-	char name[155];
-	PHOSTENT hostinfo;
-	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
-	{
-		if (gethostname(name, sizeof(name)) == 0)
-			if ((hostinfo = gethostbyname(name)) != NULL)
-			{//wip存ip地址字符串
-				strcpy(ip, inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[0]));
-				for (numofips = 0; hostinfo != NULL && hostinfo->h_addr_list[numofips] != NULL; numofips++)
-				{
-					strcpy(Allips[numofips], inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[numofips]));
-					if (numofips > 19)break;
-				}
-			}//清理
-		WSACleanup();
-	}
-}
-
-void SendIP2Edit(char* ip)//将获得的IP地址应用到Edit中
-{
-	char iptmp[100];
-	mystrcpy(iptmp, ip);
-	wchar_t temp[50], * pointer = temp, * pointer2 = temp;
-	myZeroMemory(temp, sizeof(temp));
-
-	MultiByteToWideChar(CP_ACP, 0, iptmp, -1, temp, 25);
+	wchar_t temp[100];
+	mywcscpy(temp, newip);
+	wchar_t* pointer = temp, * pointer2 = temp;
 	pointer = mywcsstr(pointer2, L".");
 	if (pointer == 0)return;
 	*pointer = 0;
@@ -3087,45 +2998,70 @@ void SendIP2Edit(char* ip)//将获得的IP地址应用到Edit中
 	TDR.SetEditStrOrFont(pointer + 1, 0, 8);
 }
 
-
+void CheckIPs()//取本机的ip地址  
+{
+	WSADATA wsaData;
+	char name[155];
+	PHOSTENT hostinfo;
+	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
+	{
+		if (gethostname(name, sizeof(name)) == 0)
+			if ((hostinfo = gethostbyname(name)) != NULL)
+			{//wip存ip地址字符串
+				MultiByteToWideChar(CP_ACP, 0, inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[0]), -1, ip, 30);
+				for (numofips = 0; hostinfo != NULL && hostinfo->h_addr_list[numofips] != NULL; numofips++)
+				{
+					strcpy(Allips[numofips], inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[numofips]));
+					if (numofips > 19)break;
+				}
+			}//清理
+		WSACleanup();
+	}
+}
 DWORD WINAPI SearchThread(LPVOID pM)
 {
 	SearchThreadStruct* sts = (SearchThreadStruct*)pM;
+	++SearchThreadCount;
 	int begin = sts->ipBegin, end = sts->ipEnd, ii = sts->ii;
-	char ip123[30], tmp[10] = { 0 };
+	char ip123[30], tmp[10];
+	wchar_t tmp2[30];
+	myZeroMemory(tmp, sizeof(tmp));
 	mystrcpy(ip123, sts->ip123);
 	mystrcat(ip123, ".");
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+	CHAR macAddr[13] = { 0 };
+	IPAddr  ipAddr;
+	ULONG   Mac[2];
+	ULONG   MacLen;
+
 	for (int i = begin; i <= end; ++i)
 	{
 		char fullIP[100];
 		wchar_t txt[30], temp2[20];
-		mywcscpy(txt, L"搜索中:");
+		mywcscpy(txt, L"Searching:");
 		if (IPsearched[ii][i] == 1)continue;//寻找过就不要再寻找了
 		mystrcpy(fullIP, ip123);
 		myitoa(i, tmp, 10);
 		mystrcat(fullIP, tmp);
 
-		MultiByteToWideChar(CP_ACP, 0, fullIP, -1, temp2, 20);
-		mywcscat(txt, temp2);
+		MultiByteToWideChar(CP_ACP, 0, fullIP, -1, tmp2, 30);
+		mywcscat(txt, tmp2);
 		SetTextBar(txt);
 
-
-		IPAddr ipaddr = inet_addr(fullIP);
-		ULONG ulHopCount, ulRTT;
-		if ((BOOL)GetRTTAndHopCount(ipaddr, &ulHopCount, 1, &ulRTT))
+		MacLen = 6;
+		ipAddr = inet_addr(fullIP);
+		DWORD hr = SendARP(ipAddr, 0, Mac, &MacLen);
+		if (hr == 0)
 		{
 			if (IPsearched[ii][i] == 1)continue;
 			wchar_t wName[101];
 			IPsearched[ii][i] = 1;
+			mystrcat(fullIP, macAddr);
 			MultiByteToWideChar(CP_ACP, 0, fullIP, -1, wName, 100);
 			SendMessage(ComputerList, LB_ADDSTRING, 0, (LPARAM)wName);
 		}
 	}
-
-
-	WSACleanup();
+	--SearchThreadCount;
 	return 0;
 }
 DWORD WINAPI SearchThreadStarter(LPVOID pM)
@@ -3137,41 +3073,35 @@ DWORD WINAPI SearchThreadStarter(LPVOID pM)
 	char IP123[30];
 	mystrcpy(IP123, fullIP);
 	*mystrrchr(IP123, '.') = 0;
-	char* a = IP123 + mystrlen(IP123) + 1;
 
-	int ipBlock = myatoi(a) / 100;
-	if (ipBlock != 2)
+	for (int i = 0; i < 256; ++i)
 	{
-		for (int i = 0; i < 3; ++i)
-		{
-			SearchThreadStruct tmp = { i * 20,i * 20 + 19,IP123,ii };
-			CreateThread(NULL, 0, SearchThread, &tmp, 0, NULL);
-			Sleep(1);
-		}
-		Sleep(2000);
-	}
-	for (int i = 0; i < 2; ++i)
-	{
-		SearchThreadStruct tmp = { i * 128,i * 128 + 127,IP123,ii };
+		SearchThreadStruct tmp = { i,i,IP123,ii };
 		CreateThread(NULL, 0, SearchThread, &tmp, 0, NULL);
 		Sleep(1);
 	}
 	return 0;
 }
-
-
 DWORD WINAPI SearchAll(LPVOID pM)//寻找局域网中所有电脑的函数
 {
+	(pM);
+	TDR.EnableButton(9, FALSE);
+	TDR.EnableButton(10, FALSE);
 	for (int i = 0; i < numofips; ++i)
 	{//按照不同网卡寻找
 		IPandi a{ Allips[i] ,i };
 		CreateThread(0, 0, SearchThreadStarter, &a, 0, NULL);
 		Sleep(2);
 	}
+	
+	Sleep(200);
+	while(SearchThreadCount>50)Sleep(16);
+	TDR.EnableButton(9, TRUE);
+	while (SearchThreadCount > 1)Sleep(16);
+	TDR.EnableButton(10, TRUE);
 	return 0;
 }
-
-void InitTDR(HINSTANCE hInstance)//初始化TDR
+void InitTDR()//初始化TDR
 {
 	if (!FT)
 	{
@@ -3216,7 +3146,7 @@ void InitTDR(HINSTANCE hInstance)//初始化TDR
 	dwStyle &= ~(WS_SIZEBOX);
 	SetWindowLong(TDR.hWnd, GWL_STYLE, dwStyle);
 
-	CheckIP();//取本机的ip地址  
+	CheckIPs();//取本机的ip地址  
 
 	TDR.CreateFrame(18, 18, 275, 380, 0, L" 远程命令 ");//创建各种控件
 
@@ -3259,8 +3189,7 @@ void InitTDR(HINSTANCE hInstance)//初始化TDR
 	TDR.CreateText(315, 365, 0, L"t4", COLOR_ORANGE);
 
 	SendIP2Edit(ip);//将获得的IP地址应用到Edit中
-
-
+	//s(TDR.CurButton);
 	TDR.CreateButton(335, 105, 100, 45, 0, L"切换网卡", L"switch");
 	TDR.CreateButton(692, 5, 33, 28, 0, L"...", L"ri");
 
@@ -3271,7 +3200,7 @@ void InitTDR(HINSTANCE hInstance)//初始化TDR
 
 	ShowWindow(TDR.hWnd, SW_SHOW);
 
-	if (LanguageID != 0x0804)//非中文系统自动切换成英文
+	if (LanguageID != CHINESE_LANID)//非中文系统自动切换成英文
 	{
 		wchar_t Tempstr[MAX_STR];
 		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
@@ -3279,7 +3208,7 @@ void InitTDR(HINSTANCE hInstance)//初始化TDR
 	}
 	else
 		TDR.Redraw();
-
+	
 	CreateThread(0, 0, SearchAll, 0, 0, NULL);//寻找局域网中的所有电脑
 	return;
 }
@@ -3317,12 +3246,11 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			switch (HIWORD(wParam))
 			{
 			case LBN_SELCHANGE:
-				wchar_t ip3[MAX_PATH] = { 0 };
-				char ip4[300] = { 0 };
+				wchar_t ip3[MAX_STR];
+				myZeroMemory(ip3, sizeof(ip3));
 				SendMessage(ComputerList, LB_GETTEXT, ::SendMessage(ComputerList, LB_GETCURSEL, 0, 0), (LPARAM)ip3);
-				WideCharToMultiByte(CP_ACP, 0, ip3, -1, ip4, 300, NULL, NULL);
 
-				SendIP2Edit(ip4);
+				SendIP2Edit(ip3);
 				TDR.Redraw();
 				ShowWindow(ComputerList, SW_HIDE);
 				ShowWindow(ComputerList, SW_SHOW);
@@ -3333,8 +3261,8 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_PAINT://绘图
 	{
-		RECT rc; bool f = false; HICON hicon;
-		GetUpdateRect(hWnd, &rc, false); PAINTSTRUCT ps;
+		RECT rc; bool f = false;PAINTSTRUCT ps;
+		GetUpdateRect(hWnd, &rc, false); 
 		if (rc.top != 0)f = true;
 
 		TDR.tdc = BeginPaint(hWnd, &ps);
@@ -3425,9 +3353,11 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case 9://切换网卡
 		{
 			if (++curips >= numofips)curips = 0;
-			SendIP2Edit(Allips[curips]);
+			wchar_t tmp[300];
+			MultiByteToWideChar(CP_ACP, 0, Allips[curips], -1, tmp, 300);
+			SendIP2Edit(tmp);
 			IPandi a{ Allips[curips] ,curips };
-			CreateThread(0, 0, SearchThread, &a, 0, NULL);
+			CreateThread(0, 0, SearchThreadStarter, &a, 0, NULL);
 			TDR.Redraw();
 			break;
 		}
@@ -3460,7 +3390,7 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 //TDR
 
-void AutoSetDPI(double newDPI)
+void AutoSetDPI(float newDPI)
 {
 	Main.SetDPI(newDPI);
 	::SendMessage(FileList, WM_SETFONT, (WPARAM)Main.DefFont, 1);
@@ -3586,7 +3516,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 			ChangeWindowMessageFilterEx(Main.hWnd, WM_DROPFILES, 1, 0);
 			ChangeWindowMessageFilterEx(Main.hWnd, 0x0049, 1, NULL);
 
-			if (LanguageID == 0x0804 && Main.Button[BUT_MORE].Enabled)
+			if (LanguageID == CHINESE_LANID && Main.Button[BUT_MORE].Enabled)
 			{//中文系统上自动"切换语言"来显示注释
 				wchar_t Tempstr[MAX_STR];
 				ReleaseLanguageFiles(TDTempPath, 1, Tempstr);
@@ -4164,7 +4094,7 @@ BOOL RunCmdLine(LPWSTR str)//解析并执行命令行
 	BOOL console; DWORD pid;
 	mywcslwr(str);//全部转化为小写字母
 	for (unsigned int i = 0; i < mywcslen(str); ++i)if (str[i] == L'/')str[i] = L'-';//将 / 替换为 -
-	if (LanguageID != 0x0804)//英文系统上自动切换语言
+	if (LanguageID != CHINESE_LANID)//英文系统上自动切换语言
 	{
 		wchar_t Tempstr[MAX_STR];
 		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
@@ -4480,6 +4410,15 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.Frame[FRA_PASSWORD].rgb = COLOR_NOTREC;
 	Main.Frame[FRA_TOPDOMAIN].rgb = COLOR_DARKER_BLUE;
 	RefreshFrameText();//改变Frame颜色和文字
+
+	InitThreadFinish = TRUE;
+	if (LanguageID != CHINESE_LANID && InitFinish)//非中文系统自动切换成英文
+	{
+		ShowWindow(Main.hWnd, SW_SHOW);
+		wchar_t Tempstr[MAX_STR];
+		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
+		SwitchLanguage(Tempstr);
+	}
 	return 0;
 }
 
@@ -4535,7 +4474,7 @@ BOOL InitInstance()//和界面有关的初始化
 		rgn = CreateRoundRectRgn(rc.left, rc.top, rc.right, rc.bottom, 10, 10);
 		SetWindowRgn(Main.hWnd, rgn, TRUE);
 
-		if (LanguageID == 0x0804 && !FirstFlag && (Main.Timer % 34) == 0)
+		if (LanguageID == CHINESE_LANID && !FirstFlag && (Main.Timer % 34) == 0)
 		{
 			AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//显示帮助时自动"一键安装"
 			SYSTEMTIME systm;
@@ -4553,7 +4492,7 @@ BOOL InitInstance()//和界面有关的初始化
 	}
 
 	SetTimer(Main.hWnd, TIMER_EXPLAINATION, 250, (TIMERPROC)TimerProc);//开启Exp计时器
-	if (!slient && !noshowwnd && LanguageID == 0x0804)//显示主窗口
+	if (!slient && !noshowwnd && LanguageID == CHINESE_LANID)//显示主窗口
 	{
 		ShowWindow(Main.hWnd, SW_SHOW);
 		Main.Redraw();
@@ -4613,19 +4552,18 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");//37
 	Main.Button[BUT_GAMES].Enabled = FALSE;
 
-	if (LanguageID != 0x0804)//非中文系统自动切换成英文
+	InitFinish = TRUE;
+	if (LanguageID != CHINESE_LANID && InitThreadFinish)//非中文系统自动切换成英文
 	{
 		ShowWindow(Main.hWnd, SW_SHOW);
 		wchar_t Tempstr[MAX_STR];
 		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
 		SwitchLanguage(Tempstr);
-
 	}
-
 	if ((Main.Timer % 2) == 0 && FirstFlag && !slient)
 	{
 		Main.InfoBox(L"Firststr");
-		if ((Main.Timer % 23) == 0 && LanguageID == 0x0804)Main.InfoBox(L"First2");
+		if ((Main.Timer % 23) == 0 && LanguageID == CHINESE_LANID)Main.InfoBox(L"First2");
 	}
 
 	return TRUE;
@@ -4693,6 +4631,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
 		RECT rc; PAINTSTRUCT ps;
+		if (!IsWindowVisible(hWnd))break;
 		myZeroMemory(&rc, sizeof(RECT));
 		myZeroMemory(&ps, sizeof(PAINTSTRUCT));
 		if (lParam == UT_MESSAGE)goto finish;
@@ -4731,7 +4670,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 	finish://贴图
 
-
 		if (UTState)//"超级置顶"开启时,不能使用系统自带的Caret,这里只好自己绘制
 		{
 			const int count = GetTickCount();
@@ -4739,7 +4677,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				SelectObject(Main.hdc, BlackPen); else SelectObject(Main.hdc, WhitePen);
 			Rectangle(Main.hdc, Main.CaretPos.x, Main.CaretPos.y + 2, Main.CaretPos.x + 1, Main.CaretPos.y + (int)(22 * Main.DPI));
 		}
-
 		if (!UTState)
 		{
 			BitBlt(Main.tdc, rc.left, rc.top, max((long)(Main.Width * Main.DPI), rc.right - rc.left), \
@@ -4755,7 +4692,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		if (hWnd != 0)EndPaint(hWnd, &ps);
 	}
 
-	case 34:
+	case WM_TDICON:
+	{
 		if (lParam == WM_LBUTTONUP)
 		{//点击伪装的极域图zhuang标bu后xua打qu开le极域
 			NOTIFYICONDATA tnd;
@@ -4767,6 +4705,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			Main.Check[CHK_TOOLBAR].Value = FALSE;
 		}
 		break;
+	}
 	case WM_COMMAND://当控件接收到消息时会触发这个
 	{
 		if (HIWORD(wParam) == LBN_SELCHANGE) {//TDT中只用了ComputerList一个控件，所以下面的内容肯定是文件选择框了= =
@@ -5146,7 +5085,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					if (Main.Button[BUT_ARP].Left >= 466 && Main.Button[BUT_ARP].Left <= 481 &&
 						Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)*/
 
-			InitTDR(hInst);
+			InitTDR();
 			break;
 		}
 		case BUT_SYSCMD:
@@ -5251,7 +5190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				tnd.hWnd = Main.hWnd;
 				tnd.uID = 1;
 				tnd.uFlags = 2 | 1 | 4;
-				tnd.uCallbackMessage = 34;
+				tnd.uCallbackMessage = WM_TDICON;
 				tnd.hIcon = LoadIconW(hInst, MAKEINTRESOURCE(IDI_TD));
 				mywcscpy(tnd.szTip, Main.GetStr(L"tnd"));
 				if (!Shell_NotifyIcon(NIM_ADD, &tnd))Main.InfoBox(L"StartFail"), Main.Check[CHK_TOOLBAR].Value = TRUE;

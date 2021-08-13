@@ -16,40 +16,7 @@ unsigned int mywcslen(const wchar_t* wstr)
 	}
 	return i;
 }
-void myitoa(unsigned long val, char* buf, unsigned radix)
-{
-	char* p;/*pointer to traverse string*/
-	char* firstdig;/*pointer to first digit*/
-	char temp;/*temp char*/
-	unsigned digval;/*value of digit*/
 
-	p = buf;
-	firstdig = p;/*save pointer to first digit*/
-
-	do {
-		digval = (unsigned)(val % radix);
-		val /= radix;/*get next digit*/
-
-		/*convert to ascii and store */
-		if (digval > 9)
-			*p++ = (char)(digval - 10 + 'a ');/*a letter*/
-		else
-			*p++ = (char)(digval + '0 ');/*a digit*/
-	} while (val > 0);
-
-	/*We now have the digit of the number in the buffer,but in reverse
-	order.Thus we reverse them now.*/
-
-	*p-- = '\0 ';/*terminate string;p points to last digit*/
-
-	do {
-		temp = *p;
-		*p = *firstdig;
-		*firstdig = temp;/*swap *p and *firstdig*/
-		--p;
-		++firstdig;/*advance to next two digits*/
-	} while (firstdig < p);/*repeat until halfway*/
-}
 int myatoi(char* str) {
 	int data = 0, i = 0;
 	int sign = 1;
@@ -184,13 +151,13 @@ __forceinline bool isDigit(wchar_t c)
 	return (c >= L'0' && c <= L'9');
 }
 
-bool miniwcsstr(wchar_t chr, const wchar_t* str) {
-	while (*str) {
-		if (chr == *str) return true;
-		str++;
-	}
-	return false;
-}
+//bool miniwcsstr(wchar_t chr, const wchar_t* str) {
+//	while (*str) {
+//		if (chr == *str) return true;
+//		str++;
+//	}
+//	return false;
+//}
 
 const wchar_t* mywcschr(const wchar_t* str, wchar_t c) {
 	for (; *str != 0; ++str) {
@@ -199,21 +166,6 @@ const wchar_t* mywcschr(const wchar_t* str, wchar_t c) {
 		}
 	}
 	return NULL;
-}
-wchar_t* mywcstok(wchar_t* s, const wchar_t* delim) {
-	static wchar_t* text = NULL;
-	if (text == NULL) text = s;
-	if (text == NULL) return NULL;
-	wchar_t* head = text;
-	while (*text && !miniwcsstr(*text, delim)) {
-		text++;
-	}
-	while (*text && miniwcsstr(*text, delim)) {
-		*text = '\0';
-		text++;
-	}
-	if (*text == '\0') text = NULL;
-	return head;
 }
 
 int mywtoi(wchar_t* str) {
@@ -396,4 +348,55 @@ void myitow(int num, wchar_t* str, int radix)
 		str[j] = str[i - j - 1 + k];
 		str[i - j - 1 + k] = temp;// s(str[j]);
 	}
+}
+
+wchar_t* mywcstok(wchar_t* s, const wchar_t* delim) {
+	static wchar_t* text = NULL;
+	if (text == NULL) text = s;
+	if (text == NULL) return NULL;
+	wchar_t* head = text;
+	while (*text && !mywcsstr(delim, text)) {
+		text++;
+	}
+	while (*text && mywcsstr(delim, text)) {
+		*text = '\0';
+		text++;
+	}
+	if (*text == '\0') text = NULL;
+	return head;
+}
+
+char index[] = "0123456789ABCDEF";
+char* myitoa(int num, char* str, int radix)
+{/*索引表*/
+	
+	unsigned unum;/*中间变量*/
+	int i = 0, j, k;
+	/*确定unum的值*/
+	if (radix == 10 && num < 0)/*十进制负数*/
+	{
+		unum = (unsigned)-num;
+		str[i++] = '-';
+	}
+	else unum = (unsigned)num;/*其他情况*/
+	/*转换*/
+	do {
+		str[i++] = index[unum % (unsigned)radix];
+		unum /= radix;
+	} while (unum);
+	str[i] = '\0';
+	/*逆序*/
+	if (str[0] == '-')
+		k = 1;/*十进制负数*/
+	else
+		k = 0;
+
+	for (j = k; j <= (i - 1) / 2; j++)
+	{
+		char temp;
+		temp = str[j];
+		str[j] = str[i - 1 + k - j];
+		str[i - 1 + k - j] = temp;
+	}
+	return str;
 }
