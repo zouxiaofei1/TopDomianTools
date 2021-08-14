@@ -54,7 +54,7 @@
 	FreeBASIC 1.07
 	Visual Basic 6.0
 	Visual C++ 6.0
-	Visual Studio 2017 & 2019
+	Visual Studio 2017 ~ 2022
 	WDK 7.0
 
   其他工具:
@@ -64,6 +64,9 @@
 	RegFromApp 1.3.3
 	VMware Workstation 15
 	WireShark
+	GUIPopView
+	VLD 2.5.1
+	CFF Explorer
 	窗口信息管理器
 
   驱动：

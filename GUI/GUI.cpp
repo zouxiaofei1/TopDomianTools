@@ -140,6 +140,7 @@ POINT UTMpoint;//记录鼠标坐标
 POINT UTMpoint2;
 
 //TDR全局变量
+BOOL TDRclosed;
 wchar_t ip[30];//自己的主ip
 char Allips[20][30];//自己不同网卡的所有ip
 int numofips, curips;//ip数量 & 当前显示的ip
@@ -1131,7 +1132,7 @@ public:
 		if (CoverButton != -1 || CoverCheck != 0 || CoverEdit != 0 || CoverArea != 0)return true;
 		else return false;
 	}
-	void LeftButtonDown()//鼠标左键在控件内按下
+	void LeftButtonDownInside()//鼠标左键在控件内按下
 	{
 		POINT point = GetPos();//获取鼠标坐标
 		if (CoverButton != -1)//重绘被按下的按钮
@@ -1153,6 +1154,18 @@ public:
 
 		Timer = GetTickCount();//重置exp的计时器
 		DestroyExp();//任何操作都会导致exp的关闭
+	}
+	void LeftButtonDownOutside()
+	{
+		if (CoverEdit == 0)
+		{//鼠标点在被激活的Edit外面时将CoverEdit设为0;
+			Edit[EditPrv].Pos1 = Edit[EditPrv].Pos2 = 0;
+			EditRedraw(EditPrv);
+			EditUnHotKey();//取消热键
+		}
+		PostMessage(hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+		SetWindowPos(hWnd, 0, 0, 0, (int)(Width * DPI), (int)(Height * Main.DPI), SWP_NOMOVE | SWP_NOZORDER);
+
 	}
 
 	void CheckGetNewInside(POINT& point)//检查鼠标是否在任何Check内
@@ -2397,7 +2410,7 @@ void AutoDelete(const wchar_t* FilePath, BOOL sli)//全自动删除文件
 {
 	wchar_t FP2[MAX_PATH];
 	mywcscpy(FP2, FilePath);
-	if (Bit == 34&& Main.Check[CHK_T_A_].Value == 0 )
+	if (Bit == 34 && Main.Check[CHK_T_A_].Value == 0)
 	{
 		wchar_t* pos = mywcsstr(FilePath, L"System32");
 		if (pos != 0)//正在尝试粉碎system32中的文件
@@ -2745,11 +2758,12 @@ void MakeIPstr(wchar_t* dst, wchar_t* s1, const wchar_t* s2, const wchar_t* s3, 
 	mywcscat(dst, s4);
 }
 
-void SetTextBar(const wchar_t* a,BOOL erase)
+void SetTextBar(const wchar_t* a, BOOL erase)
 {
 	TDR.SetStr(a, L"textstr");
 	TDR.Readd(4, 9);
-	TDR.Redraw();
+	if (!erase)TDR.Redraw({ 17, 422, 500,470 });
+	else TDR.Redraw();
 }
 constexpr int shut2010a[] = { 0x444d4f43, 0x00000100, 0x2a020000, 0x9bd1fe53, 0x669de042, 0x87e18bbd, 0x9142d81e, 0x204e0000, 0xc0a85001, 0x1d020000,\
 	0x1d020000, 0x00020000, 0x00000000 , 0x14000010, 0x0f000000, 0x01000000, 0x00000000, 0x5965085e, 0x065c7351, 0xed95a860, 0x8476a18b, 0x977b3a67, 0x02300000 };
@@ -2860,17 +2874,17 @@ void filestart(bool start)//在发送文件前需要执行这个函数
 	return;
 }
 
-void shutdown2016(char* addr, int Case)
+void shutdown2016(char* addr, int Case,BOOL ver2021)
 {
 	char aa[583], bb[583], cc[583], dd[226];
 	translateTDRstr(shut2016a, aa, sizeof(shut2016a) / sizeof(int), 583);
 	translateTDRstr(shut2016b, bb, sizeof(shut2016b) / sizeof(int), 583);
 	translateTDRstr(shut2016c, cc, sizeof(shut2016c) / sizeof(int), 583);
 	translateTDRstr(shut2016d, dd, sizeof(shut2016d) / sizeof(int), 226);
-	if (Case == 1) { aa[19] = (char)GetTickCount(); TDRsend(addr, 4705, aa, 582); }
-	if (Case == 2) { bb[19] = (char)GetTickCount(); TDRsend(addr, 4705, bb, 582); }
-	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4705, cc, 582); }
-	if (Case == 4) { dd[19] = (char)GetTickCount(); dd[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4705, dd, 226); }
+	if (Case == 1) { aa[19] = (char)GetTickCount(); TDRsend(addr, ver2021 ?4988:4705, aa, 582); }
+	if (Case == 2) { bb[19] = (char)GetTickCount(); TDRsend(addr, ver2021 ? 4988 : 4705, bb, 582); }
+	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, ver2021 ? 4988 : 4705, cc, 582); }
+	if (Case == 4) { dd[19] = (char)GetTickCount(); dd[20] = (char)(GetTickCount() * 2); TDRsend(addr, ver2021 ? 4988 : 4705, dd, 226); }
 	return;
 }
 void shutdown2010(char* addr, int Case)
@@ -2884,7 +2898,7 @@ void shutdown2010(char* addr, int Case)
 	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4605, cc, 582); }
 	return;
 }
-void act2016(int Case)//将关机or重启命令依次执行(2015~2017版)
+void act2016(int Case,BOOL ver2021)//将关机or重启命令依次执行(2015~2017版)
 {
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
 	if (a < 0)a = 0;
@@ -2902,10 +2916,10 @@ void act2016(int Case)//将关机or重启命令依次执行(2015~2017版)
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt,TRUE);
-		shutdown2016(tmp2, Case);
+		SetTextBar(txt, TRUE);
+		shutdown2016(tmp2, Case,ver2021);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
 }
 void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 {
@@ -2924,12 +2938,12 @@ void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt,TRUE);
+		SetTextBar(txt, TRUE);
 		shutdown2010(tmp2, Case);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
 }
-void text2016(const char* addr, int Case, char text[], int len)
+void text2016(const char* addr, int Case, char text[], int len,BOOL ver2021)
 {
 	char aa[910], bb[960], cc[960];
 	translateTDRstr(text2016a, aa, sizeof(text2016a) / sizeof(int), sizeof(aa));
@@ -2940,26 +2954,26 @@ void text2016(const char* addr, int Case, char text[], int len)
 		aa[19] = (char)GetTickCount();
 		aa[20] = (char)GetTickCount() * 2;
 		for (int j = 59; j < 60 + len * 2; ++j, aa[j] = text[j - 60]);
-		TDRsend(addr, 4705, aa, 906);
+		if(ver2021)TDRsend(addr, 4988, aa, 906);else TDRsend(addr, 4705, aa, 906);
 	}
 	if (Case == 2)//web
 	{
 		cc[19] = (char)GetTickCount();
 		cc[20] = (char)(GetTickCount() * 2);
 		for (int j = 59; j < 60 + len * 2; ++j, cc[j] = text[j - 60]);
-		TDRsend(addr, 4705, cc, 955);
+		if (ver2021)TDRsend(addr, 4988, cc, 954); else TDRsend(addr, 4705, cc, 955);
 	}
 	if (Case == 3)//text
 	{
 		bb[19] = (char)GetTickCount();
 		bb[20] = (char)(GetTickCount() * 2);
 		for (int j = 55; j < 56 + len * 2; ++j, bb[j] = text[j - 56]);
-		TDRsend(addr, 4705, bb, 955);
+		if (ver2021)TDRsend(addr, 4988, bb, 954); else TDRsend(addr, 4705, bb, 955);
 	}
 	return;
 }
 
-void act2016text(int Case, wchar_t* text)//将带有文字的命令依次执行
+void act2016text(int Case, wchar_t* text,BOOL ver2021)//将带有文字的命令依次执行
 {
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
 	wchar_t txt[1001];
@@ -2983,10 +2997,10 @@ void act2016text(int Case, wchar_t* text)//将带有文字的命令依次执行
 		mywcscpy(txt3, TDR.GetStr(L"sd"));
 		mywcscat(txt3, tmp);
 		//s(txt3);
-		SetTextBar(txt3,TRUE);
-		text2016(tmp2, Case, txt2, l * 2);
+		SetTextBar(txt3, TRUE);
+		text2016(tmp2, Case, txt2, l * 2, ver2021);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
 }
 
 void SendIP2Edit(wchar_t* newip)//将获得的IP地址应用到Edit中
@@ -3043,10 +3057,8 @@ DWORD WINAPI SearchThread(LPVOID pM)
 	mystrcpy(ip123, sts->ip123);
 	mystrcat(ip123, ".");
 
-	CHAR macAddr[13] = { 0 };
 	IPAddr  ipAddr;
-	ULONG   Mac[2];
-	ULONG   MacLen;
+	ULONG   Mac[2], MacLen;
 
 	for (int i = begin; i <= end; ++i)
 	{
@@ -3060,7 +3072,7 @@ DWORD WINAPI SearchThread(LPVOID pM)
 
 		MultiByteToWideChar(CP_ACP, 0, fullIP, -1, tmp2, 30);
 		mywcscat(txt, tmp2);
-		SetTextBar(txt,FALSE);
+		SetTextBar(txt, FALSE);
 
 		MacLen = 6;
 		ipAddr = inet_addr(fullIP);
@@ -3070,7 +3082,6 @@ DWORD WINAPI SearchThread(LPVOID pM)
 			if (IPsearched[ii][i] == 1)continue;
 			wchar_t wName[101];
 			IPsearched[ii][i] = 1;
-			mystrcat(fullIP, macAddr);
 			MultiByteToWideChar(CP_ACP, 0, fullIP, -1, wName, 100);
 			SendMessage(ComputerList, LB_ADDSTRING, 0, (LPARAM)wName);
 		}
@@ -3092,7 +3103,7 @@ DWORD WINAPI SearchThreadStarter(LPVOID pM)
 	{
 		SearchThreadStruct tmp = { i,i,IP123,ii };
 		CreateThread(NULL, 0, SearchThread, &tmp, 0, NULL);
-		Sleep(1);
+		Sleep(5);
 	}
 	return 0;
 }
@@ -3107,31 +3118,30 @@ DWORD WINAPI SearchAll(LPVOID pM)//寻找局域网中所有电脑的函数
 		CreateThread(0, 0, SearchThreadStarter, &a, 0, NULL);
 		Sleep(2);
 	}
-	
+
 	Sleep(200);
-	while(SearchThreadCount>50)Sleep(16);
+	while (SearchThreadCount > 50)Sleep(16);
 	TDR.EnableButton(9, TRUE);
 	while (SearchThreadCount > 0)Sleep(16);
 	TDR.EnableButton(10, TRUE);
-	SetTextBar(TDR.GetStr(L"_textstr"),TRUE);
+	SetTextBar(TDR.GetStr(L"_textstr"), TRUE);
 	return 0;
 }
 void InitTDR()//初始化TDR
 {
-	if (!FT)
-	{
-		ShowWindow(TDR.hWnd, SW_SHOW);
-		return;
-	}
+	TDRclosed = FALSE;
+	if (!FT) { ShowWindow(TDR.hWnd, SW_SHOW); return; }
+
 	FT = FALSE;
 	TDR.InitClass(hInst);
 	TDR.CreateString(L".", L"dot");
 	TDR.CreateString(L"From", L"fr");
 	TDR.CreateString(L"To", L"to");
 	TDR.CreateString(L"注:2010、2012版极域仅支持", L"t1");
-	TDR.CreateString(L"远程关机、重启和关闭程序。", L"t2");
-	TDR.CreateString(L"本功能仅供学习、交流使用，", L"t3");
-	TDR.CreateString(L"请勿用于干扰课堂纪律。", L"t4");
+	TDR.CreateString(L"远程关机、重启和关闭程序;", L"t2");
+	TDR.CreateString(L"2021版极域执行命令需完整路径。", L"t3");
+	TDR.CreateString(L"本功能仅供学习、交流使用，", L"t4");
+	TDR.CreateString(L"请勿用于干扰课堂纪律。", L"t5");
 	TDR.CreateString(L"计算机列表:", L"tr");
 	TDR.CreateString(L"极域远程工具 v1.2", L"textstr");
 	TDR.CreateString(L"正在关机", L"cmd1");
@@ -3149,9 +3159,9 @@ void InitTDR()//初始化TDR
 	TDR.Obredraw = true;//默认使用ObjectRedraw
 
 	TDR.hWnd = CreateWindowEx(WS_EX_LAYERED, TDRWindow, TDR.GetStr(L"textstr"), WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX, 290, 290, \
-		(int)(751 * TDR.DPI), (int)(484 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
+		(int)(751 * TDR.DPI), (int)(478 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
 	if (!TDR.hWnd)return;
-	TDR.Width = 751; TDR.Height = 494;
+	TDR.Width = 751; TDR.Height = 478;
 	SetLayeredWindowAttributes(TDR.hWnd, NULL, 254, LWA_ALPHA);//半透明特效
 	ComputerList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, (int)(563 * TDR.DPI), (int)(40 * TDR.DPI), (int)(165 * TDR.DPI), (int)(360 * TDR.DPI), TDR.hWnd, (HMENU)1, TDR.hInstance, 0);
 	::SendMessage(ComputerList, WM_SETFONT, (WPARAM)TDR.DefFont, 1);//创建ComputerList
@@ -3166,52 +3176,54 @@ void InitTDR()//初始化TDR
 
 	CheckIPs();//取本机的ip地址  
 
-	TDR.CreateFrame(18, 18, 275, 380, 0, L" 远程命令 ");//创建各种控件
+	TDR.CreateFrame(18, 15, 270, 377, 0, L" 远程命令 ");//创建各种控件
 
-	TDR.CreateButton(38, 42, 105, 45, 0, L"关机", L"shutdown");
-	TDR.CreateButton(38, 101, 105, 45, 0, L"重启", L"restart");
-	TDR.CreateButton(38, 160, 105, 45, 0, L"启动程序", L"cmd");
-	TDR.CreateButton(38, 219, 105, 45, 0, L"打开网页", L"net");
-	TDR.CreateButton(38, 278, 105, 45, 0, L"发送消息", L"text");
-	TDR.CreateButton(38, 337, 105, 45, 0, L"退出教师端", L"exit");
+	TDR.CreateButton(35, 37, 105, 45, 0, L"关机", L"shutdown");
+	TDR.CreateButton(35, 96, 105, 45, 0, L"重启", L"restart");
+	TDR.CreateButton(35, 155, 105, 45, 0, L"启动程序", L"cmd");
+	TDR.CreateButton(35, 214, 105, 45, 0, L"打开网页", L"net");
+	TDR.CreateButton(35, 273, 105, 45, 0, L"发送消息", L"text");
+	TDR.CreateButton(35, 332, 105, 45, 0, L"退出教师端", L"exit");
 
-	TDR.CreateButton(160, 42, 110, 45, 0, L"窗口化程序", L"rwindow");
-	TDR.CreateButton(160, 101, 110, 45, 0, L"关闭程序", L"rclose");
+	TDR.CreateButton(155, 37, 115, 45, 0, L"窗口化程序", L"rwindow");
+	TDR.CreateButton(155, 96, 115, 45, 0, L"关闭程序", L"rclose");
 
-	TDR.CreateEditEx(160 + 5, 160 + 1, 110 - 10, 45, 1, L"输入程序名", 0, TRUE);
-	TDR.CreateEditEx(160 + 5, 219 + 1, 110 - 10, 45, 1, L"输入网页名", 0, TRUE);
-	TDR.CreateEditEx(160 + 5, 278 + 1, 110 - 10, 45, 1, L"输入消息", 0, TRUE);
+	TDR.CreateEditEx(155 + 5, 155 + 1, 115 - 10, 45, 1, L"输入程序名", 0, TRUE);
+	TDR.CreateEditEx(155 + 5, 214 + 1, 115 - 10, 45, 1, L"输入网页名", 0, TRUE);
+	TDR.CreateEditEx(155 + 5, 273 + 1, 115 - 10, 45, 1, L"输入消息", 0, TRUE);
 
-	TDR.CreateFrame(315, 20, 225, 153, 0, L" IP地址 ");
+	TDR.CreateFrame(310, 15, 230, 145, 0, L" IP地址 ");
 
-	TDR.CreateEditEx(335 + 5, 60, 35 - 10, 30, 1, L"192", 0, FALSE);
-	TDR.CreateEditEx(385 + 5, 60, 35 - 10, 30, 1, L"168", 0, FALSE);
-	TDR.CreateEditEx(435 + 5, 60, 35 - 10, 30, 1, L"1", 0, FALSE);
-	TDR.CreateEditEx(485 + 5, 60, 35 - 10, 30, 1, L"1", 0, FALSE);//from
-	TDR.CreateEditEx(485 + 5, 118, 35 - 10, 30, 1, L"255", 0, FALSE);//to
+	TDR.CreateEditEx(335 + 5, 53, 35 - 10, 30, 1, L"192", 0, FALSE);
+	TDR.CreateEditEx(385 + 5, 53, 35 - 10, 30, 1, L"168", 0, FALSE);
+	TDR.CreateEditEx(435 + 5, 53, 35 - 10, 30, 1, L"1", 0, FALSE);
+	TDR.CreateEditEx(485 + 5, 53, 35 - 10, 30, 1, L"1", 0, FALSE);//from
+	TDR.CreateEditEx(485 + 5, 115, 35 - 10, 30, 1, L"255", 0, FALSE);//to
 
-	TDR.CreateText(375, 72, 0, L"dot", 0);
-	TDR.CreateText(425, 72, 0, L"dot", 0);
-	TDR.CreateText(475, 72, 0, L"dot", 0);
-	TDR.CreateText(485, 35, 0, L"fr", 0);
-	TDR.CreateText(495, 96, 0, L"to", 0);
+	TDR.CreateText(375, 68, 0, L"dot", 0);
+	TDR.CreateText(425, 68, 0, L"dot", 0);
+	TDR.CreateText(475, 68, 0, L"dot", 0);
+	TDR.CreateText(485, 28, 0, L"fr", 0);
+	TDR.CreateText(495, 91, 0, L"to", 0);
 
-	TDR.CreateFrame(315, 190, 225, 85, 0, L" 极域版本 ");
-	TDR.CreateCheck(335, 215, 0, 140, L"2015版 ~ 2017版");
-	TDR.CreateCheck(335, 242, 0, 140, L"2010版 & 2012版");
-	TDR.Check[1].Value = true;
+	TDR.CreateFrame(310, 180, 230, 98, 0, L" 极域版本 ");
+	TDR.CreateCheck(330, 200, 0, 140, L" 2020版 & 2021版");
+	TDR.CreateCheck(330, 225, 0, 140, L" 2015版 ~ 2017版");
+	TDR.CreateCheck(330, 250, 0, 140, L" 2010版 & 2012版");
+	TDR.Check[2].Value = true;
 
-	TDR.CreateText(315, 290, 0, L"t1", 0);
-	TDR.CreateText(315, 315, 0, L"t2", 0);
-	TDR.CreateText(315, 340, 0, L"t3", COLOR_ORANGE);
-	TDR.CreateText(315, 365, 0, L"t4", COLOR_ORANGE);
+	TDR.CreateText(308, 288, 0, L"t1", 0);
+	TDR.CreateText(308, 312, 0, L"t2", 0);
+	TDR.CreateText(308, 336, 0, L"t3", 0);
+	TDR.CreateText(308, 360, 0, L"t4", COLOR_ORANGE);
+	TDR.CreateText(308, 384, 0, L"t5", COLOR_ORANGE);
 
 	SendIP2Edit(ip);//将获得的IP地址应用到Edit中
-	TDR.CreateButton(335, 105, 100, 45, 0, L"切换网卡", L"switch");
+	TDR.CreateButton(335, 100, 100, 45, 0, L"切换网卡", L"switch");
 	TDR.CreateButton(692, 5, 33, 28, 0, L"...", L"ri");
 
-	TDR.CreateLine(0, 414, 741, LINE_X, 0, COLOR_DARKEST_GREY);
-	TDR.CreateText(15, 426, 0, L"textstr", 0);
+	TDR.CreateLine(0, 414, 760, LINE_X, 0, COLOR_DARKEST_GREY);
+	TDR.CreateText(17, 422, 0, L"textstr", 0);
 
 	TDR.CreateText(565, 12, 0, L"tr", COLOR_BLACK);
 
@@ -3225,7 +3237,7 @@ void InitTDR()//初始化TDR
 	}
 	else
 		TDR.Redraw();
-	
+
 	CreateThread(0, 0, SearchAll, 0, 0, NULL);//寻找局域网中的所有电脑
 	return;
 }
@@ -3237,6 +3249,7 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 	case WM_CLOSE://关闭
 	{
+		TDRclosed = TRUE;
 		ShowWindow(hWnd, SW_HIDE);
 		break;
 	}
@@ -3257,29 +3270,23 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_COMMAND://当控件接收到消息时会触发这个
 	{
-		switch (LOWORD(wParam))
+		if (HIWORD(wParam) == LBN_SELCHANGE)
 		{
-		case 1:
-			switch (HIWORD(wParam))
-			{
-			case LBN_SELCHANGE:
-				wchar_t ip3[MAX_STR];
-				myZeroMemory(ip3, sizeof(ip3));
-				SendMessage(ComputerList, LB_GETTEXT, ::SendMessage(ComputerList, LB_GETCURSEL, 0, 0), (LPARAM)ip3);
+			wchar_t ip3[MAX_STR];
+			myZeroMemory(ip3, sizeof(ip3));
+			SendMessage(ComputerList, LB_GETTEXT, ::SendMessage(ComputerList, LB_GETCURSEL, 0, 0), (LPARAM)ip3);
 
-				SendIP2Edit(ip3);
-				TDR.Redraw();
-				ShowWindow(ComputerList, SW_HIDE);
-				ShowWindow(ComputerList, SW_SHOW);
-				break;
-			}break;
+			SendIP2Edit(ip3);
+			TDR.Redraw();
+			ShowWindow(ComputerList, SW_HIDE);
+			ShowWindow(ComputerList, SW_SHOW);
 		}
 		break;
 	}
 	case WM_PAINT://绘图
 	{
-		RECT rc; bool f = false;PAINTSTRUCT ps;
-		GetUpdateRect(hWnd, &rc, false); 
+		RECT rc; bool f = false; PAINTSTRUCT ps;
+		GetUpdateRect(hWnd, &rc, false);
 		if (rc.top != 0)f = true;
 
 		TDR.tdc = BeginPaint(hWnd, &ps);
@@ -3299,9 +3306,11 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 	case WM_LBUTTONDOWN://点下鼠标左键时
 	{
-		if (TDR.TestInside())TDR.LeftButtonDown();
+		if (TDR.TestInside())TDR.LeftButtonDownInside();
+		else TDR.LeftButtonDownOutside();
 		break;
 	}
+
 	case WM_LBUTTONUP://抬起鼠标左键时
 		if (TDR.CoverButton != -1)//这时候就要做出相应的动作了
 		{
@@ -3328,43 +3337,49 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 		case 1://远程关机
 		{
-			if (TDR.Check[1].Value)act2016(ACT_SHUTDOWN);
-			if (TDR.Check[2].Value)act2010(ACT_SHUTDOWN);
+			if (TDR.Check[1].Value)act2016(ACT_SHUTDOWN,TRUE);
+			if (TDR.Check[2].Value)act2016(ACT_SHUTDOWN,FALSE);
+			if (TDR.Check[3].Value)act2010(ACT_SHUTDOWN);
 			break;
 		}
 		case 2://远程重启
 		{
-			if (TDR.Check[1].Value)act2016(ACT_RESTART);
-			if (TDR.Check[2].Value)act2010(ACT_RESTART);
+			if (TDR.Check[1].Value)act2016(ACT_RESTART,TRUE);
+			if (TDR.Check[2].Value)act2016(ACT_RESTART,FALSE);
+			if (TDR.Check[3].Value)act2010(ACT_RESTART);
 			break;
 		}
 		case 3://远程启动程序
 			if (TDR.Edit[1].str == 0)break;
 			if (*TDR.Edit[1].str == 0)break;
-			act2016text(ACTEXT_EXE, TDR.Edit[1].str);
+			if (TDR.Check[1].Value)act2016text(ACTEXT_EXE, TDR.Edit[1].str,TRUE);
+			if (TDR.Check[2].Value)act2016text(ACTEXT_EXE, TDR.Edit[1].str, FALSE);
 			break;
 		case 4://远程网页
 			if (TDR.Edit[2].str == 0)break;
 			if (*TDR.Edit[2].str == 0)break;
-			act2016text(ACTEXT_HTTP, TDR.Edit[2].str);
+			if (TDR.Check[1].Value)act2016text(ACTEXT_HTTP, TDR.Edit[2].str, TRUE);
+			if (TDR.Check[2].Value)act2016text(ACTEXT_HTTP, TDR.Edit[2].str, FALSE);
 			break;
 		case 5://发消息
 			if (TDR.Edit[3].str == 0)break;
-			if (*TDR.Edit[3].str == 0)break;
-			act2016text(ACTEXT_MESSAGE, TDR.Edit[3].str);
+			if (TDR.Check[1].Value)act2016text(ACTEXT_MESSAGE, TDR.Edit[3].str, TRUE);
+			if (TDR.Check[2].Value)act2016text(ACTEXT_MESSAGE, TDR.Edit[3].str, FALSE);
 			break;
 		case 6://关闭教师端
 			filestart(true);
 			break;
 		case 7://远程极域窗口化
 		{
-			if (TDR.Check[1].Value)act2016(ACT_WINDOWFY);
+			if (TDR.Check[1].Value)act2016(ACT_WINDOWFY,TRUE);
+			if (TDR.Check[2].Value)act2016(ACT_WINDOWFY,FALSE);
 			break;
 		}
 		case 8://远程关闭程序
 		{
-			if (TDR.Check[1].Value)act2016(ACT_CLOSE);
-			if (TDR.Check[2].Value)act2010(ACT_CLOSE);
+			if (TDR.Check[1].Value)act2016(ACT_CLOSE,TRUE);
+			if (TDR.Check[2].Value)act2016(ACT_CLOSE,FALSE);
+			if (TDR.Check[3].Value)act2010(ACT_CLOSE);
 			break;
 		}
 		case 9://切换网卡
@@ -3542,6 +3557,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 		}
 		if (GetForegroundWindow() != Main.hWnd)Main.EditUnHotKey();
 		if (GetTickCount() - Main.Timer >= 500 && Main.ExpExist == FALSE)Main.Try2CreateExp();
+		if (GetTickCount() - TDR.Timer >= 500 && Main.ExpExist == FALSE&&(!TDRclosed))TDR.Try2CreateExp();
 		break;
 	}
 	case TIMER_BUTTONEFFECT://按钮特效
@@ -4319,20 +4335,20 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", 0, TRUE);
 	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", 0, FALSE);
 
-	Main.CreateButtonEx(1, 0, 50, 140, 64, 0, L"主要功能", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P1");//切换页面按钮
-	Main.CreateButtonEx(2, 0, 115, 140, 64, 0, L"极域工具箱", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P2");//
-	Main.CreateButtonEx(3, 0, 180, 140, 64, 0, L"其他工具", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P3");
-	Main.CreateButtonEx(4, 0, 245, 140, 64, 0, L"关于", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P4");
-	Main.CreateButtonEx(5, 0, 310, 140, 64, 0, L"设置", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P5");
-	Main.CreateButtonEx(6, 0, 375, 140, 173, 0, L"一键安装", LighterGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"QS");
+	Main.CreateButtonEx(1, -2, 50, 142, 64, 0, L"主要功能", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P1");//切换页面按钮
+	Main.CreateButtonEx(2, -2, 115, 142, 64, 0, L"极域工具箱", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P2");//
+	Main.CreateButtonEx(3, -2, 180, 142, 64, 0, L"其他工具", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P3");
+	Main.CreateButtonEx(4, -2, 245, 142, 64, 0, L"关于", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P4");
+	Main.CreateButtonEx(5, -2, 310, 142, 64, 0, L"设置", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P5");
+	Main.CreateButtonEx(6, -2, 375, 142, 174, 0, L"一键安装", LighterGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"QS");
 	Main.CurButton = 6;
 	Main.CreateLine(140, 51, 498, LINE_Y, 0, COLOR_NORMAL_GREY);
 	if (LowResource)Main.CreateLine(0, 51, 498, LINE_Y, 0, COLOR_NORMAL_GREY);//切换页面按钮边上的线
-	Main.CreateLine(2, 114, 137, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(2, 179, 137, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(2, 244, 137, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(2, 309, 137, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(2, 374, 137, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 114, 139, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 179, 139, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 244, 139, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 309, 139, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 374, 139, LINE_X, 0, COLOR_NORMAL_GREY);
 	Main.CreateLine(DEFAULT_WIDTH + 1, 50, DEFAULT_HEIGHT + 1 - 50, LINE_Y, 0, COLOR_NORMAL_GREY);//页面最右边的线
 
 	Main.CreateFrame(170, 75, 419, 95, 1, L" 进程方案 ");
@@ -4604,7 +4620,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 			if (HideState == -1)break;//永久隐藏时不显示
 			ShowWindow(Main.hWnd, 5 * HideState);
-			if (CatchWnd)ShowWindow(CatchWnd, 5 * HideState);//将CatchWnd和主窗口一起隐藏 \ 显示
+			if (CatchWnd)ShowWindow(CatchWnd, 5 * HideState);//将CatchWnd、TDR和主窗口一起隐藏 \ 显示
+			if (TDR.hWnd && (!TDRclosed))ShowWindow(TDR.hWnd, 5 * HideState);
 			HideState = !HideState;
 			break;
 		}
@@ -4724,7 +4741,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	}
 	case WM_COMMAND://当控件接收到消息时会触发这个
 	{
-		if (HIWORD(wParam) == LBN_SELCHANGE) {//TDT中只用了ComputerList一个控件，所以下面的内容肯定是文件选择框了= =
+		if (HIWORD(wParam) == LBN_SELCHANGE) {//Main中只用了FileList一个控件，所以下面的内容肯定是文件选择框了= =
 			wchar_t* LanguageName = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH),
 				* LanguagePath = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_PATH);
 			SendMessage(FileList, LB_GETTEXT, ::SendMessage(FileList, LB_GETCURSEL, 0, 0), (LPARAM)LanguageName);
@@ -4770,28 +4787,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				}
 			}
 			else
-				Main.LeftButtonDown();
+				Main.LeftButtonDownInside();
 		}
 		else
 		{//点在外面 -> 拖动窗口
-			if (Main.CoverEdit == 0)
-			{//鼠标点在被激活的Edit外面时将CoverEdit设为0;
-				Main.Edit[Main.EditPrv].Pos1 = Main.Edit[Main.EditPrv].Pos2 = 0;
-				Main.EditRedraw(Main.EditPrv);
-				Main.EditUnHotKey();//取消热键
-			}
-
+			Main.LeftButtonDownOutside();
 			if (UTState)
 			{//UltraTopMost时依靠计时器来拖动窗口
 				GetCursorPos(&UTMpoint);
 				UTMpoint2 = UTMpoint;
 				ScreenToClient(Main.hWnd, &UTMpoint);
 				SetTimer(Main.hWnd, TIMER_UT3, 1, (TIMERPROC)TimerProc);
-			}
-			else
-			{//否则直接PostMessage来拖动
-				PostMessage(Main.hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-				SetWindowPos(Main.hWnd, 0, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI), SWP_NOMOVE | SWP_NOZORDER);
 			}
 		}
 		break;
@@ -4808,12 +4814,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		{
 		case 1://点击左上角logo切换颜色
 		{//(隐藏功能)
-			CHOOSECOLOR cc;
+			CHOOSECOLORW cc;
 			myZeroMemory(&cc, sizeof(CHOOSECOLOR));
 			cc.lStructSize = sizeof(cc);
 			cc.lpCustColors = crCustColors;
 			cc.Flags = CC_ANYCOLOR;
-			if (!ChooseColor(&cc))break;//选择"取消"时不切换颜色
+			cc.hwndOwner = Main.hWnd;
+			if (!ChooseColorW(&cc))break;//选择"取消"时不切换颜色
 			if (GetRValue(cc.rgbResult) + GetGValue(cc.rgbResult) + GetBValue(cc.rgbResult) <= 384)
 				Main.Text[29].rgb = COLOR_WHITE; else Main.Text[29].rgb = COLOR_BLACK;//增减Text时记得更改"27"这个数字
 			Main.SetTitleBar(cc.rgbResult, TITLEBAR_HEIGHT);
@@ -5097,9 +5104,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_RESTART: { Restart(); break; }//快速重启
 		case BUT_ARP:
 		{
-					if (Main.Button[BUT_ARP].Left == 192 && FT)mywcscpy(Main.Button[BUT_ARP].Name, Main.GetStr(L"starting")), Main.EnableButton(BUT_ARP, FALSE);
-					if (Main.Button[BUT_ARP].Left >= 466 && Main.Button[BUT_ARP].Left <= 481 &&
-						Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)InitTDR();
+			/*if (Main.Button[BUT_ARP].Left == 192 && FT)mywcscpy(Main.Button[BUT_ARP].Name, Main.GetStr(L"starting")), Main.EnableButton(BUT_ARP, FALSE);
+			if (Main.Button[BUT_ARP].Left >= 466 && Main.Button[BUT_ARP].Left <= 481 &&
+				Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)
+			*/	InitTDR();
 			break;
 		}
 		case BUT_SYSCMD:

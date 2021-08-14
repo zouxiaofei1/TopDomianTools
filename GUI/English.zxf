@@ -1,4 +1,4 @@
-ver=304
+ver=306
 <Main>
 <Buttons>
 P1 = "Major Function",-1,-1,-1,-1
@@ -126,7 +126,6 @@ BSOD4 = "If you call a support person, give them this info:"
 BSOD5 = "Stop code: STSTEM THREAD EXCEPTION NOT HANDELED"
 BSOD6 = "Failed operation : tpsr32.sys"
 BSOD7 = "% complete"
-WPAsk = "You need to download WinPcap and install it manually.\nDo you want to continue?"
 Copypswd = "\nPress 'ok' to copy this password onto your ClipBoard."
 unk = "Unknown ERROR"
 Deleting = "Deleting"
@@ -185,30 +184,32 @@ rclose = "Close APPs",-1,-1,-1,-1
 switch = "Set Net Card",-1,-1,120,-1
 </Buttons>
 <Checks>
-C1 = " Ver2015 ~ Ver2017",-1,-1,170
-C2 = " Ver2010 & Ver2012",-1,-1,170
+C1 = " Ver2020 & Ver2021",-1,-1,170
+C2 = " Ver2015 ~ Ver2017",-1,-1,170
+C3 = " Ver2010 & Ver2012",-1,-1,170
 </Checks>
 <Frames>
 F1 = " Remote Commands ",-1,-1,-1,-1
-F2 = " IPaddr ",-1,-1,-1,-1
+F2 = " IP Addresses ",-1,-1,-1,-1
 F3 = " Topdomain Versions ",-1,-1,-1,-1
 </Frames>
 <Strings>
 dot = "."
 fr = "From"
 to = "To"
-t1 = "NOTE:TD2010,2012 only support"
-t2 = "shutdown,reboot,closing apps."
-t3 = "The func is only for studying,"
-t4 = "Never disturb the class withit."
+t1 = "NOTE: TD2010, 2012 only support"
+t2 = "shutdown, reboot, closing apps."
+t3 = "TD2021 requires full file path."
+t4 = "The func is only for studying,"
+t5 = "Never disturb the class with it."
 tr = "Computer list:"
-textstr = "TopDomainRemote v1.2"
+textstr = "TopDomainRemote v1.3"
 cmd1 = "Shutdowning:"
 cmd2 = "Rebooting:"
 cmd3 = "Closing:"
 cmd4 = "Windowfying:"
 cmdok = "Command execution completed."
-_textstr = "TopDomainRemote v1.2"
+_textstr = "TopDomainRemote v1.3"
 sch = "Searching: "
 sd = "Sending: "
 </Strings>
