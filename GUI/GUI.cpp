@@ -2395,14 +2395,27 @@ BOOL SearchTool(LPCWSTR lpPath, int type)//type=1:打开极域 2:删除shutdown 
 }
 void AutoDelete(const wchar_t* FilePath, BOOL sli)//全自动删除文件
 {
-	const int FileType = GetFileAttributes(FilePath);
+	wchar_t FP2[MAX_PATH];
+	mywcscpy(FP2, FilePath);
+	if (Bit == 34&& Main.Check[CHK_T_A_].Value == 0 )
+	{
+		wchar_t* pos = mywcsstr(FilePath, L"System32");
+		if (pos != 0)//正在尝试粉碎system32中的文件
+		{
+			pos += 8;
+			mywcscpy(FP2, L"C:\\Windows\\SysNative");
+			mywcscat(FP2, pos);
+		}
+	}
+	//system32 sysnative
+	const int FileType = GetFileAttributes(FP2);
 	if (FileType == -1)
 	{//不是文件也不是文件夹?是否继续删除?
 		if (!sli)
 		{
 			wchar_t tmpStr[MAX_PATH];
 			mywcscpy(tmpStr, L"\"");
-			mywcscat(tmpStr, FilePath);
+			mywcscat(tmpStr, FP2);
 			mywcscat(tmpStr, L"\"");
 			mywcscat(tmpStr, Main.GetStr(L"TINotF"));
 			if (MessageBox(Main.hWnd, tmpStr, Main.GetStr(L"Info"), MB_YESNO | MB_ICONQUESTION) == 6)goto forcedelete;
@@ -2410,17 +2423,17 @@ void AutoDelete(const wchar_t* FilePath, BOOL sli)//全自动删除文件
 		return;
 	}
 forcedelete:
-	TakeOwner(FilePath);//取得所有权
+	TakeOwner(FP2);//取得所有权
 
 	if (FileType & FILE_ATTRIBUTE_DIRECTORY)
 	{
 		wchar_t DirectoryName[MAX_PATH];//是文件夹
-		mywcscpy(DirectoryName, FilePath);//SHFileOperation要求字符串最后两位都是NULL,
+		mywcscpy(DirectoryName, FP2);//SHFileOperation要求字符串最后两位都是NULL,
 		SearchTool(DirectoryName, 3);//在尝试删除多个文件时，
 		MyRemoveDirectory(DirectoryName);//直接在原字符串上操作一定会出问题
 	}
 	else
-		MyDeleteFile(FilePath);//是文件，直接删除
+		MyDeleteFile(FP2);//是文件，直接删除
 }
 
 BOOL UninstallSethc()//恢复原来的sethc
@@ -2732,13 +2745,11 @@ void MakeIPstr(wchar_t* dst, wchar_t* s1, const wchar_t* s2, const wchar_t* s3, 
 	mywcscat(dst, s4);
 }
 
-void SetTextBar(const wchar_t* a)
+void SetTextBar(const wchar_t* a,BOOL erase)
 {
 	TDR.SetStr(a, L"textstr");
 	TDR.Readd(4, 9);
-	RECT rc{ (LONG)(15 * TDR.DPI),(LONG)(425 * TDR.DPI),(LONG)(455 * TDR.DPI),(LONG)(455 * TDR.DPI) };
-	//TDR.es[++TDR.es[0].top] = rc;
-	TDR.Redraw(rc);
+	TDR.Redraw();
 }
 constexpr int shut2010a[] = { 0x444d4f43, 0x00000100, 0x2a020000, 0x9bd1fe53, 0x669de042, 0x87e18bbd, 0x9142d81e, 0x204e0000, 0xc0a85001, 0x1d020000,\
 	0x1d020000, 0x00020000, 0x00000000 , 0x14000010, 0x0f000000, 0x01000000, 0x00000000, 0x5965085e, 0x065c7351, 0xed95a860, 0x8476a18b, 0x977b3a67, 0x02300000 };
@@ -2891,10 +2902,10 @@ void act2016(int Case)//将关机or重启命令依次执行(2015~2017版)
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt);
+		SetTextBar(txt,TRUE);
 		shutdown2016(tmp2, Case);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"));
+	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
 }
 void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 {
@@ -2913,10 +2924,10 @@ void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt);
+		SetTextBar(txt,TRUE);
 		shutdown2010(tmp2, Case);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"));
+	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
 }
 void text2016(const char* addr, int Case, char text[], int len)
 {
@@ -2968,11 +2979,14 @@ void act2016text(int Case, wchar_t* text)//将带有文字的命令依次执行
 		myitow(i, num, 10);
 		MakeIPstr(tmp, TDR.Edit[4].str, TDR.Edit[5].str, TDR.Edit[6].str, num);
 		WideCharToMultiByte(CP_ACP, 0, tmp, -1, tmp2, 100, NULL, NULL);
-		wchar_t txt3[25] = L"发送中:";
+		wchar_t txt3[40];
+		mywcscpy(txt3, TDR.GetStr(L"sd"));
 		mywcscat(txt3, tmp);
-		SetTextBar(txt3);
+		//s(txt3);
+		SetTextBar(txt3,TRUE);
 		text2016(tmp2, Case, txt2, l * 2);
 	}
+	SetTextBar(TDR.GetStr(L"cmdok"),TRUE);
 }
 
 void SendIP2Edit(wchar_t* newip)//将获得的IP地址应用到Edit中
@@ -3037,8 +3051,8 @@ DWORD WINAPI SearchThread(LPVOID pM)
 	for (int i = begin; i <= end; ++i)
 	{
 		char fullIP[100];
-		wchar_t txt[30], temp2[20];
-		mywcscpy(txt, L"Searching:");
+		wchar_t txt[30];
+		mywcscpy(txt, TDR.GetStr(L"sch"));
 		if (IPsearched[ii][i] == 1)continue;//寻找过就不要再寻找了
 		mystrcpy(fullIP, ip123);
 		myitoa(i, tmp, 10);
@@ -3046,7 +3060,7 @@ DWORD WINAPI SearchThread(LPVOID pM)
 
 		MultiByteToWideChar(CP_ACP, 0, fullIP, -1, tmp2, 30);
 		mywcscat(txt, tmp2);
-		SetTextBar(txt);
+		SetTextBar(txt,FALSE);
 
 		MacLen = 6;
 		ipAddr = inet_addr(fullIP);
@@ -3097,8 +3111,9 @@ DWORD WINAPI SearchAll(LPVOID pM)//寻找局域网中所有电脑的函数
 	Sleep(200);
 	while(SearchThreadCount>50)Sleep(16);
 	TDR.EnableButton(9, TRUE);
-	while (SearchThreadCount > 1)Sleep(16);
+	while (SearchThreadCount > 0)Sleep(16);
 	TDR.EnableButton(10, TRUE);
+	SetTextBar(TDR.GetStr(L"_textstr"),TRUE);
 	return 0;
 }
 void InitTDR()//初始化TDR
@@ -3124,6 +3139,9 @@ void InitTDR()//初始化TDR
 	TDR.CreateString(L"正在关闭对方程序:", L"cmd3");
 	TDR.CreateString(L"正在窗口化极域:", L"cmd4");
 	TDR.CreateString(L"命令执行完成", L"cmdok");
+	TDR.CreateString(L"极域远程工具 v1.2", L"_textstr");
+	TDR.CreateString(L"寻找中: ", L"sch");
+	TDR.CreateString(L"发送中: ", L"sd");
 	TDR.DPI = Main.DPI;//自动缩放
 	TDR.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//创建默认字体
 		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"宋体");
@@ -3131,7 +3149,7 @@ void InitTDR()//初始化TDR
 	TDR.Obredraw = true;//默认使用ObjectRedraw
 
 	TDR.hWnd = CreateWindowEx(WS_EX_LAYERED, TDRWindow, TDR.GetStr(L"textstr"), WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX, 290, 290, \
-		(int)(751 * TDR.DPI), (int)(494 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
+		(int)(751 * TDR.DPI), (int)(484 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
 	if (!TDR.hWnd)return;
 	TDR.Width = 751; TDR.Height = 494;
 	SetLayeredWindowAttributes(TDR.hWnd, NULL, 254, LWA_ALPHA);//半透明特效
@@ -3189,12 +3207,11 @@ void InitTDR()//初始化TDR
 	TDR.CreateText(315, 365, 0, L"t4", COLOR_ORANGE);
 
 	SendIP2Edit(ip);//将获得的IP地址应用到Edit中
-	//s(TDR.CurButton);
 	TDR.CreateButton(335, 105, 100, 45, 0, L"切换网卡", L"switch");
 	TDR.CreateButton(692, 5, 33, 28, 0, L"...", L"ri");
 
 	TDR.CreateLine(0, 414, 741, LINE_X, 0, COLOR_DARKEST_GREY);
-	TDR.CreateText(15, 431, 0, L"textstr", 0);
+	TDR.CreateText(15, 426, 0, L"textstr", 0);
 
 	TDR.CreateText(565, 12, 0, L"tr", COLOR_BLACK);
 
@@ -4294,9 +4311,6 @@ int main()//程序入口点
 DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 {
 	(pM);
-	InitBrushs();//创建画笔 & 画刷
-	InitPens();
-
 	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", 0, FALSE);//创建输入框
 	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", 0, FALSE);
 	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", 0, FALSE);
@@ -4425,6 +4439,8 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 BOOL InitInstance()//和界面有关的初始化
 {
 	InitHotKey();//初始化热键系统
+	InitBrushs();//创建画笔 & 画刷
+	InitPens();
 
 	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
@@ -5081,11 +5097,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_RESTART: { Restart(); break; }//快速重启
 		case BUT_ARP:
 		{
-			/*		if (Main.Button[BUT_ARP].Left == 192 && FT)mywcscpy(Main.Button[BUT_ARP].Name, Main.GetStr(L"starting")), Main.EnableButton(BUT_ARP, FALSE);
+					if (Main.Button[BUT_ARP].Left == 192 && FT)mywcscpy(Main.Button[BUT_ARP].Name, Main.GetStr(L"starting")), Main.EnableButton(BUT_ARP, FALSE);
 					if (Main.Button[BUT_ARP].Left >= 466 && Main.Button[BUT_ARP].Left <= 481 &&
-						Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)*/
-
-			InitTDR();
+						Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)InitTDR();
 			break;
 		}
 		case BUT_SYSCMD:
