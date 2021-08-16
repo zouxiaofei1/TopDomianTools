@@ -1,6 +1,6 @@
-﻿#pragma once
-//×Ô¶¨ÒåµÄÓÃÓÚ¼õÉÙ³ÌÐòÌå»ýµÄ×Ö·û´®º¯Êý
-//ÉÐ´¦ÓÚ²âÊÔ½×¶Î£¬²»Ò»¶¨ÎÈ¶¨
+#pragma once
+//自己写的 & 从网上抄来的用于减小程序体积的字符串函数
+//没有“安全功能”，可能不如_s系列稳定
 //
 //by zouxiaofei1 2015 - 2021
 //
@@ -22,49 +22,37 @@ int myatoi(char* str) {
 	int sign = 1;
 
 	/* 略过空白 */
-	while (*str == ' ') {
-		str++;
-	}
+	while (*str == ' ') ++str;
 
 	if (*str == '-' || *str == '+') {
 		sign = 1 - 2 * (*str++ == '-');/* 耍了个小聪明，也可以分开写 */
 	}
-
 	while ((*str >= '0') && (*str <= '9')) {
 		/* 每次取得新值前检测是否在[0，2,147,483,647]之间，防止溢出 */
 		if (data > INT_MAX / 10 || (data == INT_MAX / 10 && (str[i] > '7'))) {/* 7为常量值的最后一位数字，正负均满足要求 */
-			if (sign == -1) {
-				return INT_MIN;
-			}
-			else {
-				return INT_MAX;
-			}
+			if (sign == -1) return INT_MIN;else return INT_MAX;
 		}
-
 		data = data * 10 + (*str++ - '0');
 	}
-
 	return data * sign;
 }
 
 char* mystrrchr(const char* str, int ch)
 {
 	char* start = (char*)str;
-	while (*str++)/*get the end of the string*/
-		;
-	while (--str != start && *str != (char)ch)
-		;
-	if (*str == (char)ch)
-		return((char*)str);
+	while (*str++);/*get the end of the string*/
+		
+	while (--str != start && *str != (char)ch);
+		
+	if (*str == (char)ch)return((char*)str);
+		
 	return NULL;
-
 }
 
 char* mystrcat(char* dst, const char* src)
 {
 	char* temp = dst;
-	while (*temp != '\0')
-		temp++;
+	while (*temp != '\0')temp++;
 	while ((*temp++ = *src++) != '\0');
 
 	return dst;
@@ -76,10 +64,7 @@ char* mystrcpy(char* _Dest, const char* _Source)
 		return NULL;
 	char* ret = _Dest;
 	int i = 0;
-	for (i = 0; _Source[i] != '\0'; i++)
-	{
-		_Dest[i] = _Source[i];
-	}
+	for (i = 0; _Source[i] != '\0'; i++)_Dest[i] = _Source[i];
 	_Dest[i] = '\0';
 	return ret;
 }
@@ -88,83 +73,44 @@ int mystrlen(const char* StrDest)
 {
 	int i;
 	i = 0;
-	while ((*StrDest++) != '\0')
-	{
-		i++;
-	}//这个循环体意思是从字符串第一个字符起计数，只遇到字符串结束标志'\0’才停止计数
+	while ((*StrDest++) != '\0')i++;//这个循环体意思是从字符串第一个字符起计数，只遇到字符串结束标志'\0’才停止计数
 	return i;
 }
 
 wchar_t* mywcscpy(wchar_t* dest, const wchar_t* source)
 {
-	if (NULL == dest || NULL == source)
-	{
-		return NULL;
-	}
+	if (NULL == dest || NULL == source)return NULL;
 	else
 	{
 		wchar_t* p = dest;
-		while (*dest++ = *source++)
-		{
-		}
+		while (*dest++ = *source++);
 		return p;
 	}
 }
 
 wchar_t* myscpy(wchar_t* dest, const wchar_t* source)
 {
-	if (NULL == dest || NULL == source)
-	{
-		return NULL;
-	}
+	if (NULL == dest || NULL == source)return NULL;
 	else
 	{
 		wchar_t* p = dest;
-		while (*dest++ = *source++)
-		{
-		}
+		while (*dest++ = *source++);
 		return p;
 	}
 }
 int mywcscmp(const wchar_t* src, const wchar_t* dst)//weak
 {
-	//while (!(ret = *(wchar_t*)src - *(wchar_t*)dst) && *dst)
-	/*while (!(ret = *(wchar_t*)src - *(wchar_t*)dst) && *dst)
-	{
-		++src;
-		++dst;
-	}
-	if (ret < 0) ret = -1;
-	else if (ret > 0) ret = 1;
-	return ret;*/
 	while ((*src == *dst) && *dst)++src, ++dst;
 	if (*src == *dst)return 0; else return 1;
 }
 
-__forceinline bool isSign(wchar_t c)
-{
-	return (c == L'+' || c == L'-');
-}
+__forceinline bool isSign(wchar_t c){return (c == L'+' || c == L'-');}
 
-__forceinline bool isDigit(wchar_t c)
-{
-	return (c >= L'0' && c <= L'9');
-}
-
-//bool miniwcsstr(wchar_t chr, const wchar_t* str) {
-//	while (*str) {
-//		if (chr == *str) return true;
-//		str++;
-//	}
-//	return false;
-//}
+__forceinline bool isDigit(wchar_t c){return (c >= L'0' && c <= L'9');}
 
 const wchar_t* mywcschr(const wchar_t* str, wchar_t c) {
-	for (; *str != 0; ++str) {
-		if (*str == c) {
-			return str;
-		}
-	}
+	for (; *str != 0; ++str) 
+		if (*str == c) return str;
 	return NULL;
 }
 
@@ -176,10 +122,7 @@ int mywtoi(wchar_t* str) {
 	{
 		while (str[idx])
 		{
-			if ((num * sign) >= INT_MAX || (num * sign) <= INT_MIN)
-			{
-				break;
-			}
+			if ((num * sign) >= INT_MAX || (num * sign) <= INT_MIN)break;
 
 			if (isDigit(str[idx]))
 			{
@@ -201,27 +144,24 @@ int mywtoi(wchar_t* str) {
 				else
 					break;
 			}
-
 			idx++;
 		}
 	}
-
 	rst = (num * sign >= INT_MAX) ? INT_MAX : (num * sign <= INT_MIN ? INT_MIN : (int)(num & 0x000000007FFFFFFF) * sign);
 
 	return rst;
 }
-wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)//const±£»¤Ô´×Ö·û´®
+wchar_t* mywcsrchr(wchar_t* str, wchar_t ch)
 {
 	int len = mywcslen(str);
-	wchar_t* last = str + len - 1;//¶¨ÒåÒ»¸ö±äÁ¿last£¬Ö¸ÏòstrµÄ×îºóÒ»¸ö×Ö·û
-
+	wchar_t* last = str + len - 1;
 	while (last != str)
 	{
 		if (*last == ch)
 			return last;
-		last--;
+		--last;
 	}
-	return NULL;//Èç¹ûÃ»ÓÐÕÒµ½£¬º¯Êý·µ»ØÒ»¸öNULLÖ¸Õë
+	return NULL;
 }
 void* mymemcpy(void* dest, const void* src, size_t n)
 {
@@ -229,9 +169,7 @@ void* mymemcpy(void* dest, const void* src, size_t n)
 		return NULL;
 	char* tempDest = (char*)dest;
 	char* tempSrc = (char*)src;
-
-	while (n-- > 0)
-		*tempDest++ = *tempSrc++;
+	while (n-- > 0)*tempDest++ = *tempSrc++;
 	return dest;
 }
 #ifndef _WIN64
@@ -265,8 +203,6 @@ void myZeroMemory(void* src, size_t count)
 
 #endif // _WIN64
 
-
-
 wchar_t* __cdecl mywcsstr(
 	const wchar_t* wcs1,
 	const wchar_t* wcs2
@@ -286,12 +222,10 @@ wchar_t* __cdecl mywcsstr(
 		while (*s1 && *s2 && !(*s1 - *s2))
 			++s1, ++s2;
 
-		if (!*s2)
-			return(cp);
+		if (!*s2)return(cp);
 
 		cp++;
 	}
-
 	return 0;
 }
 void mywcslwr(wchar_t* src)
@@ -318,35 +252,30 @@ void mywcscat(wchar_t* dst, const wchar_t* src)
 void myitow(int num, wchar_t* str, int radix)
 {
 	(radix);
-	/* Ë÷Òý±í */
 	wchar_t index[] = L"0123456789";
-	unsigned unum; /* ÖÐ¼ä±äÁ¿ */
+	unsigned unum;
 	int i = 0, j, k;
-	/* È·¶¨unumµÄÖµ */
-	if (num < 0) /* Ê®½øÖÆ¸ºÊý */
+	if (num < 0)
 	{
 		unum = (unsigned)-num;
 		str[i++] = L'-';
 	}
-	else unum = (unsigned)num; /* ÆäËüÇé¿ö */
-	/* ÄæÐò */
+	else unum = (unsigned)num;
 	do
 	{
 		str[i++] = index[unum % 10];
 		unum /= 10;
 	} while (unum);
 	str[i] = 0;
-	/* ×ª»» */
-	if (str[0] == L'-') k = 1; /* Ê®½øÖÆ¸ºÊý */
+	if (str[0] == L'-') k = 1;
 	else k = 0;
-	/* ½«Ô­À´µÄ¡°/2¡±¸ÄÎª¡°/2.0¡±£¬±£Ö¤µ±numÔÚ16~255Ö®¼ä£¬radixµÈÓÚ16Ê±£¬Ò²ÄÜµÃµ½ÕýÈ·½á¹û */
 	wchar_t temp;
 	for (j = k; j <= (i - 1) / (float)2.0; j++)
 	{
 
 		temp = str[j];
 		str[j] = str[i - j - 1 + k];
-		str[i - j - 1 + k] = temp;// s(str[j]);
+		str[i - j - 1 + k] = temp;
 	}
 }
 
@@ -386,10 +315,7 @@ char* myitoa(int num, char* str, int radix)
 	} while (unum);
 	str[i] = '\0';
 	/*逆序*/
-	if (str[0] == '-')
-		k = 1;/*十进制负数*/
-	else
-		k = 0;
+	if (str[0] == '-')k = 1;/*十进制负数*/else k = 0;
 
 	for (j = k; j <= (i - 1) / 2; j++)
 	{

@@ -1,6 +1,6 @@
-//ÓÃGetAsyncKeyStateº¯Êý×Ô¶¨ÒåµÄ¿ì½Ý¼üÏµÍ³
-//²»»áºÍÆäËûµÄ¿ì½Ý¼ü³åÍ»
-//È±µãÊÇ²»ÄÜÔÚÐéÄâ×ÀÃæÖÐÊ¹ÓÃ
+//ç”¨GetAsyncKeyStateå‡½æ•°è‡ªå®šä¹‰çš„å¿«æ·é”®ç³»ç»Ÿ
+//ä¸ä¼šå’Œå…¶ä»–çš„å¿«æ·é”®å†²çª
+//ç¼ºç‚¹æ˜¯ä¸èƒ½åœ¨è™šæ‹Ÿæ¡Œé¢ä¸­ä½¿ç”¨
 //
 //by zouxiaofei1 2015 - 2021
 
@@ -44,7 +44,7 @@ __forceinline void InitHotKey()
 }
 
 BOOL AutoRegisterHotKey(HWND hwnd, int id, UINT Ms, UINT Vk)
-{//×Ô¶¯×¢²áÈÈ¼ü
+{//è‡ªåŠ¨æ³¨å†Œçƒ­é”®
 	if (id >= MAX_HOTKEY) {  return false; }
 	Hotkey[id].id = id;
 	Hotkey[id].Enabled = true;

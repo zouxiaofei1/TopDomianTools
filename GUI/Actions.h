@@ -1,5 +1,5 @@
-//ÎªÁË¼õ¶ÌGUI.cpp³¤¶È
-//Ò»²¿·ÖºÍÖ÷³ÌĞòÖĞClass¡¢È«¾Ö±äÁ¿Ã»ÓĞ¹ØÏµº¯Êı±»·ÅÔÚÕâÀï
+//ä¸ºäº†å‡çŸ­GUI.cppé•¿åº¦
+//ä¸€éƒ¨åˆ†å’Œä¸»ç¨‹åºä¸­Classã€å…¨å±€å˜é‡æ²¡æœ‰å…³ç³»å‡½æ•°è¢«æ”¾åœ¨è¿™é‡Œ
 //by zouxiaofei1 2015 - 2021
 
 #pragma once
@@ -11,7 +11,7 @@ VOID LockCursor();
 DWORD WINAPI RestartThread(LPVOID pM);
 #define SE_SHUTDOWN_PRIVILEGE  0x13
 
-bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//ÃüÁîĞĞµ÷ÓÃÕÒµ½"Ë«ÒıºÅ"
+bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//å‘½ä»¤è¡Œè°ƒç”¨æ‰¾åˆ°"åŒå¼•å·"
 {
 	wchar_t tmp0;
 	wchar_t* tmp1 = mywcsstr(zxf, L"\"");
@@ -25,7 +25,7 @@ bool Findquotations(wchar_t* zxf, wchar_t zxf2[])//ÃüÁîĞĞµ÷ÓÃÕÒµ½"Ë«ÒıºÅ"
 	return true;
 }
 
-const unsigned int Hash(const wchar_t* str)//»ñÈ¡Ò»¸ö×Ö·û´®µÄ"É¢ÁĞÖµ"
+const unsigned int Hash(const wchar_t* str)//è·å–ä¸€ä¸ªå­—ç¬¦ä¸²çš„"æ•£åˆ—å€¼"
 {
 	const unsigned int seed = 131;
 	unsigned int hash = 0;
@@ -34,32 +34,32 @@ const unsigned int Hash(const wchar_t* str)//»ñÈ¡Ò»¸ö×Ö·û´®µÄ"É¢ÁĞÖµ"
 
 	return (hash & 0x7FFFFFFF);
 }
-VOID LockCursor()//Ëø×¡Êó±ê
+VOID LockCursor()//é”ä½é¼ æ ‡
 {
 	RECT rect;
 	rect.bottom = rect.top = GetSystemMetrics(SM_CYSCREEN);
-	rect.right = rect.left = GetSystemMetrics(SM_CXSCREEN);//°ÑÊó±êÏŞÖÆÔÚÓÒÏÂ½Ç
-	ClipCursor(&rect);//µ«ÊÇ°´windows¼ü»òÕßctrl+alt+del¾Í»á»Ö¸´
+	rect.right = rect.left = GetSystemMetrics(SM_CXSCREEN);//æŠŠé¼ æ ‡é™åˆ¶åœ¨å³ä¸‹è§’
+	ClipCursor(&rect);//ä½†æ˜¯æŒ‰windowsé”®æˆ–è€…ctrl+alt+delå°±ä¼šæ¢å¤
 }
 
-__forceinline VOID RestartDirect()//´´½¨¿ìËÙÖØÆôµÄÏß³Ì
+__forceinline VOID RestartDirect()//åˆ›å»ºå¿«é€Ÿé‡å¯çš„çº¿ç¨‹
 {
 	CreateThread(0, 0, RestartThread, 0, 0, 0);
 }
 
-DWORD WINAPI  RestartThread(LPVOID pM)//¿ìËÙÖØÆô
-{//²»Ó¦Ö±½Óµ÷ÓÃ£¬·ñÔòÖ÷Ïß³Ì»á¿¨Ò»»á¶ù
+DWORD WINAPI  RestartThread(LPVOID pM)//å¿«é€Ÿé‡å¯
+{//ä¸åº”ç›´æ¥è°ƒç”¨ï¼Œå¦åˆ™ä¸»çº¿ç¨‹ä¼šå¡ä¸€ä¼šå„¿
 	(pM);
 	typedef int(__stdcall* PFN_RtlAdjustPrivilege)(int, BOOL, BOOL, int*);
 	typedef int(__stdcall* PFN_ZwShutdownSystem)(int);
 	HMODULE hModule = ::LoadLibrary(L"ntdll.dll");
 	if (hModule != NULL)
-	{//Ñ°ÕÒZwShutdownSystemµÄµØÖ·
+	{//å¯»æ‰¾ZwShutdownSystemçš„åœ°å€
 		PFN_RtlAdjustPrivilege pfnRtl = (PFN_RtlAdjustPrivilege)GetProcAddress(hModule, "RtlAdjustPrivilege"); PFN_ZwShutdownSystem
 			pfnShutdown = (PFN_ZwShutdownSystem)GetProcAddress(hModule, "ZwShutdownSystem");
 		if (pfnRtl != NULL && pfnShutdown != NULL)//
-		{//ÉêÇëSE_SHUTDOWN_PRIVILEGEÌáÈ¨£¿
-			int en = 0;//ÓĞÈ¤µÄÊÇÕâ¸öÈ¨ÏŞÔÚ·Ç¹ÜÀíÔ±ÏÂ¾ÍÄÜµÃµ½
+		{//ç”³è¯·SE_SHUTDOWN_PRIVILEGEææƒï¼Ÿ
+			int en = 0;//æœ‰è¶£çš„æ˜¯è¿™ä¸ªæƒé™åœ¨éç®¡ç†å‘˜ä¸‹å°±èƒ½å¾—åˆ°
 			int nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, TRUE, &en);
 			if (nRet == 0x0C000007C) nRet = pfnRtl(SE_SHUTDOWN_PRIVILEGE, TRUE, FALSE, &en);
 			nRet = pfnShutdown(1);//SH_SHUTDOWN = 0; //SH_RESTART = 1; //SH_POWEROFF = 2;
@@ -68,21 +68,21 @@ DWORD WINAPI  RestartThread(LPVOID pM)//¿ìËÙÖØÆô
 	return 0;
 }
 
-BOOL MyRemoveDirectory(wchar_t* FilePath)//ÓÉÓÚRemoveDirectoryµÄbug,ÎŞ·¨É¾³ıÄ³Ğ©º¬ÓĞÌØÊâ×Ö·ûµÄÎÄ¼ş¼Ğ
-{//Ê¹µÃAutoDeleteÖ´ĞĞÍê±Ïºó£¬¿ÉÄÜ»á²ĞÁôÉÙĞí¿ÕµÄÄ¿Â¼ÎŞ·¨É¾³ı¡£ÕâÀï³¢ÊÔµ÷ÓÃSHFileOperationÉ¾³ıËüÃÇ
+BOOL MyRemoveDirectory(wchar_t* FilePath)//ç”±äºRemoveDirectoryçš„bug,æ— æ³•åˆ é™¤æŸäº›å«æœ‰ç‰¹æ®Šå­—ç¬¦çš„æ–‡ä»¶å¤¹
+{//ä½¿å¾—AutoDeleteæ‰§è¡Œå®Œæ¯•åï¼Œå¯èƒ½ä¼šæ®‹ç•™å°‘è®¸ç©ºçš„ç›®å½•æ— æ³•åˆ é™¤ã€‚è¿™é‡Œå°è¯•è°ƒç”¨SHFileOperationåˆ é™¤å®ƒä»¬
 	size_t len = mywcslen(FilePath);
-	FilePath[len + 1] = FilePath[len + 1] = 0;//SHFileOperationÓĞÒ»¸öbug,ÎÄ¼şÄ¿Â¼µÄ×îºó 2 ¸ö×Ö·û¶¼±ØĞëÊÇNULL
+	FilePath[len + 1] = FilePath[len + 1] = 0;//SHFileOperationæœ‰ä¸€ä¸ªbug,æ–‡ä»¶ç›®å½•çš„æœ€å 2 ä¸ªå­—ç¬¦éƒ½å¿…é¡»æ˜¯NULL
 	SHFILEOPSTRUCT FileOp;
 	myZeroMemory(&FileOp, sizeof(FileOp));
 	FileOp.fFlags = FOF_NO_UI;
 	FileOp.pFrom = FilePath;
-	FileOp.pTo = NULL; //Ò»¶¨ÒªÊÇNULL
-	FileOp.wFunc = FO_DELETE; //É¾³ı²Ù×÷
-	return SHFileOperation(&FileOp) == 0;//³É¹¦·µ»Ø0
+	FileOp.pTo = NULL; //ä¸€å®šè¦æ˜¯NULL
+	FileOp.wFunc = FO_DELETE; //åˆ é™¤æ“ä½œ
+	return SHFileOperation(&FileOp) == 0;//æˆåŠŸè¿”å›0
 }
 
 BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
-{//ÓÃÄÚ²¿Ò»µãµÄº¯Êı»ñÈ¡ÏµÍ³°æ±¾
+{//ç”¨å†…éƒ¨ä¸€ç‚¹çš„å‡½æ•°è·å–ç³»ç»Ÿç‰ˆæœ¬
 	HMODULE hNtDll = GetModuleHandleW(L"NTDLL");
 
 	typedef int(__stdcall* tRtlGetVersion)(PRTL_OSVERSIONINFOW);
@@ -92,33 +92,33 @@ BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
 	return FALSE;
 }
 
-#pragma warning(disable:28159)//±àÒëÆ÷½¨ÒéÎÒÃÇÊ¹ÓÃIsWindows7OrGreater()ÕâÀàµÄº¯Êı
-//µ«ÊÇÕâÖÖº¯ÊıÖ»Ö§³Öwin7¼°ÒÔÉÏµÄÏµÍ³
-//ËùÒÔÎÒÃÇ¾Í²»ÌıÈ¡Õâ¸ö½¨ÒéÁË= =
+#pragma warning(disable:28159)//ç¼–è¯‘å™¨å»ºè®®æˆ‘ä»¬ä½¿ç”¨IsWindows7OrGreater()è¿™ç±»çš„å‡½æ•°
+//ä½†æ˜¯è¿™ç§å‡½æ•°åªæ”¯æŒwin7åŠä»¥ä¸Šçš„ç³»ç»Ÿ
+//æ‰€ä»¥æˆ‘ä»¬å°±ä¸å¬å–è¿™ä¸ªå»ºè®®äº†= =
 
 
 BOOL GetOSDisplayString(wchar_t* pszOS)
-{//»ñÈ¡ÏµÍ³°æ±¾µÄº¯Êı
+{//è·å–ç³»ç»Ÿç‰ˆæœ¬çš„å‡½æ•°
 	OSVERSIONINFOEX osvi;
 	BOOL bOsVersionInfoEx;
 #ifndef _WIN64
-	myZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//GetVersionExÓÃÀ´ÅĞ¶Ï°æ±¾Ğ§¹ûÒ»°ã²»ºÃ
+	myZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));//GetVersionExç”¨æ¥åˆ¤æ–­ç‰ˆæœ¬æ•ˆæœä¸€èˆ¬ä¸å¥½
 #endif
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//ÀıÈçÓÃËüÀ´ÅĞ¶ÏÒ»Ì¨win10µçÄÔ
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//µÃµ½µÄ½á¹û×ÜÊÇ6.2(9200)
-	if (!bOsVersionInfoEx) return FALSE;//²»ÄÜÕıÈ·ÏÔÊ¾ÏêÏ¸°æ±¾ºÅ
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);//ä¾‹å¦‚ç”¨å®ƒæ¥åˆ¤æ–­ä¸€å°win10ç”µè„‘
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);//å¾—åˆ°çš„ç»“æœæ€»æ˜¯6.2(9200)
+	if (!bOsVersionInfoEx) return FALSE;//ä¸èƒ½æ­£ç¡®æ˜¾ç¤ºè¯¦ç»†ç‰ˆæœ¬å·
 
-	wchar_t tmp[MAX_NUM];//(²»¹ı¶ÔÓÚwin7ÒÔÇ°µÄÏµÍ³ÓÃGetVersionExÃ»ÓĞÎÊÌâ)
+	wchar_t tmp[MAX_NUM];//(ä¸è¿‡å¯¹äºwin7ä»¥å‰çš„ç³»ç»Ÿç”¨GetVersionExæ²¡æœ‰é—®é¢˜)
 	myZeroMemory(tmp, sizeof(wchar_t) * 10);
-	myitow(osvi.dwMajorVersion, tmp, MAX_NUM);//´ó°æ±¾ºÅ
+	myitow(osvi.dwMajorVersion, tmp, MAX_NUM);//å¤§ç‰ˆæœ¬å·
 	mywcscpy(pszOS, tmp); mywcscat(pszOS, L".");
-	myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//Ğ¡°æ±¾ºÅ
+	myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//å°ç‰ˆæœ¬å·
 	mywcscat(pszOS, tmp); mywcscat(pszOS, L".");
 	myitow(osvi.dwBuildNumber, tmp, MAX_NUM);//build
 	mywcscat(pszOS, tmp);
 
 	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
-	{//win7¼°ÒÔºóÔòÊ¹ÓÃRtlGetVersion¸üºÃ
+	{//win7åŠä»¥ååˆ™ä½¿ç”¨RtlGetVersionæ›´å¥½
 		OSVERSIONINFOEXW ovi;
 #ifndef _WIN64
 		myZeroMemory(&ovi, sizeof(OSVERSIONINFOEXW));
@@ -130,18 +130,18 @@ BOOL GetOSDisplayString(wchar_t* pszOS)
 		osvi.dwBuildNumber = ovi.dwBuildNumber;
 		myitow(osvi.dwMajorVersion, tmp, MAX_NUM);
 		mywcscpy(pszOS, tmp); mywcscat(pszOS, L".");
-		myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//Æ´½Ó°æ±¾ºÅ
+		myitow(osvi.dwMinorVersion, tmp, MAX_NUM);//æ‹¼æ¥ç‰ˆæœ¬å·
 		mywcscat(pszOS, tmp); mywcscat(pszOS, L".");
 		myitow(osvi.dwBuildNumber, tmp, MAX_NUM);
 		mywcscat(pszOS, tmp);
 	}
 	return true;
 }
-#pragma warning(default:28159)//»Ö¸´¾¯¸æ
+#pragma warning(default:28159)//æ¢å¤è­¦å‘Š
 
 bool EnablePrivilege(LPCWSTR privilegeStr, HANDLE hToken);
 
-void CheckIP(wchar_t* a)//È¡±¾»úµÄipµØÖ·  
+void CheckIP(wchar_t* a)//å–æœ¬æœºçš„ipåœ°å€  
 {
 	WSADATA wsaData;
 #ifndef _WIN64
@@ -159,20 +159,20 @@ void CheckIP(wchar_t* a)//È¡±¾»úµÄipµØÖ·
 	myZeroMemory(wip, sizeof(wchar_t) * 20);
 	PHOSTENT hostinfo;
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) == 0)
-	{//¾ßÌåÔ­Àí²»Ì«Çå³ş£¬Ïê¼û°Ù¿Æ
+	{//å…·ä½“åŸç†ä¸å¤ªæ¸…æ¥šï¼Œè¯¦è§ç™¾ç§‘
 		if (gethostname(name, sizeof(name)) == 0)
 			if ((hostinfo = gethostbyname(name)) != NULL)
 			{
 				ip = inet_ntoa(*(struct in_addr*)*hostinfo->h_addr_list);
 				MultiByteToWideChar(CP_ACP, 0, ip, -1, wip, 20);
-			}//ÇåÀí
+			}//æ¸…ç†
 		WSACleanup();
 	}
 	mywcscat(a, wip);
 }
 
 BOOL TakeOwner(LPCWSTR FilePath)
-{//»ñÈ¡Ö¸¶¨ÎÄ¼şµÄËùÓĞÈ¨£¬ÔÚÉ¾³ısethcµÈÊ±ÒªÓÃ
+{//è·å–æŒ‡å®šæ–‡ä»¶çš„æ‰€æœ‰æƒï¼Œåœ¨åˆ é™¤sethcç­‰æ—¶è¦ç”¨
 	CHAR UserName[36];
 	//s(0);
 	DWORD cbUserName = sizeof(char) * 36;
@@ -191,7 +191,7 @@ BOOL TakeOwner(LPCWSTR FilePath)
 	BOOL Ret = FALSE;
 
 	if (EnablePrivilege(SE_TAKE_OWNERSHIP_NAME, 0) && EnablePrivilege(SE_RESTORE_NAME, 0))
-	{//ÒªÏÈÉêÇëSE_TAKE_OWNERSHIPÌØÈ¨
+	{//è¦å…ˆç”³è¯·SE_TAKE_OWNERSHIPç‰¹æƒ
 		GetUserNameA(UserName, &cbUserName);
 		if (LookupAccountNameA(NULL, UserName, &Sid, &cbSid, DomainBuffer, &cbDomainBuffer, &eUse))
 		{
@@ -199,7 +199,7 @@ BOOL TakeOwner(LPCWSTR FilePath)
 
 			BuildExplicitAccessWithName(&Ea, tmp, GENERIC_ALL, GRANT_ACCESS, SUB_CONTAINERS_AND_OBJECTS_INHERIT);
 			if (SetEntriesInAclW(1, &Ea, OldDacl, &Dacl) == ERROR_SUCCESS)
-			{//Ö±½Ó²»¸´ÖÆ¾ÉµÄace,²»È»ÎŞ·¨È¥³ıÎÄ¼şµÄ¾Ü¾øÈ¨
+			{//ç›´æ¥ä¸å¤åˆ¶æ—§çš„ace,ä¸ç„¶æ— æ³•å»é™¤æ–‡ä»¶çš„æ‹’ç»æƒ
 				SetNamedSecurityInfoW((LPWSTR)FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &Sid, NULL, NULL, NULL);
 				if (SetNamedSecurityInfoW((LPWSTR)FilePath, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &Sid, NULL, Dacl, NULL) == ERROR_SUCCESS)
 					Ret = TRUE;
@@ -210,7 +210,7 @@ BOOL TakeOwner(LPCWSTR FilePath)
 	return Ret;
 }
 BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
-{//ÓÃCreateProcessÀ´´´½¨½ø³Ì
+{//ç”¨CreateProcessæ¥åˆ›å»ºè¿›ç¨‹
 	STARTUPINFO s;
 	myZeroMemory(&s, sizeof(STARTUPINFO));
 	if (si == nullptr)si = &s;
@@ -225,23 +225,23 @@ BOOL RunEXE(wchar_t* CmdLine, DWORD flag, STARTUPINFO* si)
 }
 
 ATOM MyRegisterClass(HINSTANCE h, WNDPROC proc, LPCWSTR ClassName, unsigned int style)
-{//·â×°¹ıµÄ×¢²áClassº¯Êı.
+{//å°è£…è¿‡çš„æ³¨å†ŒClasså‡½æ•°.
 	WNDCLASSEXW wcex;
 	myZeroMemory(&wcex, sizeof(WNDCLASSEXW));
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = style;
 	wcex.lpfnWndProc = proc;
 	wcex.hInstance = h;
-	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//Õâ¸öº¯Êı²»Ö§³Ö×Ô¶¨Òå´°ÌåÍ¼±ê
+	wcex.hIcon = LoadIcon(h, MAKEINTRESOURCE(IDI_GUI));//è¿™ä¸ªå‡½æ•°ä¸æ”¯æŒè‡ªå®šä¹‰çª—ä½“å›¾æ ‡
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = nullptr;
-	wcex.lpszClassName = ClassName;//×Ô¶¨ÒåClassNameºÍWndProc
-	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//Ğ¡Í¼±ê
+	wcex.lpszClassName = ClassName;//è‡ªå®šä¹‰ClassNameå’ŒWndProc
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_GUI));//å°å›¾æ ‡
 	return RegisterClassExW(&wcex);
 }
 
-BOOL RunWithAdmin(wchar_t* path)//ÒÔ¹ÜÀíÔ±Éí·İÔËĞĞÒ»¸ö³ÌĞò.
+BOOL RunWithAdmin(wchar_t* path)//ä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œä¸€ä¸ªç¨‹åº.
 {
 	SHELLEXECUTEINFO info;
 	myZeroMemory(&info, sizeof(SHELLEXECUTEINFO));
@@ -252,7 +252,7 @@ BOOL RunWithAdmin(wchar_t* path)//ÒÔ¹ÜÀíÔ±Éí·İÔËĞĞÒ»¸ö³ÌĞò.
 	return ShellExecuteEx(&info);
 }
 
-bool MyGetInfo(__out LPSYSTEM_INFO lpSystemInfo)//µÃµ½»·¾³±äÁ¿
+bool MyGetInfo(__out LPSYSTEM_INFO lpSystemInfo)//å¾—åˆ°ç¯å¢ƒå˜é‡
 {
 	if (NULL == lpSystemInfo)return false;
 	typedef void(WINAPI* LPFN_GetNativeSystemInfo)(LPSYSTEM_INFO lpSystemInfo);
@@ -277,7 +277,7 @@ typedef LONG(__stdcall* PROCNTQSIP)(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 
 DWORD GetParentProcessID(DWORD dwProcessId)
-{//»ñÈ¡¸¸½ø³ÌµÄPID
+{//è·å–çˆ¶è¿›ç¨‹çš„PID
 	LONG status = 0;
 	DWORD dwParentPID = 0;
 	HANDLE hProcess = 0;
@@ -304,8 +304,8 @@ DWORD GetParentProcessID(DWORD dwProcessId)
 	return dwParentPID;
 }
 
-int CaptureImage()
-{//½ØÍ¼²¢·ÅÔÚC:\SAtempÄÚ
+int CaptureImage(const wchar_t *FilePath)//æˆªå›¾å¹¶æ”¾åœ¨æŒ‡å®šæ–‡ä»¶å¤¹å†…
+{
 	HDC hdcScreen, hdcMemDC = NULL;
 	HBITMAP hbmScreen = NULL;
 	BITMAP bmpScreen;
@@ -317,7 +317,7 @@ int CaptureImage()
 	CHAR* lpbitmap;
 	HANDLE hFile;
 	DWORD dwSizeofDIB, dwBytesWritten = 0;
-	hdcScreen = GetDC(NULL); // »ñÈ¡×ÀÃæDC
+	hdcScreen = GetDC(NULL); // è·å–æ¡Œé¢DC
 	hdcMemDC = CreateCompatibleDC(hdcScreen);
 	DEVMODE curDevMod;
 	myZeroMemory(&curDevMod, sizeof(DEVMODE));
@@ -342,7 +342,7 @@ int CaptureImage()
 	lpbitmap = (char*)GlobalLock(hDIB);
 
 	GetDIBits(hdcScreen, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
-	hFile = CreateFile(L"C:\\SAtemp\\ScreenShot.bmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFile = CreateFile(FilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 	bmfHeader.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER);
 	bmfHeader.bfSize = dwSizeofDIB;
@@ -363,7 +363,7 @@ __forceinline void SetProcessAware()
 {
 	typedef DWORD(CALLBACK* SEtProcessDPIAware)(void);
 	SEtProcessDPIAware SetProcessDPIAware = 0;
-	HMODULE huser = LoadLibrary(L"user32.dll");//ÏÔÊ¾½çÃæÊ±ĞèÒª¹Ø±ÕÏµÍ³µÄDPIËõ·Å
+	HMODULE huser = LoadLibrary(L"user32.dll");//æ˜¾ç¤ºç•Œé¢æ—¶éœ€è¦å…³é—­ç³»ç»Ÿçš„DPIç¼©æ”¾
 	if (huser)SetProcessDPIAware = (SEtProcessDPIAware)GetProcAddress(huser, "SetProcessDPIAware");
 	if (SetProcessDPIAware != NULL)SetProcessDPIAware();
 }
@@ -371,31 +371,31 @@ __forceinline void SetProcessAware()
 #pragma warning(disable:4312)
 int myrand();
 void change(void* Src, bool wow)
-{//2016°æ¼«ÓòµÄKnockÃÜÂë
+{//2016ç‰ˆæåŸŸçš„Knockå¯†ç 
 	unsigned int v5, v10;
 	BYTE* v6, * v7, v8, * v9, * i;
-	HKEY phkResult;//¼üÖµµÄ¾ä±ú
+	HKEY phkResult;//é”®å€¼çš„å¥æŸ„
 	LPCWSTR lpSubKeya;
 
 	phkResult = 0;
 
 	if (wow)RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
-	else//¸ù¾İÏµÍ³Î»Êı´ò¿ª¼üÖµËùÔÚµÄÄ¿Â¼
+	else//æ ¹æ®ç³»ç»Ÿä½æ•°æ‰“å¼€é”®å€¼æ‰€åœ¨çš„ç›®å½•
 		RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\TopDomain\\e-Learning Class\\Student", 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &phkResult);
 
-	//ÕâÀï½éÉÜ2016¡¢2017°æKnockÃÜÂëµÄ¼ÓÃÜ·½Ê½
+	//è¿™é‡Œä»‹ç»2016ã€2017ç‰ˆKnockå¯†ç çš„åŠ å¯†æ–¹å¼
 	//
-	//¼«ÓòÔÚ2016Äê¶Ô¼ÓÃÜ·½Ê½½øĞĞÁË½Ï´óµÄ¸ü¸Ä¡£
-	//±ÈÈç£¬ÃÜÂë¼üÖµ±»»»ÁËÒ»¸öÄ¿Â¼£¬»»µ½ÁËTopDomain\e-Learning Class\StudentÄ¿Â¼´æ´¢
-	//»¹ÓĞ¾ÍÊÇ£¬ÃÜÂëµÄ¼ÓÃÜÇ¿¶È±ä´óÁËÒ»Ğ©(²»¹ı»¹ÊÇ²»´ó)
-	//Õâ¶Î´úÂëÊÇ2018ÄêÓÃIDA·´±àÒëµÃÀ´µÄ£¬ËùÒÔ±äÁ¿ÃûºÍ·ç¸ñ»áÓĞĞ©Ææ¹Ö
+	//æåŸŸåœ¨2016å¹´å¯¹åŠ å¯†æ–¹å¼è¿›è¡Œäº†è¾ƒå¤§çš„æ›´æ”¹ã€‚
+	//æ¯”å¦‚ï¼Œå¯†ç é”®å€¼è¢«æ¢äº†ä¸€ä¸ªç›®å½•ï¼Œæ¢åˆ°äº†TopDomain\e-Learning Class\Studentç›®å½•å­˜å‚¨
+	//è¿˜æœ‰å°±æ˜¯ï¼Œå¯†ç çš„åŠ å¯†å¼ºåº¦å˜å¤§äº†ä¸€äº›(ä¸è¿‡è¿˜æ˜¯ä¸å¤§)
+	//è¿™æ®µä»£ç æ˜¯2018å¹´ç”¨IDAåç¼–è¯‘å¾—æ¥çš„ï¼Œæ‰€ä»¥å˜é‡åå’Œé£æ ¼ä¼šæœ‰äº›å¥‡æ€ª
 	//
-	v5 = (myrand() % 40 + 83) & 0xFFFFFFFC;//Ê×ÏÈ£¬Ëæ»úµÃµ½¼ÓÃÜºóÃÜÂëµÄ³¤¶È£¬ÏòÏÂÈ¡ÕûÎª4µÄ±¶Êı
-	v6 = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, v5);//ÉêÇëÏàÓ¦µÄÄÚ´æ¿Õ¼ä
-	if (v6 == 0)return;//ÃÜÎÄ´¢´æÔÚv6ÖĞ
-	v7 = v6;//v7ÊÇÖ¸Ïòv6¿ªÍ·µÄÖ¸Õë
+	v5 = (myrand() % 40 + 83) & 0xFFFFFFFC;//é¦–å…ˆï¼Œéšæœºå¾—åˆ°åŠ å¯†åå¯†ç çš„é•¿åº¦ï¼Œå‘ä¸‹å–æ•´ä¸º4çš„å€æ•°
+	v6 = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, v5);//ç”³è¯·ç›¸åº”çš„å†…å­˜ç©ºé—´
+	if (v6 == 0)return;//å¯†æ–‡å‚¨å­˜åœ¨v6ä¸­
+	v7 = v6;//v7æ˜¯æŒ‡å‘v6å¼€å¤´çš„æŒ‡é’ˆ
 	if (v5 >> 1)
-	{//ÏÈ¸øv6Ã¿¸öÎ»ÉÏ¶¼Ğ´ÉÏËæ»úÖµ
+	{//å…ˆç»™v6æ¯ä¸ªä½ä¸Šéƒ½å†™ä¸Šéšæœºå€¼
 		lpSubKeya = (LPCWSTR)(v5 >> 1);
 		do
 		{
@@ -405,13 +405,13 @@ void change(void* Src, bool wow)
 		} while (lpSubKeya);
 	}
 
-	v8 = myrand() % (v5 - 68) + 2;//È¡Ò»¸ö´óĞ¡Îª2 - 57µÄËæ»úÖµ
-	*v6 = v8;//v6µÄµÚÒ»Î»ºÍ×îºóÒ»Î»¶¼±êÉÏÕâ¸öÖµ
-	v6[v5 - 1] = v8;//ÒÔÕâ¸öÖµÎªÃÜÂë×Ö¶ÎµÄ¿ªÊ¼£¬½«Õâ¸öÖµ¼ÇÎªv8
-	if (Src && mywcslen((const wchar_t*)Src))//Èç¹ûÃÜÂë²»Îª¿Õ£¬½«ÃÜÂëÃ÷ÎÄÏÈ¸´ÖÆµ½v8´¦
+	v8 = myrand() % (v5 - 68) + 2;//å–ä¸€ä¸ªå¤§å°ä¸º2 - 57çš„éšæœºå€¼
+	*v6 = v8;//v6çš„ç¬¬ä¸€ä½å’Œæœ€åä¸€ä½éƒ½æ ‡ä¸Šè¿™ä¸ªå€¼
+	v6[v5 - 1] = v8;//ä»¥è¿™ä¸ªå€¼ä¸ºå¯†ç å­—æ®µçš„å¼€å§‹ï¼Œå°†è¿™ä¸ªå€¼è®°ä¸ºv8
+	if (Src && mywcslen((const wchar_t*)Src))//å¦‚æœå¯†ç ä¸ä¸ºç©ºï¼Œå°†å¯†ç æ˜æ–‡å…ˆå¤åˆ¶åˆ°v8å¤„
 		mymemcpy(&v6[v8], Src, 2 * mywcslen((const wchar_t*)Src) + 2);
 	else
-	{//ÈôÃÜÂëÎª¿Õ£¬Ôò½«v8ºÍv8µÄÏÂÒ»×Ö½Ú¶¼ÉèÎª¿Õ
+	{//è‹¥å¯†ç ä¸ºç©ºï¼Œåˆ™å°†v8å’Œv8çš„ä¸‹ä¸€å­—èŠ‚éƒ½è®¾ä¸ºç©º
 		v9 = &v6[v8];
 		*v9 = 0;
 		v9[1] = 0;
@@ -419,40 +419,40 @@ void change(void* Src, bool wow)
 	v10 = v5 >> 2;
 
 	for (i = v6; v10; --v10)
-	{//´ÓÍ·µ½Î²°ÑÃÜÎÄºÍ0x150f0f15Òì»ò
+	{//ä»å¤´åˆ°å°¾æŠŠå¯†æ–‡å’Œ0x150f0f15å¼‚æˆ–
 		*(DWORD*)i ^= 0x150f0f15u;
 		i += 4;
 	}
 
-	DWORD ret, dwSize = 999, dwType = REG_BINARY; BYTE data[1000];//³¢ÊÔ´ò¿ª¼üÖµ£¬È»ºó½«v6Éèµ½KnockºÍKnock1ÖĞ
+	DWORD ret, dwSize = 999, dwType = REG_BINARY; BYTE data[1000];//å°è¯•æ‰“å¼€é”®å€¼ï¼Œç„¶åå°†v6è®¾åˆ°Knockå’ŒKnock1ä¸­
 	ret = RegQueryValueExW(phkResult, L"Knock", 0, &dwType, (LPBYTE)data, &dwSize);
 
-	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);//×ÜÌåÀ´Ëµ£¬¼«ÓòµÄKnockÃÜÂë¶ÔÓÚ´ó¶àÊıÑ§Éú¶øÑÔ·Ç³£ÓĞÃÔ»óĞÔ----
-	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//Í¬ÑùµØ£¬¶Ô¼«ÓòµÄ´úÀíÉÌËÆºõÒ²ÓĞÃÔ»óĞÔ
-	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);//ËùÒÔËûÃÇ¸ø³ÌĞò¼ÓÁËºóÃÅ:mythware_super_password£¬ÎŞÊÓÏŞÖÆµÄ³¬¼¶ÃÜÂë
-	HeapFree(GetProcessHeap(), 0, v6);//ÓÚÊÇ·Ç³£ÓĞÃÔ»óĞÔµÄÃÜÂë¾ÍÕâÑùÃ»ÓÃÁË¡£
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock", 0, 3u, v6, v5);//æ€»ä½“æ¥è¯´ï¼ŒæåŸŸçš„Knockå¯†ç å¯¹äºå¤§å¤šæ•°å­¦ç”Ÿè€Œè¨€éå¸¸æœ‰è¿·æƒ‘æ€§----
+	ret = RegQueryValueExW(phkResult, L"Knock1", 0, &dwType, (LPBYTE)data, &dwSize);//åŒæ ·åœ°ï¼Œå¯¹æåŸŸçš„ä»£ç†å•†ä¼¼ä¹ä¹Ÿæœ‰è¿·æƒ‘æ€§
+	if (ret == 0)RegSetValueExW(phkResult, L"Knock1", 0, 3u, v6, v5);//æ‰€ä»¥ä»–ä»¬ç»™ç¨‹åºåŠ äº†åé—¨:mythware_super_passwordï¼Œæ— è§†é™åˆ¶çš„è¶…çº§å¯†ç 
+	HeapFree(GetProcessHeap(), 0, v6);//äºæ˜¯éå¸¸æœ‰è¿·æƒ‘æ€§çš„å¯†ç å°±è¿™æ ·æ²¡ç”¨äº†ã€‚
 	RegCloseKey(phkResult);
 }
 #pragma warning(default:4244)
 
-BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileType)//ÊÍ·ÅÖ¸¶¨×ÊÔ´
+BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileType)//é‡Šæ”¾æŒ‡å®šèµ„æº
 {
-	if (GetFileAttributes(strFileName) != INVALID_FILE_ATTRIBUTES) { return TRUE; }//×ÊÔ´ÒÑ´æÔÚ->ÍË³ö
+	if (GetFileAttributes(strFileName) != INVALID_FILE_ATTRIBUTES) { return TRUE; }//èµ„æºå·²å­˜åœ¨->é€€å‡º
 
-	DWORD   dwWrite = 0;// ×ÊÔ´´óĞ¡  
+	DWORD   dwWrite = 0;// èµ„æºå¤§å°  
 
-	// ´´½¨ÎÄ¼ş  
+	// åˆ›å»ºæ–‡ä»¶  
 	HANDLE  hFile = CreateFile(strFileName, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
 		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)return FALSE;//´´½¨Ê§°Ü->ÍË³ö
+	if (hFile == INVALID_HANDLE_VALUE)return FALSE;//åˆ›å»ºå¤±è´¥->é€€å‡º
 
-	// ²éÕÒ×ÊÔ´ÎÄ¼şÖĞ¡¢¼ÓÔØ×ÊÔ´µ½ÄÚ´æ¡¢µÃµ½×ÊÔ´´óĞ¡  
+	// æŸ¥æ‰¾èµ„æºæ–‡ä»¶ä¸­ã€åŠ è½½èµ„æºåˆ°å†…å­˜ã€å¾—åˆ°èµ„æºå¤§å°  
 	HRSRC   hrsc = FindResource(NULL, MAKEINTRESOURCE(wResID), strFileType);
 	if (!hrsc)return FALSE;
 	HGLOBAL hG = LoadResource(NULL, hrsc);
 	const DWORD dwSize = SizeofResource(NULL, hrsc);
 
-	// Ğ´ÈëÎÄ¼ş  
+	// å†™å…¥æ–‡ä»¶  
 	WriteFile(hFile, hG, dwSize, &dwWrite, NULL);
 	CloseHandle(hFile);
 	return TRUE;
@@ -460,14 +460,14 @@ BOOL ReleaseRes(const wchar_t* strFileName, WORD wResID, const wchar_t* strFileT
 
 void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, float DPI)
 {
-	// ÎÄ¼ş¾ä±ú   
+	// æ–‡ä»¶å¥æŸ„   
 	HANDLE FileHandle;
-	// ¸ßÎ»Êı¾İ¡¢µÍÎ»Êı¾İ   
+	// é«˜ä½æ•°æ®ã€ä½ä½æ•°æ®   
 	DWORD SizeH, SizeL, ReadCount;
 
 	IStream* pstream = NULL;
 	IPicture* pPic = NULL;
-	// ÒÔ¶ÁµÄ·½Ê½´ò¿ªÍ¼Ïñ   
+	// ä»¥è¯»çš„æ–¹å¼æ‰“å¼€å›¾åƒ   
 	FileHandle = CreateFile(lpFilePath,
 		GENERIC_READ,
 		FILE_SHARE_READ,
@@ -475,24 +475,24 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL
 	);
-	// ´ò¿ªÊ§°Ü   
+	// æ‰“å¼€å¤±è´¥   
 	if (FileHandle == INVALID_HANDLE_VALUE)
 		return;
-	// »ñÈ¡Í¼ÏñÎÄ¼ş´óĞ¡   
+	// è·å–å›¾åƒæ–‡ä»¶å¤§å°   
 	SizeL = GetFileSize(FileHandle, &SizeH);
-	// ÎªÍ¼ÏñÎÄ¼ş   
-	// ·ÖÅäÒ»¸ö¿ÉÒÆ¶¯µÄÈ«¾ÖµÄ¶ÑÄÚ´æ   
+	// ä¸ºå›¾åƒæ–‡ä»¶   
+	// åˆ†é…ä¸€ä¸ªå¯ç§»åŠ¨çš„å…¨å±€çš„å †å†…å­˜   
 	HGLOBAL pBuffer = GlobalAlloc(GMEM_MOVEABLE, SizeL);
-	// ·ÖÅä¶ÔÄÚ´æÊ§°Ü   
+	// åˆ†é…å¯¹å†…å­˜å¤±è´¥   
 	if (pBuffer == NULL)
 	{
 		CloseHandle(FileHandle);
 		return;
 	}
-	// Ö¸Ïò¶ÑÄÚ´æµÄÖ¸Õë×ª»»ÎªÍ¨ÓÃµÄÖ¸ÕëÀàĞÍÏàµ±ÓÚ½âËø   
+	// æŒ‡å‘å †å†…å­˜çš„æŒ‡é’ˆè½¬æ¢ä¸ºé€šç”¨çš„æŒ‡é’ˆç±»å‹ç›¸å½“äºè§£é”   
 	LPVOID pDes = GlobalLock(pBuffer);
 
-	// ¶ÁÈëÊı¾İ½ø¶ÑÄÚ´æ   
+	// è¯»å…¥æ•°æ®è¿›å †å†…å­˜   
 	if (ReadFile(FileHandle, pDes, SizeL, &ReadCount, NULL) == 0)
 	{
 		CloseHandle(FileHandle);
@@ -501,10 +501,10 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 		return;
 	}
 
-	// ¶ÑÄÚ´æÉÏËø   
+	// å †å†…å­˜ä¸Šé”   
 	GlobalUnlock(pBuffer);
 
-	// ÔÚÈ«¾Ö´æ´¢Æ÷µÄ¶ÑÖĞ·ÖÅäÒ»¸öÁ÷¶ÔÏó   
+	// åœ¨å…¨å±€å­˜å‚¨å™¨çš„å †ä¸­åˆ†é…ä¸€ä¸ªæµå¯¹è±¡   
 	if (CreateStreamOnHGlobal(pBuffer, true, &pstream) != S_OK)
 	{
 		CloseHandle(FileHandle);
@@ -512,11 +512,11 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 		return;
 	}
 
-	// ´´½¨Ò»¸öĞÂµÄÍ¼Ïñ²¢³õÊ¼»¯   
+	// åˆ›å»ºä¸€ä¸ªæ–°çš„å›¾åƒå¹¶åˆå§‹åŒ–   
 	if (!SUCCEEDED(OleLoadPicture(pstream, SizeL, true, IID_IPicture, (void**)&pPic)))return;
 	long hmWidth;
 	long hmHeight;
-	// ´ÓIPictureÖĞ»ñÈ¡¸ß¶ÈÓë¿í¶È   
+	// ä»IPictureä¸­è·å–é«˜åº¦ä¸å®½åº¦   
 	pPic->get_Width(&hmWidth);
 	pPic->get_Height(&hmHeight);
 	const int nWidth = MulDiv(hmWidth, GetDeviceCaps(hdc, LOGPIXELSX), 2540);
@@ -530,11 +530,11 @@ void LoadPicture(const wchar_t* lpFilePath, HDC hdc, int startx, int starty, flo
 	CloseHandle(FileHandle);
 }
 
-void ReleaseLanguageFiles(const wchar_t* Path, int tag, wchar_t* str)//tag ºÍ str ¿É²»Ìî
-{//µ±tagÌî1»ò2Ê±º¯Êı½«ÓïÑÔÎÄ¼şÂ·¾¶±£´æÔÚstrÖĞ
-	wchar_t LanguagePath[MAX_PATH];//ÏÈÊÍ·Å×Ô´øµÄÁ½¸öÖĞÓ¢ÎÄÓïÑÔÎÄ¼ş
+void ReleaseLanguageFiles(const wchar_t* Path, int tag, wchar_t* str)//tag å’Œ str å¯ä¸å¡«
+{//å½“tagå¡«1æˆ–2æ—¶å‡½æ•°å°†è¯­è¨€æ–‡ä»¶è·¯å¾„ä¿å­˜åœ¨strä¸­
+	wchar_t LanguagePath[MAX_PATH];//å…ˆé‡Šæ”¾è‡ªå¸¦çš„ä¸¤ä¸ªä¸­è‹±æ–‡è¯­è¨€æ–‡ä»¶
 	mywcscpy(LanguagePath, Path);
-	mywcscat(LanguagePath, L"language\\");//´´½¨languageÄ¿Â¼
+	mywcscat(LanguagePath, L"language\\");//åˆ›å»ºlanguageç›®å½•
 	CreateDirectory(LanguagePath, NULL);
 	mywcscat(LanguagePath, L"Chinese.ini");
 	ReleaseRes(LanguagePath, FILE_CHN, L"JPG");

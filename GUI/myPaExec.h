@@ -1,18 +1,18 @@
-//ÕâÊÇTopDomainTools¹¤³ÌÔ´´úÂëÖÐPaExec²¿·Ö
-//¾«¼ò×Ô https://github.com/poweradminllc/PAExec
-//ÓÃÓÚÔËÐÐsystemÈ¨ÏÞcmd&½«³ÌÐòÏÔÊ¾ÓÚ°²È«×ÀÃæ
+//è¿™æ˜¯TopDomainToolså·¥ç¨‹æºä»£ç ä¸­PaExecéƒ¨åˆ†
+//ç²¾ç®€è‡ª https://github.com/poweradminllc/PAExec
+//ç”¨äºŽè¿è¡Œsystemæƒé™cmd&å°†ç¨‹åºæ˜¾ç¤ºäºŽå®‰å…¨æ¡Œé¢
 //
-//¾ßÌåÔ­ÀíÔÛÒ²²»¶®(ÒòÎªÊÇ³­À´µÄ)
-//Òò´ËÕâ¶Î´úÂëÔÝÊ±Ã»ÓÐ×¢ÊÍ£¬ÏêÏ¸ÄÚÈÝ»¹ÇëÎÊÔ­×÷Õß
+//å…·ä½“åŽŸç†å’±ä¹Ÿä¸æ‡‚(å› ä¸ºæ˜¯æŠ„æ¥çš„)
+//å› æ­¤è¿™æ®µä»£ç æš‚æ—¶æ²¡æœ‰æ³¨é‡Šï¼Œè¯¦ç»†å†…å®¹è¿˜è¯·é—®åŽŸä½œè€…
 //
-//´óÌåË¼Â·:ÒÔ·þÎñ·½Ê½ÔËÐÐ£¬ÉêÇëÒ»Ð©È¨ÏÞ£¬È»ºóµ÷ÓÃ
-//CreateProcessWithLogon »ò CreateProcessAsUser ÕâÁ½¸öº¯Êý
+//å¤§ä½“æ€è·¯:ä»¥æœåŠ¡æ–¹å¼è¿è¡Œï¼Œç”³è¯·ä¸€äº›æƒé™ï¼Œç„¶åŽè°ƒç”¨
+//CreateProcessWithLogon æˆ– CreateProcessAsUser è¿™ä¸¤ä¸ªå‡½æ•°
 //
-//×¢Òâ:Ò»¶¨ÒªÒÔ·þÎñ·½Ê½ÔËÐÐ!
-//myPAExecÕâ¸öº¯ÊýÒÔÕý³£·½Ê½µ÷ÓÃÃ»ÓÐÈÎºÎÐ§¹û!
+//æ³¨æ„:ä¸€å®šè¦ä»¥æœåŠ¡æ–¹å¼è¿è¡Œ!
+//myPAExecè¿™ä¸ªå‡½æ•°ä»¥æ­£å¸¸æ–¹å¼è°ƒç”¨æ²¡æœ‰ä»»ä½•æ•ˆæžœ!
 //
 
-#pragma warning(disable:6031)//·µ»ØÖµ±»ºöÂÔ:ImpersonateLoggedOnUser
+#pragma warning(disable:6031)//è¿”å›žå€¼è¢«å¿½ç•¥:ImpersonateLoggedOnUser
 #pragma once
 #include "stdafx.h"
 #define _CRT_SECURE_NO_WARNINGS

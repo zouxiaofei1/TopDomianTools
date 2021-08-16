@@ -1,11 +1,11 @@
-//ÕâÊÇTopDomainTools¹¤³ÌÔ´´úÂëÖÐProcessHacker²¿·Ö
-//¾«¼ò×ÔProcessHackerÖÐÓëÇý¶¯Í¨ÐÅµÄÒ»¶Î´úÂë
+//è¿™æ˜¯TopDomainToolså·¥ç¨‹æºä»£ç ä¸­ProcessHackeréƒ¨åˆ†
+//ç²¾ç®€è‡ªProcessHackerä¸­ä¸Žé©±åŠ¨é€šä¿¡çš„ä¸€æ®µä»£ç 
 //https://github.com/processhacker/processhacker
-//ÓÃÓÚ¼ÓÔØKPHÇý¶¯,È¡µÃÍ¨ÐÅÁ¬½Ó²¢ÓÃÀ´½áÊø½ø³Ì
+//ç”¨äºŽåŠ è½½KPHé©±åŠ¨,å–å¾—é€šä¿¡è¿žæŽ¥å¹¶ç”¨æ¥ç»“æŸè¿›ç¨‹
 //
-//×¢Òâ:
-//ÓÉÓÚ±¾ÈËÔÚÇý¶¯·½Ãæ²¢²»¾«Í¨
-//ÏÂÃæµÄ×¢ÊÍµÈÄÚÈÝ¿ÉÄÜÓÐÒ»¶¨µÄ´íÎó¡£
+//æ³¨æ„:
+//ç”±äºŽæœ¬äººåœ¨é©±åŠ¨æ–¹é¢å¹¶ä¸ç²¾é€š
+//ä¸‹é¢çš„æ³¨é‡Šç­‰å†…å®¹å¯èƒ½æœ‰ä¸€å®šçš„é”™è¯¯ã€‚
 //
 
 #pragma once
@@ -15,15 +15,15 @@
 
 
 typedef struct _CLIENT_ID
-{//ÕâÊÇÓÉProcessHacker×Ô¶¨ÒåµÄÒ»¸ö½á¹¹Ìå
-	HANDLE UniqueProcess;//±£´æÁË½ø³ÌµÄPIDºÍTID
-	HANDLE UniqueThread;//²»¹ýÎÒÒ²²»ÖªµÀËûÎªÊ²Ã´ÒªÓÃHANDLEÀ´´æ´¢
+{//è¿™æ˜¯ç”±ProcessHackerè‡ªå®šä¹‰çš„ä¸€ä¸ªç»“æž„ä½“
+	HANDLE UniqueProcess;//ä¿å­˜äº†è¿›ç¨‹çš„PIDå’ŒTID
+	HANDLE UniqueThread;//ä¸è¿‡æˆ‘ä¹Ÿä¸çŸ¥é“ä»–ä¸ºä»€ä¹ˆè¦ç”¨HANDLEæ¥å­˜å‚¨
 }CLIENT_ID, * PCLIENT_ID;
 
 typedef struct _OBJECT_ATTRIBUTES
 {
 	ULONG Length;
-	HANDLE RootDirectory;//¶ÔÏóµÄÊôÐÔ???
+	HANDLE RootDirectory;//å¯¹è±¡çš„å±žæ€§???
 	PVOID ObjectName;
 	ULONG Attributes;
 	PVOID SecurityDescriptor;
@@ -34,53 +34,53 @@ typedef struct _OBJECT_ATTRIBUTES
 BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath, bool Kernel)
 {
 	wchar_t szDriverImagePath[MAX_STR];
-	//µÃµ½ÍêÕûµÄÇý¶¯Â·¾¶
+	//å¾—åˆ°å®Œæ•´çš„é©±åŠ¨è·¯å¾„
 	GetFullPathName(lpszDriverPath, MAX_STR, szDriverImagePath, NULL);
 	BOOL bRet = FALSE;
 
-	SC_HANDLE hServiceMgr = NULL;//SCM¹ÜÀíÆ÷µÄ¾ä±ú
-	SC_HANDLE hServiceDDK = NULL;//NTÇý¶¯³ÌÐòµÄ·þÎñ¾ä±ú
+	SC_HANDLE hServiceMgr = NULL;//SCMç®¡ç†å™¨çš„å¥æŸ„
+	SC_HANDLE hServiceDDK = NULL;//NTé©±åŠ¨ç¨‹åºçš„æœåŠ¡å¥æŸ„
 
-								 //´ò¿ª·þÎñ¿ØÖÆ¹ÜÀíÆ÷
+								 //æ‰“å¼€æœåŠ¡æŽ§åˆ¶ç®¡ç†å™¨
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 
-	if (hServiceMgr == NULL)//´ò²»¿ª·þÎñ¹ÜÀíÆ÷Ê±ÍË³ö
-	{//(¾ÝËµ)²Ù×÷±»360À¹½ØÊ±³£³£»áÕâÑù
+	if (hServiceMgr == NULL)//æ‰“ä¸å¼€æœåŠ¡ç®¡ç†å™¨æ—¶é€€å‡º
+	{//(æ®è¯´)æ“ä½œè¢«360æ‹¦æˆªæ—¶å¸¸å¸¸ä¼šè¿™æ ·
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
 
-	//´´½¨Çý¶¯Ëù¶ÔÓ¦µÄ·þÎñ
+	//åˆ›å»ºé©±åŠ¨æ‰€å¯¹åº”çš„æœåŠ¡
 	hServiceDDK = CreateService(hServiceMgr,
-		lpszDriverName, //Çý¶¯³ÌÐòµÄÔÚ×¢²á±íÖÐµÄÃû×Ö  
-		lpszDriverName, // ×¢²á±íÇý¶¯³ÌÐòµÄ DisplayName Öµ  
-		SERVICE_ALL_ACCESS, // ¼ÓÔØÇý¶¯³ÌÐòµÄ·ÃÎÊÈ¨ÏÞ  
-		Kernel ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS,// ±íÊ¾¼ÓÔØµÄ·þÎñÊÇÇý¶¯³ÌÐò»¹ÊÇ·þÎñ
-		SERVICE_DEMAND_START, // ×¢²á±íÇý¶¯³ÌÐòµÄ Start Öµ  
-		SERVICE_ERROR_IGNORE, // ×¢²á±íÇý¶¯³ÌÐòµÄ ErrorControl Öµ  
-		szDriverImagePath, // ×¢²á±íÇý¶¯³ÌÐòµÄ ImagePath Öµ  
-		NULL, NULL, NULL, NULL, NULL);//ºóÃæ¼¸¸ö²ÎÊýÒ»°ãÓÃ²»µ½
+		lpszDriverName, //é©±åŠ¨ç¨‹åºçš„åœ¨æ³¨å†Œè¡¨ä¸­çš„åå­—  
+		lpszDriverName, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ DisplayName å€¼  
+		SERVICE_ALL_ACCESS, // åŠ è½½é©±åŠ¨ç¨‹åºçš„è®¿é—®æƒé™  
+		Kernel ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS,// è¡¨ç¤ºåŠ è½½çš„æœåŠ¡æ˜¯é©±åŠ¨ç¨‹åºè¿˜æ˜¯æœåŠ¡
+		SERVICE_DEMAND_START, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ Start å€¼  
+		SERVICE_ERROR_IGNORE, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ ErrorControl å€¼  
+		szDriverImagePath, // æ³¨å†Œè¡¨é©±åŠ¨ç¨‹åºçš„ ImagePath å€¼  
+		NULL, NULL, NULL, NULL, NULL);//åŽé¢å‡ ä¸ªå‚æ•°ä¸€èˆ¬ç”¨ä¸åˆ°
 
 	DWORD dwRtn;
 
-	//ÅÐ¶Ï·þÎñÊÇ·ñÊ§°Ü
+	//åˆ¤æ–­æœåŠ¡æ˜¯å¦å¤±è´¥
 	if (hServiceDDK == NULL)
 	{
 		dwRtn = GetLastError();
 		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_EXISTS)
-		{//Èç¹ûÈÏÎª·þÎñ or Çý¶¯ÒÑ¾­¼ÓÔØ£¬
+		{//å¦‚æžœè®¤ä¸ºæœåŠ¡ or é©±åŠ¨å·²ç»åŠ è½½ï¼Œ
 			bRet = FALSE;
 			goto BeforeLeave;
-		}//ÊÔÍ¼´ò¿ªÕâ¸öÇý¶¯
+		}//è¯•å›¾æ‰“å¼€è¿™ä¸ªé©±åŠ¨
 		hServiceDDK = OpenService(hServiceMgr, lpszDriverName, SERVICE_ALL_ACCESS);
 		if (hServiceDDK == NULL)
 		{
-			bRet = FALSE;//´ò²»¿ª? ->Ê§°ÜÍË³ö
+			bRet = FALSE;//æ‰“ä¸å¼€? ->å¤±è´¥é€€å‡º
 			goto BeforeLeave;
 		}
 	}
 
-	//¿ªÆô´ËÏî·þÎñ
+	//å¼€å¯æ­¤é¡¹æœåŠ¡
 	bRet = StartService(hServiceDDK, NULL, NULL);
 	if (!bRet)
 	{
@@ -105,28 +105,28 @@ BOOL LoadNTDriver(LPCWSTR lpszDriverName, LPCWSTR lpszDriverPath, bool Kernel)
 		}
 	}
 	bRet = TRUE;
-	//Àë¿ªÇ°¹Ø±Õ¾ä±ú
+	//ç¦»å¼€å‰å…³é—­å¥æŸ„
 BeforeLeave:
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
 }
 
-//Ð¶ÔØÇý¶¯³ÌÐò  
+//å¸è½½é©±åŠ¨ç¨‹åº  
 BOOL UnloadNTDriver(LPCWSTR szSvrName)
 {
 	BOOL bRet = FALSE;
-	SC_HANDLE hServiceMgr = NULL;//SCM¹ÜÀíÆ÷µÄ¾ä±ú
-	SC_HANDLE hServiceDDK = NULL;//NTÇý¶¯³ÌÐòµÄ·þÎñ¾ä±ú
+	SC_HANDLE hServiceMgr = NULL;//SCMç®¡ç†å™¨çš„å¥æŸ„
+	SC_HANDLE hServiceDDK = NULL;//NTé©±åŠ¨ç¨‹åºçš„æœåŠ¡å¥æŸ„
 	SERVICE_STATUS SvrSta;
-	//´ò¿ªSCM¹ÜÀíÆ÷
+	//æ‰“å¼€SCMç®¡ç†å™¨
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (hServiceMgr == NULL)
 	{
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//´ò¿ªÇý¶¯Ëù¶ÔÓ¦µÄ·þÎñ
+	//æ‰“å¼€é©±åŠ¨æ‰€å¯¹åº”çš„æœåŠ¡
 	hServiceDDK = OpenService(hServiceMgr, szSvrName, SERVICE_ALL_ACCESS);
 
 	if (hServiceDDK == NULL)
@@ -134,22 +134,22 @@ BOOL UnloadNTDriver(LPCWSTR szSvrName)
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
-	//Í£Ö¹Çý¶¯³ÌÐò£¬Èç¹ûÍ£Ö¹Ê§°Ü£¬Ö»ÓÐÖØÐÂÆô¶¯²ÅÄÜÔÙ¶¯Ì¬¼ÓÔØ¡£  
+	//åœæ­¢é©±åŠ¨ç¨‹åºï¼Œå¦‚æžœåœæ­¢å¤±è´¥ï¼Œåªæœ‰é‡æ–°å¯åŠ¨æ‰èƒ½å†åŠ¨æ€åŠ è½½ã€‚  
 	ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta);
-	//¶¯Ì¬Ð¶ÔØÇý¶¯³ÌÐò¡£  
+	//åŠ¨æ€å¸è½½é©±åŠ¨ç¨‹åºã€‚  
 	DeleteService(hServiceDDK);
 	bRet = TRUE;
 BeforeLeave:
-	//Àë¿ªÇ°¹Ø±Õ´ò¿ªµÄ¾ä±ú
+	//ç¦»å¼€å‰å…³é—­æ‰“å¼€çš„å¥æŸ„
 	if (hServiceDDK)CloseServiceHandle(hServiceDDK);
 	if (hServiceMgr)CloseServiceHandle(hServiceMgr);
 	return bRet;
 }
 
-typedef _Success_(return >= 0) LONG NTSTATUS;//ÔÚÇý¶¯¿ØÖÆÖÐ·µ»ØÖµÖ»Òª´óÓÚµÈÓÚ0¾ÍÏàµ±ÓÚTRUE
+typedef _Success_(return >= 0) LONG NTSTATUS;//åœ¨é©±åŠ¨æŽ§åˆ¶ä¸­è¿”å›žå€¼åªè¦å¤§äºŽç­‰äºŽ0å°±ç›¸å½“äºŽTRUE
 typedef struct _IO_STATUS_BLOCK
-{//IO_STATUS_BLOCK,ÖÐÎÄÒëÃûÎª ÊäÈëÊä³ö×´Ì¬¿é
-	union//Ò»°ãÓÃÓÚ½ÓÊÕÇý¶¯³ÌÐò·µ»ØµÄÐÅÏ¢
+{//IO_STATUS_BLOCK,ä¸­æ–‡è¯‘åä¸º è¾“å…¥è¾“å‡ºçŠ¶æ€å—
+	union//ä¸€èˆ¬ç”¨äºŽæŽ¥æ”¶é©±åŠ¨ç¨‹åºè¿”å›žçš„ä¿¡æ¯
 	{
 		NTSTATUS Status;
 		PVOID Pointer;
@@ -158,29 +158,29 @@ typedef struct _IO_STATUS_BLOCK
 } IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
 
 typedef  DWORD(__stdcall* NTOPENFILE)(
-	_Out_ PHANDLE FileHandle,//NtOpenFileº¯ÊýµÄ×Ô¶¨Òå
-	_In_ ACCESS_MASK DesiredAccess,//²»¹ýÎÒÃÇÕâÀï²»ÓÃËüÀ´´ò¿ªÎÄ¼þ
+	_Out_ PHANDLE FileHandle,//NtOpenFileå‡½æ•°çš„è‡ªå®šä¹‰
+	_In_ ACCESS_MASK DesiredAccess,//ä¸è¿‡æˆ‘ä»¬è¿™é‡Œä¸ç”¨å®ƒæ¥æ‰“å¼€æ–‡ä»¶
 	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
-	_Out_ PIO_STATUS_BLOCK IoStatusBlock,//Í¬ÑùµØ£¬windowsÖÐºÜ¶àÃû×ÖÀï´øFileµÄº¯Êý²»Ö»¿ÉÒÔ½øÐÐÎÄ¼þ²Ù×÷
-	_In_ ULONG ShareAccess,//»¹¿ÉÒÔÓÃÀ´´ò¿ª¾ä±ú£¬ºÍÉè±¸È¡µÃÍ¨ÐÅµÈµÈ
-	_In_ ULONG OpenOptions//ÈçCreateFile¿É´ò¿ª»ò´´½¨ÎÄ¼þ»òÕßI/OÉè±¸£¬²¢·µ»Ø¿É·ÃÎÊµÄ¾ä±ú:¿ØÖÆÌ¨,Í¨ÐÅ×ÊÔ´,Ä¿Â¼,´ÅÅÌÇý¶¯Æ÷,ÎÄ¼þ,ÓÊ²Û,¹ÜµÀ
-	);//	(Õª×Ô°Ù¶È°Ù¿Æ)
+	_Out_ PIO_STATUS_BLOCK IoStatusBlock,//åŒæ ·åœ°ï¼Œwindowsä¸­å¾ˆå¤šåå­—é‡Œå¸¦Fileçš„å‡½æ•°ä¸åªå¯ä»¥è¿›è¡Œæ–‡ä»¶æ“ä½œ
+	_In_ ULONG ShareAccess,//è¿˜å¯ä»¥ç”¨æ¥æ‰“å¼€å¥æŸ„ï¼Œå’Œè®¾å¤‡å–å¾—é€šä¿¡ç­‰ç­‰
+	_In_ ULONG OpenOptions//å¦‚CreateFileå¯æ‰“å¼€æˆ–åˆ›å»ºæ–‡ä»¶æˆ–è€…I/Oè®¾å¤‡ï¼Œå¹¶è¿”å›žå¯è®¿é—®çš„å¥æŸ„:æŽ§åˆ¶å°,é€šä¿¡èµ„æº,ç›®å½•,ç£ç›˜é©±åŠ¨å™¨,æ–‡ä»¶,é‚®æ§½,ç®¡é“
+	);//	(æ‘˜è‡ªç™¾åº¦ç™¾ç§‘)
 
 typedef struct _UNICODE_STRING
-{//Çý¶¯Í¨ÐÅÖÐ³£ÓÃµÄÌØÊâ×Ö·û´®
-	USHORT Length;//(ÆäÊµ¿´ÆðÀ´²¢²»±ÈCString,wchar_tÕâÖÖ³£ÓÃÀàÐÍÒªºÃ)
+{//é©±åŠ¨é€šä¿¡ä¸­å¸¸ç”¨çš„ç‰¹æ®Šå­—ç¬¦ä¸²
+	USHORT Length;//(å…¶å®žçœ‹èµ·æ¥å¹¶ä¸æ¯”CString,wchar_tè¿™ç§å¸¸ç”¨ç±»åž‹è¦å¥½)
 	USHORT MaximumLength;
-	_Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;//<---Õâ¸öÍæÒâÆäÊµ¾ÍÊÇwchar_t* »ò LPWSTR
-} UNICODE_STRING, * PUNICODE_STRING;//È´"¹Ê×÷¸ßÉî"µØ»»ÁË¸öÃû×Ö
+	_Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;//<---è¿™ä¸ªçŽ©æ„å…¶å®žå°±æ˜¯wchar_t* æˆ– LPWSTR
+} UNICODE_STRING, * PUNICODE_STRING;//å´"æ•…ä½œé«˜æ·±"åœ°æ¢äº†ä¸ªåå­—
 typedef const UNICODE_STRING* PCUNICODE_STRING;
-//µ÷ÊÔÂé·³¡¢ÍøÉÏÄÜ²éÕÒµÄ×ÊÁÏÉÙ¡¢Òª½Ó´¥µ½È«ÐÂµÄÒ»¶Ñº¯Êý¡¢Êý×ÖÇ©Ãû(¶ÔÓÚ¸öÈË¿ª·¢Õß¶øÑÔ)ÄÑ¶È½Ï´ó
-//Õâ¿ÉÄÜÊÇWindowsÇý¶¯¿ª·¢ÃÅ¼÷¸ßµÄÔ­ÒòÖ®Ò»°É
-//ÏÂÃæÊÇÓëÇý¶¯Í¨ÐÅµÄº¯Êý
+//è°ƒè¯•éº»çƒ¦ã€ç½‘ä¸Šèƒ½æŸ¥æ‰¾çš„èµ„æ–™å°‘ã€è¦æŽ¥è§¦åˆ°å…¨æ–°çš„ä¸€å †å‡½æ•°ã€æ•°å­—ç­¾å(å¯¹äºŽä¸ªäººå¼€å‘è€…è€Œè¨€)éš¾åº¦è¾ƒå¤§
+//è¿™å¯èƒ½æ˜¯Windowsé©±åŠ¨å¼€å‘é—¨æ§›é«˜çš„åŽŸå› ä¹‹ä¸€å§
+//ä¸‹é¢æ˜¯ä¸Žé©±åŠ¨é€šä¿¡çš„å‡½æ•°
 
 FORCEINLINE VOID RtlInitUnicodeString(
 	_Out_ PUNICODE_STRING DestinationString,
 	_In_opt_ const wchar_t* SourceString
-)//½«³£¼ûµÄwchar[]×ª»»ÎªUNICODE_STRING
+)//å°†å¸¸è§çš„wchar[]è½¬æ¢ä¸ºUNICODE_STRING
 {
 	if (SourceString)
 		DestinationString->MaximumLength = (DestinationString->Length = (USHORT)(mywcslen(SourceString) * sizeof(WCHAR))) + sizeof(WCHAR);
@@ -197,25 +197,25 @@ FORCEINLINE VOID RtlInitUnicodeString(
     (p)->ObjectName = n; \
     (p)->SecurityDescriptor = s; \
     (p)->SecurityQualityOfService = NULL; \
-    }//¸øOBJECT_ATTRIBUTES½á¹¹Ìå¸³³õÊ¼Öµ
+    }//ç»™OBJECT_ATTRIBUTESç»“æž„ä½“èµ‹åˆå§‹å€¼
 
 #define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
     ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
-)//Çý¶¯Í¨ÐÅÖÐ¹¹ÔìÊ¶±ðÂëµÄÖØÒª"º¯Êý"
-#define KPH_DEVICE_TYPE 0x9999//DeviceType,Method,AccessÈý¸öÖµÒ»°ã¶¼ÊÇ¹Ì¶¨µÄ
+)//é©±åŠ¨é€šä¿¡ä¸­æž„é€ è¯†åˆ«ç çš„é‡è¦"å‡½æ•°"
+#define KPH_DEVICE_TYPE 0x9999//DeviceType,Method,Accessä¸‰ä¸ªå€¼ä¸€èˆ¬éƒ½æ˜¯å›ºå®šçš„
 #define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x,3,0)
-#define KPH_OPENPROCESS KPH_CTL_CODE(50)//FunctionÓÃÀ´±êÊ¶¹¦ÄÜ±àºÅ
+#define KPH_OPENPROCESS KPH_CTL_CODE(50)//Functionç”¨æ¥æ ‡è¯†åŠŸèƒ½ç¼–å·
 #define KPH_TERMINATEPROCESS KPH_CTL_CODE(55)
 typedef VOID(NTAPI* PIO_APC_ROUTINE)(
 	_In_ PVOID ApcContext,
 	_In_ PIO_STATUS_BLOCK IoStatusBlock,
 	_In_ ULONG Reserved
 	);
-NTSTATUS KphpDeviceIoControl(//ProcessHacker×Ô¶¨ÒåµÄÒ»¸öÇý¶¯Í¨ÐÅÍâ¿Çº¯Êý
-	_In_ ULONG KphControlCode,//Í¨ÐÅÊ¶±ðÂë
-	_In_ PVOID InBuffer,//´«ÈëµÄÖ¸Õë
-	_In_ ULONG InBufferLength,//Êý¾Ý³¤¶È
-	_In_ HANDLE PhKphHandle//Çý¶¯¾ä±ú
+NTSTATUS KphpDeviceIoControl(//ProcessHackerè‡ªå®šä¹‰çš„ä¸€ä¸ªé©±åŠ¨é€šä¿¡å¤–å£³å‡½æ•°
+	_In_ ULONG KphControlCode,//é€šä¿¡è¯†åˆ«ç 
+	_In_ PVOID InBuffer,//ä¼ å…¥çš„æŒ‡é’ˆ
+	_In_ ULONG InBufferLength,//æ•°æ®é•¿åº¦
+	_In_ HANDLE PhKphHandle//é©±åŠ¨å¥æŸ„
 )
 {
 	DWORD a;
@@ -223,22 +223,22 @@ NTSTATUS KphpDeviceIoControl(//ProcessHacker×Ô¶¨ÒåµÄÒ»¸öÇý¶¯Í¨ÐÅÍâ¿Çº¯Êý
 	return GetLastError();
 }
 
-NTSTATUS KphOpenProcess(//Ê¹ÓÃKProcessHackerÀ´È¡µÃ¶ÔÒ»¸ö½ø³ÌµÄ¿ØÖÆÈ¨
-	/*_Out_*/ PHANDLE ProcessHandle,//·µ»Ø½ø³Ì¾ä±ú
-	_In_ ACCESS_MASK DesiredAccess,//ÏëÈ¡µÃµÄÈ¨ÏÞ
-	_In_ PCLIENT_ID ClientId,//½ø³ÌµÄPID,TID
-	_In_ HANDLE PhKphHandle//Çý¶¯¾ä±ú
+NTSTATUS KphOpenProcess(//ä½¿ç”¨KProcessHackeræ¥å–å¾—å¯¹ä¸€ä¸ªè¿›ç¨‹çš„æŽ§åˆ¶æƒ
+	/*_Out_*/ PHANDLE ProcessHandle,//è¿”å›žè¿›ç¨‹å¥æŸ„
+	_In_ ACCESS_MASK DesiredAccess,//æƒ³å–å¾—çš„æƒé™
+	_In_ PCLIENT_ID ClientId,//è¿›ç¨‹çš„PID,TID
+	_In_ HANDLE PhKphHandle//é©±åŠ¨å¥æŸ„
 )
 {
 	struct
-	{//ÓÉÓÚDeviceIoControlÖ»ÄÜ´«ÈëÒ»¸öÖ¸Õë£¬
-		PHANDLE ProcessHandle2;//ÏëÒª´«Èë¶à¸öÊý¾ÝÊ±Ö»ÄÜ°ÑËûÃÇ"´ò°ü"³ÉÒ»¸ö½á¹¹Ìå
+	{//ç”±äºŽDeviceIoControlåªèƒ½ä¼ å…¥ä¸€ä¸ªæŒ‡é’ˆï¼Œ
+		PHANDLE ProcessHandle2;//æƒ³è¦ä¼ å…¥å¤šä¸ªæ•°æ®æ—¶åªèƒ½æŠŠä»–ä»¬"æ‰“åŒ…"æˆä¸€ä¸ªç»“æž„ä½“
 		ACCESS_MASK DesiredAccess;
-		PCLIENT_ID ClientId;		//ÕâÒ²Ôì³ÉÁËÒ»¸öÎÊÌâ:
-	} input = { ProcessHandle, DesiredAccess, ClientId };//32Î»³ÌÐòºÍ64Î»³ÌÐòÖÐºÜ¶àÀàÐÍËùÕ¼×Ö½ÚÊ±²»Í¬µÄ
-	//´ò°ü³É½á¹¹Ìåºó£¬32Î»³ÌÐòÈç¹ûÏëºÍ64Î»Çý¶¯Í¨ÐÅ£¬ºÜ¿ÉÄÜ»á³öÏÖ Òò³¤¶È²»Í¬¶øµ¼ÖÂµÄ´íÎó
-	return KphpDeviceIoControl(//Òò´ËTopDomainToolsÖÐ×¨ÃÅ¶¨ÖÆÁËÒ»¸ö64Î»³ÌÐòWin64KPHcaller£¬
-		(ULONG)KPH_OPENPROCESS,//Ê¹µÃ32Î»µÄTopDomainToolsÒ²ÄÜ¼ä½ÓµØºÍ64Î»Çý¶¯Í¨ÐÅ
+		PCLIENT_ID ClientId;		//è¿™ä¹Ÿé€ æˆäº†ä¸€ä¸ªé—®é¢˜:
+	} input = { ProcessHandle, DesiredAccess, ClientId };//32ä½ç¨‹åºå’Œ64ä½ç¨‹åºä¸­å¾ˆå¤šç±»åž‹æ‰€å å­—èŠ‚æ—¶ä¸åŒçš„
+	//æ‰“åŒ…æˆç»“æž„ä½“åŽï¼Œ32ä½ç¨‹åºå¦‚æžœæƒ³å’Œ64ä½é©±åŠ¨é€šä¿¡ï¼Œå¾ˆå¯èƒ½ä¼šå‡ºçŽ° å› é•¿åº¦ä¸åŒè€Œå¯¼è‡´çš„é”™è¯¯
+	return KphpDeviceIoControl(//å› æ­¤TopDomainToolsä¸­ä¸“é—¨å®šåˆ¶äº†ä¸€ä¸ª64ä½ç¨‹åºWin64KPHcallerï¼Œ
+		(ULONG)KPH_OPENPROCESS,//ä½¿å¾—32ä½çš„TopDomainToolsä¹Ÿèƒ½é—´æŽ¥åœ°å’Œ64ä½é©±åŠ¨é€šä¿¡
 		&input,
 		sizeof(input),
 		PhKphHandle
@@ -249,8 +249,8 @@ NTSTATUS PhOpenProcess(
 	_In_ ACCESS_MASK DesiredAccess,
 	_In_ HANDLE ProcessId,
 	_In_ HANDLE PhKphHandle
-)//KphOpenProcessµÄÍâ¿Çº¯Êý
-{//Ö÷Òª¸ºÔð½«PID×ª»»ÎªCLIENT_ID½á¹¹Ìå
+)//KphOpenProcessçš„å¤–å£³å‡½æ•°
+{//ä¸»è¦è´Ÿè´£å°†PIDè½¬æ¢ä¸ºCLIENT_IDç»“æž„ä½“
 	CLIENT_ID clientId;
 
 	clientId.UniqueProcess = ProcessId;
@@ -263,14 +263,14 @@ NTSTATUS PhOpenProcess(
 	);
 }
 
-NTSTATUS PhTerminateProcess(//ÓÃÓÚ½áÊøÒ»¸öÒÑ¾­±»"Open"¹ýµÄ½ø³Ì
-	_In_ HANDLE ProcessHandle,//ÒÑÔÚKphOpenProcessÖÐ»ñÈ¡µÄ½ø³Ì¾ä±ú
-	_In_ NTSTATUS ExitStatus,//Ëæ±ãÌî
-	_In_ HANDLE PhKphHandle//Çý¶¯¾ä±ú
+NTSTATUS PhTerminateProcess(//ç”¨äºŽç»“æŸä¸€ä¸ªå·²ç»è¢«"Open"è¿‡çš„è¿›ç¨‹
+	_In_ HANDLE ProcessHandle,//å·²åœ¨KphOpenProcessä¸­èŽ·å–çš„è¿›ç¨‹å¥æŸ„
+	_In_ NTSTATUS ExitStatus,//éšä¾¿å¡«
+	_In_ HANDLE PhKphHandle//é©±åŠ¨å¥æŸ„
 )
 {
 	NTSTATUS status;
-	struct//»ù±¾ºÍKphOpenProcessÍ¬Àí
+	struct//åŸºæœ¬å’ŒKphOpenProcessåŒç†
 	{
 		HANDLE ProcessHandle;
 		NTSTATUS ExitStatus;
@@ -278,26 +278,26 @@ NTSTATUS PhTerminateProcess(//ÓÃÓÚ½áÊøÒ»¸öÒÑ¾­±»"Open"¹ýµÄ½ø³Ì
 
 	status = KphpDeviceIoControl(
 		(ULONG)KPH_TERMINATEPROCESS,
-		&input,//×¢Òâ²»Í¬²Ù×÷ÖÐKphpDeviceIoControl´«½øÈ¥µÄ²Ù×÷Âë²»Í¬
+		&input,//æ³¨æ„ä¸åŒæ“ä½œä¸­KphpDeviceIoControlä¼ è¿›åŽ»çš„æ“ä½œç ä¸åŒ
 		sizeof(input),
 		PhKphHandle
 	);
 	return status;
 }
 
-NTSTATUS KphConnect(PHANDLE handle)//ºÍKProcessHackerÇý¶¯È¡µÃÍ¨ÐÅµÄº¯Êý
-{//ÔÚÈ¡µÃÍ¨ÐÅÇ°ÏÈÐèÒª¼ÓÔØÕâ¸öÈ¡µÃ
+NTSTATUS KphConnect(PHANDLE handle)//å’ŒKProcessHackeré©±åŠ¨å–å¾—é€šä¿¡çš„å‡½æ•°
+{//åœ¨å–å¾—é€šä¿¡å‰å…ˆéœ€è¦åŠ è½½è¿™ä¸ªå–å¾—
 	OBJECT_ATTRIBUTES objectAttributes;
 	HMODULE hModule = ::GetModuleHandle(L"ntdll.dll");
 	if (hModule == NULL)
 		return FALSE;
 	NTOPENFILE myopen = (NTOPENFILE)GetProcAddress(hModule, "NtOpenFile");
-	UNICODE_STRING on;//ÓÃNtOpenFileÀ´Í¨¹ýÇý¶¯Ãû´ò¿ª¾ä±ú
+	UNICODE_STRING on;//ç”¨NtOpenFileæ¥é€šè¿‡é©±åŠ¨åæ‰“å¼€å¥æŸ„
 	RtlInitUnicodeString(&on, L"\\Device\\KProcessHacker2");
-	InitializeObjectAttributes(//InitializeObjectAttributesÖÐ´«ÈëµÄÇý¶¯Ãû²»ÊÇ¼òµ¥µÄKProcessHacker2£¬
-		&objectAttributes,//¶øÊÇ\\Device\\KProcessHacker2
-		&on,//ÀàËÆµØ£¬Çý¶¯ÖÐ ÎÄ¼þÂ·¾¶Ò²ºÍÆ½³£µÄDOSÂ·¾¶ÓÐËù²»Í¬
-		0x00000040,//ÏòÇý¶¯ÖÐ´«Â·¾¶ÍùÍùÒª¼Ó"\\??\\"
+	InitializeObjectAttributes(//InitializeObjectAttributesä¸­ä¼ å…¥çš„é©±åŠ¨åä¸æ˜¯ç®€å•çš„KProcessHacker2ï¼Œ
+		&objectAttributes,//è€Œæ˜¯\\Device\\KProcessHacker2
+		&on,//ç±»ä¼¼åœ°ï¼Œé©±åŠ¨ä¸­ æ–‡ä»¶è·¯å¾„ä¹Ÿå’Œå¹³å¸¸çš„DOSè·¯å¾„æœ‰æ‰€ä¸åŒ
+		0x00000040,//å‘é©±åŠ¨ä¸­ä¼ è·¯å¾„å¾€å¾€è¦åŠ "\\??\\"
 		NULL,
 		NULL
 	);
