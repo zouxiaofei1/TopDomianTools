@@ -35,7 +35,6 @@ const wchar_t TDTempPath[] = L"C:\\ProgramData\\SAtemp\\";
 //程序路径 and 路径+程序名 and 缓存路径(注意Path最后有"\")
 int xLength, yLength;//屏幕的真实长宽像素数量
 int LanguageID;//系统默认语言
-BOOL InitFinish = FALSE, InitThreadFinish = FALSE;
 
 //和绘图有关的全局变量
 HINSTANCE hInst;//当前实例，CreateWindow & LoadIcon 时需要
@@ -64,7 +63,7 @@ HPEN  YellowPen, BlackPen, WhitePen, CheckGreenPen;
 BOOL OneClick = FALSE;//一键安装状态
 wchar_t SethcPath[MAX_PATH], SethcBackupPath[MAX_PATH];//Sethc路径
 wchar_t TDPath[MAX_PATH], TDName[MAX_PATH];//极域路径 and 默认极域进程名
-BOOL TDsearched = FALSE;//是否已经寻找过极域?
+BOOL TDsearched = FALSE;//是否已经寻找过极域? 0=未寻找 1=寻找过 2=没找到 3=正在找
 BOOL SethcState = TRUE;//System32目录下sethc是否存在
 BOOL SethcInstallState = FALSE;//Sethc方案状态
 BOOL HookState = FALSE, FirstHook = TRUE;//全局键盘钩子方案状态 & 是否释放了hook程序文件
@@ -143,7 +142,8 @@ POINT UTMpoint2;
 HWND ComputerList;//TDR中的电脑列表
 BOOL TDRclosed;//TDR窗口是否被关闭(有别于隐藏)
 //wchar_t ip[30];//自己的主ip
-char Allips[20][30];//自己不同网卡的所有ip
+char Allips[30][20];//自己不同网卡的所有ip
+BOOL IPaddrSearched;//是否寻找过当前计算机的ip地址
 int numofips, curips;//ip数量 & 当前显示的ip
 struct SearchThreadStruct//标识查找ip信息的结构体
 {
@@ -157,7 +157,7 @@ struct IPandi
 	char* ip;//ip地址
 	int NICid; //网卡编号
 };
-char IPsearched[30][256];//判断ip是否被寻找过 0->未寻找 1->只寻找过ip 2->完全寻找
+bool IPsearched[30][256];//判断ip是否被寻找过 0->未寻找 1->只寻找过ip 2->完全寻找
 int SearchThreadCount;//当前存在的线程数
 
 //杂项全局变量
@@ -1103,7 +1103,7 @@ public:
 			ImmReleaseContext(hWnd, himc);
 		}
 	}
-	inline void LeftButtonUp()//鼠标左键抬起(位于LBUTTONUP较前执行)
+	void LeftButtonUp()//鼠标左键抬起(位于LBUTTONUP较前执行)
 	{
 		if (CoverButton != -1)
 		{
@@ -1112,7 +1112,7 @@ public:
 		}
 		Edit[CoverEdit].Press = FALSE;
 	}
-	inline void LeftButtonUp2()//鼠标左键抬起(位于WM_LBUTTONUP消息的最后执行)
+	void LeftButtonUp2()//鼠标左键抬起(位于WM_LBUTTONUP消息的最后执行)
 	{
 		if (CoverCheck != 0)//更改Check的值并重绘
 		{
@@ -1977,24 +1977,36 @@ BOOL GetTDVer(wchar_t* source)//获取极域版本
 	return TRUE;
 }
 
-void TDSearchDirect()//寻找极域路径
+BOOL TDSearchDirect()//寻找极域路径
 {
+	TDsearched = TDSEARCH_FINDING;
 	SearchTool(L"C:\\Program Files\\Mythware", 1);//(直接调用SearchTool函数)
 	SearchTool(L"C:\\Program Files\\TopDomain", 1);
+	if (*TDPath != NULL)goto suc;
 	SearchTool(L"C:\\Program Files (x86)\\Mythware", 1);//先试着在专用目录里找
 	SearchTool(L"C:\\Program Files (x86)\\TopDomain", 1);
-	if (*TDPath != NULL)return;
+	if (*TDPath != NULL)goto suc;
 	SearchTool(L"C:\\Program Files (x86)", 1);
-	if (*TDPath != NULL)return;//再试着在整个Program Files里找
+	if (*TDPath != NULL)goto suc;//再试着在整个Program Files里找
 	SearchTool(L"C:\\Program Files", 1);
-	if (*TDPath != NULL)return;
+	if (*TDPath != NULL)goto suc;
 	SearchTool(L"C:\\Users", 1);
-	if (*TDPath != NULL)return;//最后在ProgramData，AppData这些目录里找
+	if (*TDPath != NULL)goto suc;//最后在ProgramData，AppData这些目录里找
 	SearchTool(L"C:\\ProgramData", 1);
+	if (*TDPath != NULL)
+		goto suc;
+	else
+	{
+		TDsearched = TDSEARCH_FAILED; 
+		return FALSE; 
+	}
+suc:
+	TDsearched = TDSEARCH_SUCCEED;
+	return TRUE;
 }
 void SetTDPathStr()//更改并重绘第四页"极域路径"这个字符串
 {
-	if (TDsearched != TRUE)return;
+	//if (TDsearched != TDSEARCH_SUCCEED)return;
 	wchar_t TDPathStr[MAX_PATH];
 	myZeroMemory(TDPathStr, sizeof(wchar_t) * MAX_PATH);
 	mywcscpy(TDPathStr, Main.GetStr(L"_TPath"));
@@ -2014,13 +2026,8 @@ void SetTDPathStr()//更改并重绘第四页"极域路径"这个字符串
 DWORD WINAPI ReopenThread2(LPVOID pM)//尝试找到极域(线程)
 {
 	(pM);
-	if (TDsearched == FALSE)
-	{
-		TDsearched = 2;
-		TDSearchDirect();
-		TDsearched = TRUE;
-	}
-	while (TDsearched == 2)Sleep(1);
+	if (TDsearched == TDSEARCH_NOTFOUND)TDSearchDirect();
+	while (TDsearched == TDSEARCH_FINDING)Sleep(5);
 	SetTDPathStr();
 	return 0;
 }
@@ -2192,15 +2199,15 @@ void SwitchLanguage(LPWSTR FilePath)//切换语言的函数
 	DWORD NumberOfBytesRead;
 	const BOOL ANSI = (BOOL)mywcsstr(FilePath, L"ANSI");//为了节省空间，英语类语言文件用ANSI编码存储
 
-	wchar_t* AllTmp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_LANGUAGE_LENGTH), * point1, * point2;
-	char* ANSIstr = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(char) * MAX_LANGUAGE_LENGTH * 2);//申请堆内存
+	wchar_t* AllTmp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_LANGUAGE_LEN), * point1, * point2;
+	char* ANSIstr = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(char) * MAX_LANGUAGE_LEN);//申请堆内存
 	if (AllTmp == 0 || ANSIstr == 0)return;
 
 	HANDLE FileHandle = CreateFile(FilePath, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 	if (FileHandle == 0)return;//打开文件
-	if (!ReadFile(FileHandle, ANSIstr, MAX_LANGUAGE_LENGTH * 2, &NumberOfBytesRead, NULL))return;
+	if (!ReadFile(FileHandle, ANSIstr, MAX_LANGUAGE_LEN, &NumberOfBytesRead, NULL))return;
 	if (ANSI) { for (unsigned int i = 0; i < NumberOfBytesRead; ++i)AllTmp[i] = ANSIstr[i]; }
-	else MultiByteToWideChar(CP_ACP, 0, ANSIstr, -1, AllTmp, MAX_LANGUAGE_LENGTH);//对ANSI编码存储的文件进行特殊处理
+	else MultiByteToWideChar(CP_ACP, 0, ANSIstr, -1, AllTmp, MAX_LANGUAGE_LEN);//对ANSI编码存储的文件进行特殊处理
 	if (NumberOfBytesRead == 0)return;
 
 	point1 = AllTmp;//读取第一行的信息
@@ -2360,7 +2367,7 @@ BOOL SearchTool(LPCWSTR lpPath, int type)//type=1:打开极域 2:删除shutdown 
 	mywcscat(szFind, L"\\*.*");
 	HANDLE hFind = FindFirstFile(szFind, &FindFileData);
 	if (INVALID_HANDLE_VALUE == hFind) return TRUE;
-	while (TRUE)
+	while (1)
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 		{//找到一个文件夹
@@ -2484,10 +2491,11 @@ DWORD WINAPI SoundThread(LPVOID pM)//寻找并删除声音
 	mywcscpy(ButtonBackup, Main.Button[BUT_DSOUND].Name);
 	mywcscpy(Main.Button[BUT_DSOUND].Name, Main.GetStr(L"Deleting"));
 	Main.EnableButton(BUT_DSOUND, FALSE);
-	while (TDsearched == 2)Sleep(1);//其他线程正在寻找极域时等待
-	if (TDsearched == TRUE)goto suc; else TDsearched = 2;
+	while (TDsearched == TDSEARCH_FINDING)Sleep(5);//其他线程正在寻找极域时等待
+	if (TDsearched == TDSEARCH_SUCCEED)goto suc;
+	if (TDsearched == TDSEARCH_FAILED)return 0;
 	TDSearchDirect();//寻找极域
-	TDsearched = TRUE;
+	if (TDsearched == TDSEARCH_FAILED)return 0;;
 suc:
 	if (*TDPath == 0)
 	{
@@ -2798,6 +2806,8 @@ constexpr int text2016b[] = { 0x444d4f43, 0x00000100, 0x9e030000, 0x8c3518c4, 0x
 	0x00080000, 0x00000000, 0x05000000 };
 constexpr int text2016c[] = { 0x444d4f43, 0x00000100, 0x38000000, 0x9e95d1b0, 0x9e6ac742, 0x9a9054ac, 0xbe11e403, 0x204e0000, 0xc0a85001, 0x85010000, 0x85010000, \
 	0x00020000, 0x00000000, 0x18000000 };//0x000000 was removed
+constexpr int neta[] = { 0x4e595051,0x00000100,0x0f000000,0x69d7056b,0x304e484b, 0xb061ce58, 0x7b652359, 0xc0a81280, 0x000c29ca, 0xf24e0000, 0x00006f00 };//00 was added
+constexpr int netb[] = { 0x414e4e4f,0x01000000, 0x00000000, 0x00000000, 0x00000000, 0xc0a81280, 0x00000000, 0x00000000, 0x0100ff00 };//many 00 was deleted
 
 void translateTDRstr(const int* from, char to[], int lenfr, int lento)
 {//为了减小体积(?),这里将发送的四个char合并为一个int存储,发送时再转换回来
@@ -2870,11 +2880,11 @@ void filestart()//在发送文件前需要执行这个函数
 	sendto(sockClient, bb, 61, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)),
 		sendto(sockClient, cc, 72, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
 
-
 	closesocket(sockClient);
 	WSACleanup();
 	return;
 }
+
 
 void shutdown2016(char* addr, int Case, BOOL ver2021)
 {//负责新版无字符串命令执行的函数
@@ -3030,6 +3040,7 @@ void SendIP2Edit(wchar_t* newip)//将获得的IP地址应用到Edit中
 
 void CheckIPs()//取本机的ip地址  
 {
+	if (IPaddrSearched)return;
 	WSADATA wsaData;
 	char name[155];
 	PHOSTENT hostinfo;
@@ -3041,12 +3052,51 @@ void CheckIPs()//取本机的ip地址
 				for (numofips = 0; hostinfo != NULL && hostinfo->h_addr_list[numofips] != NULL; numofips++)
 				{
 					strcpy(Allips[numofips], inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[numofips]));
-					if (numofips > 19)break;
+					if (numofips > 29)break;
 				}
 			}//清理
 		WSACleanup();
 	}
+	IPaddrSearched = TRUE;
 }
+
+DWORD WINAPI net4372(LPVOID pM)
+{
+	IPandi* tmp2 = (IPandi*)pM;
+	char aa[50], bb[80], ip123[30], addr[30], tmp[10];
+	mystrcpy(ip123, tmp2->ip);
+	*(mystrrchr(ip123, '.') + 1) = 0;
+
+	translateTDRstr(neta, aa, sizeof(neta) / sizeof(int), 43);
+	translateTDRstr(netb, bb, sizeof(netb) / sizeof(int), 72);
+	while (1)
+	{
+		for (int i = 0; i < 255; ++i)
+		{
+			if (30 > i && 200 < i)++i;
+			mystrcpy(addr, ip123);
+			myitoa(i, tmp, 10);
+			mystrcat(addr, tmp);
+			Sleep(60);
+			TDRsend(addr, 4809, aa, 43);
+			TDRsend(addr, 5512, bb, 72);
+			if (!Main.Check[CHK_OFFLINE].Value)return 0;
+		}
+	}
+}
+DWORD WINAPI AntiDetectingThreadStarter(LPVOID pM)
+{
+	(pM);
+	CheckIPs();
+	for (int i = 0; i < numofips; ++i)
+	{
+		IPandi tmp{ Allips[i] ,i };
+		CreateThread(0, 0, net4372, &tmp, 0, NULL);
+		Sleep(2);
+	}
+	return 0;
+}
+
 DWORD WINAPI SearchThread(LPVOID pM)
 {
 	SearchThreadStruct* sts = (SearchThreadStruct*)pM;
@@ -3066,7 +3116,7 @@ DWORD WINAPI SearchThread(LPVOID pM)
 		char fullIP[100];
 		wchar_t txt[30];
 		mywcscpy(txt, TDR.GetStr(L"sch"));
-		if (IPsearched[ID][i] == 1)continue;//寻找过就不要再寻找了
+		if (IPsearched[ID][i] == true)continue;//寻找过就不要再寻找了
 		mystrcpy(fullIP, ip123);
 		myitoa(i, tmp, 10);
 		mystrcat(fullIP, tmp);
@@ -3080,9 +3130,9 @@ DWORD WINAPI SearchThread(LPVOID pM)
 		DWORD hr = SendARP(ipAddr, 0, Mac, &MacLen);
 		if (hr == 0)
 		{
-			if (IPsearched[ID][i] == 1)continue;
+			if (IPsearched[ID][i] == true)continue;
 			wchar_t wName[101];
-			IPsearched[ID][i] = 1;
+			IPsearched[ID][i] = true;
 			MultiByteToWideChar(CP_ACP, 0, fullIP, -1, wName, 100);
 			SendMessage(ComputerList, LB_ADDSTRING, 0, (LPARAM)wName);
 		}
@@ -3559,8 +3609,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 			}
 		}
 		if (GetForegroundWindow() != Main.hWnd)Main.EditUnHotKey();
-		if (GetTickCount() - Main.Timer >= 500 && Main.ExpExist == FALSE)Main.Try2CreateExp();
-		if (GetTickCount() - TDR.Timer >= 500 && Main.ExpExist == FALSE && (!TDRclosed))TDR.Try2CreateExp();
+		if (GetTickCount() - Main.Timer >= 500 && (!Main.ExpExist))Main.Try2CreateExp();
+		if (GetTickCount() - TDR.Timer >= 500 && (!Main.ExpExist) && (!TDRclosed))TDR.Try2CreateExp();
 		break;
 	}
 	case TIMER_BUTTONEFFECT://按钮特效
@@ -3779,23 +3829,20 @@ void ReopenTD()//在已知路径的情况下，重新打开极域电子教室
 DWORD WINAPI ReopenThread(LPVOID pM)//尝试寻找并打开极域
 {
 	(pM);
-	if (Main.Button[BUT_RETD].Enabled == FALSE)return 0;
-	if (TDsearched != TRUE)
+	if (!Main.Button[BUT_RETD].Enabled)return 0;//在按钮被禁用的情况下仍有可能启动此线程
+	if (TDsearched == TDSEARCH_FAILED)return 0;
+	if (TDsearched == TDSEARCH_NOTFOUND)//不建议(!TDsearched)
 	{
 		wchar_t tmpstr[MAX_PATH];
-		myZeroMemory(tmpstr, sizeof(wchar_t) * MAX_STR);
+		myZeroMemory(tmpstr, sizeof(tmpstr));
 		if (!slient)
 		{
 			mywcscpy(tmpstr, Main.Button[BUT_RETD].Name);
 			mywcscpy(Main.Button[BUT_RETD].Name, Main.GetStr(L"starting"));
 			Main.EnableButton(BUT_RETD, FALSE);
 		}
-		while (TDsearched == 2)Sleep(1);
-		if (TDsearched == TRUE)goto suc; else TDsearched = 2;
-		//各种目录都找一遍就行了
-		TDSearchDirect();
 
-	suc:
+		TDSearchDirect();
 		if (!slient)
 		{
 			mywcscpy(Main.Button[BUT_RETD].Name, tmpstr);
@@ -3803,6 +3850,7 @@ DWORD WINAPI ReopenThread(LPVOID pM)//尝试寻找并打开极域
 		}
 		SetTDPathStr();
 	}
+	if (TDsearched == TDSEARCH_FAILED)return 0;
 	ReopenTD();//打开
 	if (slient)ExitProcess(0);//命令行调用时直接退出
 	return 0;
@@ -4181,13 +4229,13 @@ BOOL RunCmdLine(LPWSTR str)//解析并执行命令行
 		ReleaseRes(HelpPath, FILE_HELP, L"JPG");
 		DWORD NumberOfBytesRead;
 
-		wchar_t* AllTmp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_LANGUAGE_LENGTH), * Pointer1, * Pointer2;
-		char* ANSItmp = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(char) * MAX_LANGUAGE_LENGTH);
+		wchar_t* AllTmp = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * MAX_LANGUAGE_LEN), * Pointer1, * Pointer2;
+		char* ANSItmp = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(char) * MAX_LANGUAGE_LEN);
 		if (AllTmp == 0 || ANSItmp == 0)goto error;
 		HANDLE hf = CreateFile(HelpPath, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 		if (hf == 0)goto okreturn;//读取文件中的所有内容
-		if (!ReadFile(hf, ANSItmp, MAX_LANGUAGE_LENGTH, &NumberOfBytesRead, NULL))goto error;
-		MultiByteToWideChar(CP_ACP, 0, ANSItmp, -1, AllTmp, MAX_LANGUAGE_LENGTH);
+		if (!ReadFile(hf, ANSItmp, MAX_LANGUAGE_LEN, &NumberOfBytesRead, NULL))goto error;
+		MultiByteToWideChar(CP_ACP, 0, ANSItmp, -1, AllTmp, MAX_LANGUAGE_LEN);
 		Pointer1 = AllTmp;
 		if (NumberOfBytesRead == 0)goto okreturn;
 		for (int i = 1; i < HELP_END; ++i)
@@ -4353,9 +4401,46 @@ int main()//程序入口点
 	return (int)msg.wParam;
 }
 
-DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
+BOOL InitInstance()//和界面有关的初始化
 {
-	(pM);
+	InitHotKey();//初始化热键系统
+	InitBrushs();//创建画笔 & 画刷
+	InitPens();
+
+	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
+
+	GetDeviceRect();
+	if (yLength >= 1400)Main.DPI = 1.5;//根据屏幕高度预先设定缩放比例
+	if (yLength <= 1000)Main.DPI = 0.75;//在屏幕分辨率较低的电脑上自动降低画质
+	if (yLength <= 600)Main.DPI = 0.5;
+	if (yLength <= 1070)LowResource = TRUE;//注:这几行代码一定要放在窗口创建之前
+
+	Main.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//创建默认字体
+		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"宋体");
+
+	Main.SetTitleBar(COLOR_TITLE_1, TITLEBAR_HEIGHT);//设置TitleBar
+
+	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//注册窗口类
+
+	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290, \
+		(int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
+
+	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
+
+	Main.ButtonEffect = TRUE;//按钮渐变色特效
+	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
+	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
+
+	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
+	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
+
+	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
+	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
+	statu = GetTickCount();
+	Main.Timer = myrand();
+	if ((Main.Timer % 49) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
+	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
+
 	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", 0, FALSE);//创建输入框
 	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", 0, FALSE);
 	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", 0, FALSE);
@@ -4470,61 +4555,6 @@ DWORD WINAPI InitThread(LPVOID pM)//创建各种控件(线程)
 	Main.Frame[FRA_TOPDOMAIN].rgb = COLOR_DARKER_BLUE;
 	RefreshFrameText();//改变Frame颜色和文字
 
-	InitThreadFinish = TRUE;
-	if (LanguageID != CHINESE_LANID && InitFinish)//非中文系统自动切换成英文
-	{
-		ShowWindow(Main.hWnd, SW_SHOW);
-		wchar_t Tempstr[MAX_STR];
-		ReleaseLanguageFiles(TDTempPath, 2, Tempstr);
-		SwitchLanguage(Tempstr);
-	}
-	return 0;
-}
-
-BOOL InitInstance()//和界面有关的初始化
-{
-	InitHotKey();//初始化热键系统
-	InitBrushs();//创建画笔 & 画刷
-	InitPens();
-
-	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
-
-	GetDeviceRect();
-	if (yLength >= 1400)Main.DPI = 1.5;//根据屏幕高度预先设定缩放比例
-	if (yLength <= 1000)Main.DPI = 0.75;//在屏幕分辨率较低的电脑上自动降低画质
-	if (yLength <= 600)Main.DPI = 0.5;
-	if (yLength <= 1070)LowResource = TRUE;//注:这几行代码一定要放在窗口创建之前
-
-	Main.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//创建默认字体
-		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"宋体");
-
-	Main.SetTitleBar(COLOR_TITLE_1, TITLEBAR_HEIGHT);//设置TitleBar
-
-	if (!MyRegisterClass(hInst, WndProc, szWindowClass, CS_DROPSHADOW))return FALSE;//注册窗口类
-
-	//多线程初始化
-	//由于CreateWindowEx需要的时间是InitThread的7倍，差距足够大，因此不增加线程同步
-	CreateThread(0, 0, InitThread, 0, 0, 0);
-
-	Main.hWnd = CreateWindowEx(WS_EX_LAYERED, szWindowClass, Main.GetStr(L"Tmain2"), WS_POPUP, 290, 290, \
-		(int)(DEFAULT_WIDTH * Main.DPI), (int)(DEFAULT_HEIGHT * Main.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
-
-	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
-
-	Main.ButtonEffect = TRUE;//按钮渐变色特效
-	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
-	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
-
-	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
-	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
-
-	AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_CTRL_ALT_K, MOD_CONTROL | MOD_ALT, 'K');//键盘控制鼠标
-	if (FirstFlag)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//第一次启动时自动"一键安装"
-	statu = GetTickCount();
-	Main.Timer = myrand();
-	if ((Main.Timer % 49) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
-	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
-
 	if (!LowResource)
 	{
 		HRGN rgn;
@@ -4565,11 +4595,12 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(365, 237, 97, 50, 2, L"改密方案1", L"CP1");
 	Main.CreateButton(477, 237, 97, 50, 2, L"改密方案2", L"CP2");
 
-	Main.CreateCheck(165, 238, 2, 135, L" 伪装工具条旧");
-	Main.CreateCheck(165, 264, 2, 135, L" 伪装工具条新");
-	Main.CreateCheck(165, 290, 2, 135, L" 伪装托盘图标");
-	Main.CreateCheck(165, 316, 2, 170, L" 新桌面中启动极域");
-	Main.CreateCheck(165, 342, 2, 170, L" Ctrl+Y 启动极域");
+	Main.CreateCheck(159, 238, 2, 120, L" 伪装工具条");
+	Main.CreateCheck(282, 238, 2, 50, L"旧版");
+	Main.CreateCheck(159, 264, 2, 135, L" 伪装托盘图标");
+	Main.CreateCheck(159, 290, 2, 170, L" 新桌面中启动极域");
+	Main.CreateCheck(159, 316, 2, 170, L" Ctrl+Y 启动极域");
+	Main.CreateCheck(159, 342, 2, 135, L" 防止掉线监控");
 
 	Main.CreateButton(175, 458, 60, 42, 2, L"结束", L"kill-TD");
 	Main.Button[Main.CurButton].Enabled = FALSE;
@@ -4613,8 +4644,7 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");//37
 	Main.Button[BUT_GAMES].Enabled = FALSE;
 
-	InitFinish = TRUE;
-	if (LanguageID != CHINESE_LANID && InitThreadFinish)//非中文系统自动切换成英文
+	if (LanguageID != CHINESE_LANID)//非中文系统自动切换成英文
 	{
 		ShowWindow(Main.hWnd, SW_SHOW);
 		wchar_t Tempstr[MAX_STR];
@@ -4698,7 +4728,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 	{
 		HBRUSH BitmapBrush = NULL; HICON hicon;
 		RECT rc; PAINTSTRUCT ps;
-		if (!IsWindowVisible(hWnd))break;
 		myZeroMemory(&rc, sizeof(RECT));
 		myZeroMemory(&ps, sizeof(PAINTSTRUCT));
 		if (lParam == UT_MESSAGE)goto finish;
@@ -4894,7 +4923,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				wchar_t* t = mywcsrchr(strFile, L'\\');
 				mywcscpy(TDPath, strFile);
 				mywcscpy(TDName, t + 1);
-				TDsearched = TRUE;
+				TDsearched = TDSEARCH_SUCCEED;
 				SetTDPathStr();
 			}
 			HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, strFile);
@@ -4992,7 +5021,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		}
 		case BUT_SETHC:
 		{//安装 or 卸载 sethc
-			if (SethcInstallState == FALSE)
+			if (!SethcInstallState)
 			{//安装sethc
 				if (DeleteSethc() == FALSE) { Main.InfoBox(L"DSR3Fail"); break; }
 				else SethcState = FALSE;//删除sethc
@@ -5280,6 +5309,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 				if (!AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_RESTART_TD, MOD_CONTROL, 'Y'))
 					Main.Check[CHK_RETD].Value = TRUE; Main.Redraw(Main.GetRECTc(CHK_RETD));
 				break; }
+			case CHK_OFFLINE: {
+				if (FirstFlag)Main.InfoBox(L"AoInfo");
+				if (!HookState)
+				{
+					if (FirstHook)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);
+					FirstHook = FALSE;
+					mywcscpy(Main.Button[BUT_HOOK].Name, Main.GetStr(L"unQS"));//切换按钮状态
+					HookState = TRUE;
+				}
+				CreateThread(0, 0, AntiDetectingThreadStarter, 0, 0, 0);
+				break;
+			}
 			case CHK_T_A_:
 			{//加载驱动删除文件
 				if (!EnableTADeleter())Main.InfoBox(L"DrvFail"), Main.Check[CHK_T_A_].Value = !Main.Check[CHK_T_A_].Value;
@@ -5300,7 +5341,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			case CHK_BSOD: {AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_BSOD, MOD_CONTROL, 'R'); break; }//蓝屏
 			case CHK_SHUTD: {AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_RESTART, MOD_CONTROL, 'T'); break; }//重启
 			case CHK_SCSHOT: {//截图伪装
-				if (FS == TRUE)MyRegisterClass(hInst, ScreenProc, ScreenWindow, NULL), FS = FALSE;
+				if (FS)MyRegisterClass(hInst, ScreenProc, ScreenWindow, NULL), FS = FALSE;
 				AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SCREENSHOT, MOD_CONTROL | MOD_ALT, 'P');
 				break; }
 			case CHK_REKILL: {KillProcess(Main.Edit[EDIT_TDNAME].str); SetTimer(hWnd, TIMER_KILLPROCESS, 1500, (TIMERPROC)TimerProc); break; }//连续结束进程

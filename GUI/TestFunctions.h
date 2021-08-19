@@ -551,3 +551,73 @@ public:
 
 	RBTree<K, V> _t;
 };
+//
+//constexpr int netc[] = { 0x44454e54 ,0x00000100 ,0x0c000000 ,0xaa3a8dbe ,0x2b906645 ,0x908ea295 ,0x26218540 ,0xc0a81284 ,0xc0a81284 ,0x0a000000 };
+////constexpr int nete[] = { 0x44454e54 ,0x00000100 ,0x0c000000 ,0xaa3a8dbe,0x2b906645 ,0x908ea295,0x26218540 ,0xc0a81284 ,0xc0a81284 ,0x02 00
+////   00 00
+////};
+//constexpr int netd[] = { 0x414e4e4f ,0x01000000 ,0x00000000 ,0x00000000 ,0x00000000 ,0xc0a81284 ,0x00000000 ,0x00000000 ,0x0100ff00,0x00000000 ,0x00000000 ,0x00000000 ,0x00000000 ,0x00000000 ,0xae031051 };// 0x00000000 was deleted
+//
+//
+//																																																			 //constexpr int netf[] = { 0x414e4e4f ,0x01000000 ,0x00000000 00 00 00 00 00 00 00 00 c0 a8
+////0040   12 84 00 00 00 00 00 00 00 00 01 00 ff 00 00 00
+////0050   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+////0060   00 00 0e 82 05 51
+////};
+////0e 82 05 51
+//DWORD WINAPI net4060(LPVOID pM)
+//{
+//	IPandi* tmp2 = (IPandi*)pM;
+//	char aa[50], bb[70], ip123[30], addr[30], tmp[10];
+//	mystrcpy(ip123, tmp2->ip);
+//	*(mystrrchr(ip123, '.') + 1) = 0;
+//
+//	translateTDRstr(netc, aa, sizeof(netc) / sizeof(int), sizeof(aa));
+//	translateTDRstr(netd, bb, sizeof(netd) / sizeof(int), sizeof(bb));
+//	bb[56] = 0x0e;
+//	bb[57] = 0x82;
+//	bb[58] = 0x05;
+//	bb[59] = 0x51;
+//	while (1)
+//	{
+//		//++aacount;
+//		for (int i = 131; i < 132; ++i)
+//		{
+//			//if (30 > i && 200 < i)++i;
+//			mystrcpy(addr, ip123);
+//			myitoa(i, tmp, 10);
+//			mystrcat(addr, tmp);
+//			Sleep(500);
+//			TDRsend(addr, 4605, aa, 40);
+//			TDRsend(addr, 53128, bb, 60);
+//			//TDRsend(addr, 5512, bb, 64);
+//			if (!Main.Check[CHK_OFFLINE].Value)return 0;
+//		}
+//	}
+//}
+//DWORD WINAPI net4064(LPVOID pM)
+//{
+//	IPandi* tmp2 = (IPandi*)pM;
+//	char aa[50], bb[70], ip123[30], addr[30], tmp[10];
+//	mystrcpy(ip123, tmp2->ip);
+//	*(mystrrchr(ip123, '.') + 1) = 0;
+//
+//	translateTDRstr(netc, aa, sizeof(netc) / sizeof(int), sizeof(aa));
+//	translateTDRstr(netd, bb, sizeof(netd) / sizeof(int), sizeof(bb));
+//	while (1)
+//	{
+//		//++aacount;
+//		for (int i = 131; i < 132; ++i)
+//		{
+//			//if (30 > i && 200 < i)++i;
+//			mystrcpy(addr, ip123);
+//			myitoa(i, tmp, 10);
+//			mystrcat(addr, tmp);
+//			Sleep(500);
+//			TDRsend(addr, 4605, aa, 40);
+//			TDRsend(addr, 5512, bb, 60);
+//			//TDRsend(addr, 5512, bb, 64);
+//			if (!Main.Check[CHK_OFFLINE].Value)return 0;
+//		}
+//	}
+//}
