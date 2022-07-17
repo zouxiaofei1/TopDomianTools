@@ -1,4 +1,4 @@
-//这是TopDomainTools工程源代码中ProcessHacker部分
+﻿//这是TopDomainTools工程源代码中ProcessHacker部分
 //精简自ProcessHacker中与驱动通信的一段代码
 //https://github.com/processhacker/processhacker
 //用于加载KPH驱动,取得通信连接并用来结束进程

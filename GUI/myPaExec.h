@@ -1,4 +1,4 @@
-//这是TopDomainTools工程源代码中PaExec部分
+﻿//这是TopDomainTools工程源代码中PaExec部分
 //精简自 https://github.com/poweradminllc/PAExec
 //用于运行system权限cmd&将程序显示于安全桌面
 //

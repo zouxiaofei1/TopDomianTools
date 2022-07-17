@@ -1,4 +1,4 @@
-//用GetAsyncKeyState函数自定义的快捷键系统
+﻿//用GetAsyncKeyState函数自定义的快捷键系统
 //不会和其他的快捷键冲突
 //缺点是不能在虚拟桌面中使用
 //

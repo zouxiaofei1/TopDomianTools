@@ -1,9 +1,4 @@
-#pragma once
-//自己写的 & 从网上抄来的用于减小程序体积的字符串函数
-//没有“安全功能”，可能不如_s系列稳定
-//
-//by zouxiaofei1 2015 - 2021
-//
+﻿
 
 unsigned int mywcslen(const wchar_t* wstr)
 {
@@ -279,6 +274,37 @@ void myitow(int num, wchar_t* str, int radix)
 	}
 }
 
+char index[] = "0123456789ABCDEF";unsigned unum;
+char* myitoa(int num, char* str, int radix)
+{/*索引表 */
+
+	/*中间变量 */
+	int i = 0, j, k;
+	/*确定unum的值 */
+	if (radix == 10 && num < 0)/*十进制负数 */
+	{
+		unum = (unsigned)-num;
+		str[i++] = '-';
+	}
+	else unum = (unsigned)num;/*其他情况 */
+	/*转换 */
+	do {
+		str[i++] = index[unum % (unsigned)radix];
+		unum /= radix;
+	} while (unum);
+	str[i] = '\0';
+	/*逆序 */
+	if (str[0] == '-')k = 1;/*十进制负数 */else k = 0;
+
+	for (j = k; j <= (i - 1) / 2; j++)
+	{
+		char temp;
+		temp = str[j];
+		str[j] = str[i - 1 + k - j];
+		str[i - 1 + k - j] = temp;
+	}
+	return str;
+}
 wchar_t* mywcstok(wchar_t* s, const wchar_t* delim) {
 	static wchar_t* text = NULL;
 	if (text == NULL) text = s;
@@ -293,36 +319,4 @@ wchar_t* mywcstok(wchar_t* s, const wchar_t* delim) {
 	}
 	if (*text == '\0') text = NULL;
 	return head;
-}
-
-char index[] = "0123456789ABCDEF";
-char* myitoa(int num, char* str, int radix)
-{/*索引表*/
-	
-	unsigned unum;/*中间变量*/
-	int i = 0, j, k;
-	/*确定unum的值*/
-	if (radix == 10 && num < 0)/*十进制负数*/
-	{
-		unum = (unsigned)-num;
-		str[i++] = '-';
-	}
-	else unum = (unsigned)num;/*其他情况*/
-	/*转换*/
-	do {
-		str[i++] = index[unum % (unsigned)radix];
-		unum /= radix;
-	} while (unum);
-	str[i] = '\0';
-	/*逆序*/
-	if (str[0] == '-')k = 1;/*十进制负数*/else k = 0;
-
-	for (j = k; j <= (i - 1) / 2; j++)
-	{
-		char temp;
-		temp = str[j];
-		str[j] = str[i - 1 + k - j];
-		str[i - 1 + k - j] = temp;
-	}
-	return str;
 }

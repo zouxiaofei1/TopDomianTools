@@ -16,14 +16,14 @@
 
 #pragma warning(disable:6320)
 //部分(重要)函数的前向声明
-BOOL				InitInstance();//初始化
-LRESULT	CALLBACK	WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//主窗口
-LRESULT CALLBACK	CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//"捕捉窗口"的窗口
-LRESULT CALLBACK	ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//截图伪装窗口
-LRESULT CALLBACK	BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//蓝屏伪装窗口
-LRESULT CALLBACK	FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//伪装工具条窗口
-LRESULT CALLBACK	TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//远程工具窗口
-void	CALLBACK	TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
+BOOL					InitInstance();//初始化
+LRESULT	CALLBACK		WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//主窗口
+LRESULT CALLBACK		CatchProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//"捕捉窗口"的窗口
+LRESULT CALLBACK		ScreenProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//截图伪装窗口
+LRESULT CALLBACK		BSODProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//蓝屏伪装窗口
+LRESULT CALLBACK		FakeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//伪装工具条窗口
+LRESULT CALLBACK		TDRProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);//远程工具窗口
+void		CALLBACK		TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);//计时器
 BOOL SearchTool(LPCWSTR lpPath, int type);
 
 
@@ -52,7 +52,7 @@ COLORREF crCustColors[16];//颜色选择中的自定义颜色
 BOOL LowResource = FALSE;//在屏幕分辨率较低的电脑上自动降低画质
 
 //笔刷 & 笔
-HBRUSH LightestGreyBrush, LighterGreyBrush, LightGreyBrush;//灰色
+HBRUSH LLLLGreyBrush,LightestGreyBrush, LighterGreyBrush, LightGreyBrush;//灰色
 HBRUSH LightBlueBrush, LighterBlueBrush, NormalBlueBrush, BSODBrush; //蓝色
 HBRUSH WhiteBrush, YellowBrush, BlackBrush;//其他颜色
 HPEN LightestGreyPen, LightGreyPen, NormalGreyPen, DarkerGreyPen, DarkestGreyPen;
@@ -110,12 +110,12 @@ Map<int, BOOL>expid, tdpid;//explorer PID + 被监视窗口 PID
 HWND MonitorList[101]; //被监视窗口hWnd
 int MonitorTot, MonitorCur;//被监视窗口数量 + 正在被监视的窗口编号
 int TopCount;//CatchWnd窗口置顶延迟变量
-int sdl = 3;//切换语言的时间延迟
+int sdl = -2;//切换语言的时间延迟
 wchar_t DH1[] = L"按下某个按钮时提示权限不足怎么办?\n在标题栏上点几下试试", DH2[] = L"按住Ctrl键可以移动按钮位置", \
 DH4[] = L"这个程序在绝大多数情况下不会使你的电脑蓝屏", DH5[] = L"\"关于\"页面中的\"极域路径\"四个字是可以点击的", DH6[] = L"在win7及更新的系统中，\n按Ctrl + Alt + Del会进入安全桌面", \
 DH7[] = L"老师可以监视通过极域监视你的电脑\n尽量在不使用的时候按Ctrl + P将窗口隐藏", DH8[] = L"老师可能发现你\"退出\"极域\n因此，sethc，全局键盘钩子，极域进程工具，频道工具，\n这四个功能都有风险", \
 DH9[] = L"老师不允许插U盘和上网怎么办?\n我也不知道啊╮(￣▽￣)╭", DHX[] = L"当结束进程失败时，试试设置界面的ProcessHacker", DHA[] = L"切换到新桌面后一片空白?\n点一下\"主要功能\"中的运行程序即可", \
-DHB[] = L"mythware_super_password\n这是2016版极域的万能管理员密码", * DailyHelp[13]{ 0,DH1,DH2 ,DH2 ,DH4 ,DH5 ,DH6 ,DH7 ,DH8 ,DH9 ,DHX ,DHA ,DHB };
+DHB[] = L"mythware_super_password\n这是多数极域的万能管理员密码", * DailyHelp[13]{ 0,DH1,DH2 ,DH2 ,DH4 ,DH5 ,DH6 ,DH7 ,DH8 ,DH9 ,DHX ,DHA ,DHB };
 constexpr int QRcode[]{ 0x1fc9e7f,0x1053641,0x175f65d,0x174e05d,0x175075d,0x105a341,0x1fd557f,0x19500,0x1a65d76,0x17a6dc1,0x18ec493,0x1681960,\
 0x1471bcb,0x2255ed,0x17c7475,0xea388a,0x18fd1fc,0x1f51d,0x1fd8b53,0x104d51d,0x1745df2,0x1751d14,0x174ce1d,0x1056dc8,0x1fd9ba3 };//信不信这是一个二维码= =
 const char word1[] = "A problem has been detected and windows has been shut down to prevent damage to your computer. ", word2[] = "IRQL_NOT_LESS_OR_EQUAL ",
@@ -340,6 +340,7 @@ public:
 					&& UPrc.top < (long)(Frame[i].Top * DPI))continue;
 				SelectObject(hdc, BlackPen);//绘制方框
 				SelectObject(hdc, DefFont);
+				SetBkMode(hdc, TRANSPARENT);//去掉文字背景
 				MoveToEx(hdc, (int)(Frame[i].Left * DPI), (int)(Frame[i].Top * DPI), NULL);//多加点(int)xx*DPI 减少警告
 				LineTo(hdc, (int)(Frame[i].Left * DPI), (int)(Frame[i].Top * DPI + Frame[i].Height * DPI));
 				LineTo(hdc, (int)(Frame[i].Left * DPI + Frame[i].Width * DPI), (int)(Frame[i].Top * DPI + Frame[i].Height * DPI));
@@ -347,12 +348,25 @@ public:
 				LineTo(hdc, (int)(Frame[i].Left * DPI), (int)(Frame[i].Top * DPI));
 				SetTextColor(hdc, Frame[i].rgb);//自定义文字颜色
 				RECT rc = GetRECTf(i);
+				DrawShadow( { (long)(Frame[i].Left * DPI), (long)(Frame[i].Top * DPI), (long)((Frame[i].Left + Frame[i].Width) * DPI), (long)((Frame[i].Top + Frame[i].Height) * DPI) },0);
 				SetBkMode(hdc, OPAQUE);//打印上方文字
 				DrawTextW(hdc, Frame[i].Name, (int)mywcslen(Frame[i].Name), &rc, NULL);
 			}
 			if (cur != 0)return;
 		}
 	}
+	void DrawShadow(RECT rc,int state)
+	{
+		 HPEN hp[4] = { DarkestGreyPen,NormalGreyPen,LightGreyPen,LightestGreyPen };
+		for (int i = 1; i <= 4; ++i)
+		{
+			SelectObject(hdc, hp[i]);
+			MoveToEx(hdc, (int)(rc.right +i-state), (int)(rc.top), 0);
+			LineTo(hdc, (int)(rc.right +i - state), (int)(rc.bottom + i - state));
+			LineTo(hdc, (int)(rc.left), (int)(rc.bottom + i - state));
+		}
+	}
+
 	void DrawButtons(int cur)//绘制按钮
 	{
 		RECT UPrc = { 0 };
@@ -409,27 +423,9 @@ public:
 
 				Rectangle(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + 0.5),//绘制方框和内部的颜色
 					(int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
-
-				if (Button[i].Shadow && ButtonEffect)//在按钮的右下方画一圈阴影
-				{
-					SelectObject(hdc, NormalGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + 0.5), 0);
-					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI), (int)(Button[i].Top * DPI + Button[i].Height * DPI));
-					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5) - 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI));
-
-					SelectObject(hdc, LightGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + 0.5), 0);
-					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
-					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
-
-					SelectObject(hdc, LightestGreyPen);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + 0.5), 0);
-					LineTo(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 2, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 1);
-					MoveToEx(hdc, (int)(Button[i].Left * DPI + Button[i].Width * DPI) + 1, (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2, 0);
-					LineTo(hdc, (int)(Button[i].Left * DPI + 0.5), (int)(Button[i].Top * DPI + Button[i].Height * DPI) + 2);
-				}
-
+				
 				RECT rc = GetRECT(i);
+				if (Button[i].Shadow && ButtonEffect)DrawShadow(rc,1);//在按钮的右下方画一圈阴影
 
 				SetBkMode(hdc, TRANSPARENT);//去掉文字背景
 
@@ -522,9 +518,9 @@ public:
 		for (int i = 1; i <= ExpLine; ++i)//注意这里的ExpPoint , ExpWidth等都是缩放后坐标
 			TextOutW(hdc, ExpPoint.x + 4, (int)(ExpPoint.y - 12 * DPI + 16 * i * DPI + 2 * i), Exp[i], (int)mywcslen(Exp[i]));
 	}
-	void DrawEdits(int cur)//绘制输入框
-	{//这是全Class最复杂的一个控件
-		//不过同时效率也非常高
+	void DrawEdits(int cur)//输入框
+	{//这是全Class最复杂的控件
+		//效率非常高，几千万字也不会卡(骄傲)
 		RECT UPrc;
 		int i, MOffset = 0, showBegin = 0, showEnd = 0;//结构示意:	创建缓存dc -> 绘制边框(蓝色 or 灰色) -> 打印文字(提示文字)
 		HDC mdc;//													->打印文字(未选中) ->打印文字(选中) -> 从缓存dc贴图 -> 清理
@@ -547,12 +543,12 @@ public:
 				Rectangle(mdc, 0, 0, MAX_EDIT_WIDTH, MAX_EDIT_HEIGHT);
 
 				SelectObject(hdc, WhiteBrush);
-				if (i == CoverEdit)SelectObject(hdc, NormalBluePen); else SelectObject(hdc, DarkestGreyPen);//如果当前Edit被选中则用蓝色绘制边框
+				if (i == CoverEdit)SelectObject(hdc, NormalBluePen); else SelectObject(hdc, DarkestGreyPen);//当前Edit被选中则用蓝色绘制边框
 				Rectangle(hdc, (int)((Edit[i].Left - 5) * DPI), (int)(Edit[i].Top * DPI),//否则仅用默认的黑色
 					(int)((Edit[i].Left + Edit[i].Width + 5) * DPI), (int)((Edit[i].Top + Edit[i].Height) * DPI));
 
 				if (*Edit[i].OStr != 0)//如果当前Edit显示的是Ostr(仅用于提示的灰色文字)
-				{//在Hdc上直接打印完走人
+				{//在Hdc上打印完走人
 					SetTextColor(hdc, COLOR_DARKER_GREY);
 					RECT rc{ (long)((Edit[i].Left - 5) * DPI) , (long)(Edit[i].Top * DPI),(long)((Edit[i].Left + Edit[i].Width + 5) * DPI),(long)((Edit[i].Top + Edit[i].Height) * DPI) };
 					DrawTextW(hdc, Edit[i].OStr, (int)mywcslen(Edit[i].OStr), &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -560,15 +556,15 @@ public:
 				}
 
 				SIZE sel, ser;//pos1 / pos2:确定打印时"选中部分"真正的左右两端点
-				int pos1, pos2;//因为有时候从左到右移动鼠标选中文字，有时从右向左
+				int pos1, pos2;//因为有时候从左到右移动鼠标选文字，有时从右向左
 				if (Edit[i].Pos1 > Edit[i].Pos2 && Edit[i].Pos2 != -1)pos1 = Edit[i].Pos2, pos2 = Edit[i].Pos1; else pos1 = Edit[i].Pos1, pos2 = Edit[i].Pos2;
-				//pos1&pos2里记录的数值只表示选中的先后顺序，不代表左右，因此这里要特殊处理
+				//pos1&pos2里记录的数值只表示选中的先后顺序，不代表左右，这里要特殊处理
 
 				if (Edit[i].font != NULL)SelectObject(mdc, Edit[i].font); else SelectObject(mdc, DefFont);//字体
 				if (Edit[i].XOffset != 0)
-				{//当XOffset不为0时，可能大部分文字都不会显示在屏幕上，这时候它们无需被打印
+				{//当XOffset不为0时，说明有些文字无需被打印
 					showBegin = max(MyGetTextExtentPoint32Binary(i, Edit[i].XOffset) - 1, 0);
-					SIZE se;//获取被显示在屏幕上的文字开始处和结尾处
+					SIZE se;//获取被显示的文字开始结尾坐标
 					MyGetTextExtentPoint32(i, -1, showBegin - 1, se);
 					MOffset = se.cx;//获取MOffset(相对于XOffset后向左的偏移量)
 					//当没有这个优化时，缓存上打印时总是打印整个字符串，贴图时从XOffset开始贴
@@ -701,11 +697,11 @@ public:
 		GetTextExtentPoint32(mdc, Edit[cur].str, 1, &se);
 		*Edit[cur].strW = se.cx;
 		Edit[cur].strHeight = se.cy;
-		for (int i = 1; i < Edit[cur].strLength; ++i)//依次获取每一位的宽度
-		{//由于GetTextExtentPoint32函数效率出奇的慢，我们这里划出64k内存建立一个表格，
-			int curstr = *(Edit[cur].str + i);//记录每个字符在字体为16号时的宽度，
-			if (strWmap[curstr] == 0)//这样当每个字符第一次用到时使用GetTextExtentPoint32，之后查表就行了
-			{//这样缺点是整个项目Edit中只能用同一种字体,只能切换字体大小
+		for (int i = 1; i < Edit[cur].strLength; ++i)//获取字符宽度
+		{//由于GetTextExtentPoint32函数出奇的慢，这里划出64k内存建立一个表格，减少原函数调用次数
+			int curstr = *(Edit[cur].str + i);
+			if (strWmap[curstr] == 0)
+			{//缺点是整个项目Edit中只能用同一种字体, (可以切换字体大小)
 				GetTextExtentPoint32(mdc, Edit[cur].str + i, 1, &se);
 				Edit[cur].strW[i] = Edit[cur].strW[i - 1] + se.cx;
 				Edit[cur].strHeight = max(Edit[cur].strHeight, se.cy);
@@ -2776,12 +2772,9 @@ void MakeIPstr(wchar_t* dst, wchar_t* s1, const wchar_t* s2, const wchar_t* s3, 
 	mywcscat(dst, s4);
 }
 
-void SetTextBar(const wchar_t* a, BOOL erase)//设置TDR窗口下方的提示字符串
+inline void SetTextBar(const wchar_t* a)//设置TDR窗口下方的提示字符串
 {
-	TDR.SetStr(a, L"textstr");
-	TDR.Readd(4, 9);
-	if (!erase)TDR.Redraw({ 17, 422, 500,470 });
-	else TDR.Redraw();
+	SetWindowText(TDR.hWnd, a);
 }
 constexpr int shut2010a[] = { 0x444d4f43, 0x00000100, 0x2a020000, 0x9bd1fe53, 0x669de042, 0x87e18bbd, 0x9142d81e, 0x204e0000, 0xc0a85001, 0x1d020000,\
 	0x1d020000, 0x00020000, 0x00000000 , 0x14000010, 0x0f000000, 0x01000000, 0x00000000, 0x5965085e, 0x065c7351, 0xed95a860, 0x8476a18b, 0x977b3a67, 0x02300000 };
@@ -2937,10 +2930,10 @@ DWORD WINAPI Act2016Thread(LPVOID pM)//将关机or重启命令依次执行(2015~
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt, TRUE);
+		SetTextBar(txt);
 		shutdown2016(tmp2, Case, ver2021);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"));
 	return 0;
 }
 DWORD  WINAPI Act2010Thread(LPVOID pM)//将关机or重启命令依次执行(2012 2010版)
@@ -2961,10 +2954,10 @@ DWORD  WINAPI Act2010Thread(LPVOID pM)//将关机or重启命令依次执行(2012
 		if (Case == ACT_CLOSE)mywcscpy(txt, TDR.GetStr(L"cmd3"));
 		if (Case == ACT_WINDOWFY)mywcscpy(txt, TDR.GetStr(L"cmd4"));
 		mywcscat(txt, tmp);
-		SetTextBar(txt, TRUE);
+		SetTextBar(txt);
 		shutdown2010(tmp2, Case);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"));
 	return 0;
 }
 
@@ -3024,11 +3017,12 @@ DWORD  WINAPI  Act2016textThread(LPVOID pM)
 		wchar_t txt3[40];
 		mywcscpy(txt3, TDR.GetStr(L"sd"));
 		mywcscat(txt3, tmp);
-		//s(txt3);
-		SetTextBar(txt3, TRUE);
+
+		SetTextBar(txt3);
 		text2016(tmp2, Case, txt2, l * 2, ver2021);
 	}
-	SetTextBar(TDR.GetStr(L"cmdok"), TRUE);
+	SetTextBar(TDR.GetStr(L"cmdok"));
+	return 0;
 }
 
 void SendIP2Edit(wchar_t* newip)//将获得的IP地址应用到Edit中
@@ -3139,7 +3133,7 @@ DWORD WINAPI SearchThread(LPVOID pM)
 
 		MultiByteToWideChar(CP_ACP, 0, fullIP, -1, tmp2, 30);
 		mywcscat(txt, tmp2);
-		SetTextBar(txt, FALSE);
+		SetTextBar(txt);
 
 		MacLen = 6;
 		ipAddr = inet_addr(fullIP);
@@ -3191,7 +3185,7 @@ DWORD WINAPI SearchAll(LPVOID pM)//寻找局域网中所有电脑的函数
 	TDR.EnableButton(9, TRUE);
 	while (SearchThreadCount > 0)Sleep(16);
 	TDR.EnableButton(10, TRUE);
-	SetTextBar(TDR.GetStr(L"_textstr"), TRUE);
+	SetTextBar(TDR.GetStr(L"_textstr"));
 	return 0;
 }
 void InitTDR()//初始化TDR
@@ -3226,9 +3220,9 @@ void InitTDR()//初始化TDR
 	TDR.Obredraw = true;//默认使用ObjectRedraw
 
 	TDR.hWnd = CreateWindowEx(WS_EX_LAYERED, TDRWindow, TDR.GetStr(L"textstr"), WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX, 290, 290, \
-		(int)(751 * TDR.DPI), (int)(478 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
+		(int)(751 * TDR.DPI), (int)(434 * TDR.DPI), NULL, nullptr, hInst, nullptr);//创建主窗口
 	if (!TDR.hWnd)return;
-	TDR.Width = 751; TDR.Height = 478;
+	TDR.Width = 751; TDR.Height = 434;
 	SetLayeredWindowAttributes(TDR.hWnd, NULL, 254, LWA_ALPHA);//半透明特效
 	ComputerList = CreateWindowW(L"ListBox", NULL, WS_CHILD | LBS_STANDARD, (int)(563 * TDR.DPI), (int)(40 * TDR.DPI), (int)(165 * TDR.DPI), (int)(360 * TDR.DPI), TDR.hWnd, (HMENU)1, TDR.hInstance, 0);
 	::SendMessage(ComputerList, WM_SETFONT, (WPARAM)TDR.DefFont, 1);//创建ComputerList
@@ -3277,7 +3271,6 @@ void InitTDR()//初始化TDR
 	TDR.CreateCheck(330, 200, 0, 140, L" 2020版 & 2021版");
 	TDR.CreateCheck(330, 225, 0, 140, L" 2015版 ~ 2017版");
 	TDR.CreateCheck(330, 250, 0, 140, L" 2010版 & 2012版");
-	//TDR.CreateCheck(330, 250, 0, 140, L" 2010版 & 2012版");
 	TDR.Check[2].Value = true;
 
 	TDR.CreateText(308, 288, 0, L"t1", 0);
@@ -3291,9 +3284,6 @@ void InitTDR()//初始化TDR
 	SendIP2Edit(tmpstr);//将获得的IP地址应用到Edit中
 	TDR.CreateButton(335, 100, 100, 45, 0, L"切换网卡", L"switch");
 	TDR.CreateButton(692, 5, 33, 28, 0, L"...", L"ri");
-
-	TDR.CreateLine(0, 414, 760, LINE_X, 0, COLOR_DARKEST_GREY);
-	TDR.CreateText(17, 422, 0, L"textstr", 0);
 
 	TDR.CreateText(565, 12, 0, L"tr", COLOR_BLACK);
 
@@ -3614,8 +3604,8 @@ void CALLBACK TimerProc(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)//主�
 			}
 		}
 		if (GetForegroundWindow() != Main.hWnd)Main.EditUnHotKey();
-		if (GetTickCount() - Main.Timer >= 500 && (!Main.ExpExist))Main.Try2CreateExp();
-		if (GetTickCount() - TDR.Timer >= 500 && (!Main.ExpExist) && (!TDRclosed))TDR.Try2CreateExp();
+		if (GetTickCount() - Main.Timer >= 200 && (!Main.ExpExist))Main.Try2CreateExp();
+		if (GetTickCount() - TDR.Timer >= 200 && (!Main.ExpExist) && (!TDRclosed))TDR.Try2CreateExp();
 		break;
 	}
 	case TIMER_BUTTONEFFECT://按钮特效
@@ -4152,6 +4142,7 @@ nobasic:
 
 inline void InitBrushs()//初始化笔刷
 {
+	LLLLGreyBrush = CreateSolidBrush(COLOR_251_GREY);
 	LightestGreyBrush = CreateSolidBrush(COLOR_LIGHTEST_GREY);
 	LighterGreyBrush = CreateSolidBrush(COLOR_LIGHTER_GREY);
 	LightGreyBrush = CreateSolidBrush(COLOR_LIGHT_GREY);
@@ -4415,10 +4406,11 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.Width = DEFAULT_WIDTH; Main.Height = DEFAULT_HEIGHT;
 
 	GetDeviceRect();
-	if (yLength >= 1400)Main.DPI = 1.5;//根据屏幕高度预先设定缩放比例
-	if (yLength <= 1000)Main.DPI = 0.75;//在屏幕分辨率较低的电脑上自动降低画质
+	if (yLength >= 2000)Main.DPI = 1.75;
+	if (yLength >= 1400&& yLength <2000 )Main.DPI = 1.5;//根据屏幕高度预先设定缩放比例
+	if (yLength <= 1000)Main.DPI = 0.75;//注:这几行代码一定要放在窗口创建之前
 	if (yLength <= 600)Main.DPI = 0.5;
-	if (yLength <= 1070)LowResource = TRUE;//注:这几行代码一定要放在窗口创建之前
+	if (yLength <= 1070)LowResource = TRUE;//在屏幕分辨率较低的电脑上自动降低画质
 
 	Main.DefFont = CreateFontW(max((int)(16 * Main.DPI), 10), max((int)(8 * Main.DPI), 5),//创建默认字体
 		0, 0, FW_THIN, FALSE, FALSE, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH | FF_SWISS, L"宋体");
@@ -4433,8 +4425,8 @@ BOOL InitInstance()//和界面有关的初始化
 	if (!Main.hWnd)return FALSE;//创建主窗口失败就直接退出
 
 	Main.ButtonEffect = TRUE;//按钮渐变色特效
-	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 5, (TIMERPROC)TimerProc);//启用渐变色计时器
-	SetLayeredWindowAttributes(Main.hWnd, NULL, 234, LWA_ALPHA);//半透明特效
+	SetTimer(Main.hWnd, TIMER_BUTTONEFFECT, 16, (TIMERPROC)TimerProc);//启用渐变色计时器
+	SetLayeredWindowAttributes(Main.hWnd, NULL, 238, LWA_ALPHA);//半透明特效
 
 	if (!slient)AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_SHOW, MOD_CONTROL, 'P');//注册热键显示 隐藏
 	RegisterHotKey(Main.hWnd, MAIN_HOTKEY_VDESKTOP, MOD_CONTROL, 'B');//切换桌面
@@ -4446,33 +4438,33 @@ BOOL InitInstance()//和界面有关的初始化
 	if ((Main.Timer % 49) == 0)Main.SetTitleBar(COLOR_PINK, TITLEBAR_HEIGHT);
 	if ((Main.Timer % 0x513) == 0)Main.SetTitleBar(COLOR_PIRPLE, TITLEBAR_HEIGHT);
 
-	Main.CreateEditEx(325 + 5, 220, 110 - 10, 50, 1, L"explorer.exe", 0, FALSE);//创建输入框
-	Main.CreateEditEx(195 + 5, 355, 240 - 10, 45, 1, L"StudentMain.exe", 0, FALSE);
-	Main.CreateEditEx(455 + 5, 355, 50 - 10, 45, 1, L"5", 0, FALSE);
-	Main.CreateEditEx(185 + 5, 102, 110 - 10, 40, 2, L"输入新端口", 0, TRUE);
+	Main.CreateEditEx(205 + 5, 260, 110 - 10, 40, 1, L"explorer.exe", 0, FALSE);//创建输入框
+	Main.CreateEditEx(375 + 5, 360, 195 - 10, 40, 1, L"StudentMain.exe", 0, FALSE);
+	Main.CreateEditEx(585 + 5, 360, 45 - 10, 40, 1, L"5", 0, FALSE);
+	Main.CreateEditEx(285 + 5, 102, 110 - 10, 40, 2, L"输入新端口", 0, TRUE);
 	Main.CreateEditEx(365 + 5, 175, 210 - 10, 50, 2, L"输入新密码", 0, TRUE);
-	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 3, L"浏览文件/文件夹", 0, TRUE);
+	Main.CreateEditEx(195 + 5, 102, 310 - 10, 37, 2, L"浏览文件/文件夹", 0, TRUE);
 	Main.CreateEditEx(277 + 5, 186, 138 - 10, 25, 5, L"StudentMain", 0, FALSE);
 
-	Main.CreateButtonEx(1, -2, 50, 142, 64, 0, L"主要功能", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P1");//切换页面按钮
-	Main.CreateButtonEx(2, -2, 115, 142, 64, 0, L"极域工具箱", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P2");//
-	Main.CreateButtonEx(3, -2, 180, 142, 64, 0, L"其他工具", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P3");
-	Main.CreateButtonEx(4, -2, 245, 142, 64, 0, L"关于", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P4");
-	Main.CreateButtonEx(5, -2, 310, 142, 64, 0, L"设置", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P5");
-	Main.CreateButtonEx(6, -2, 375, 142, 174, 0, L"一键安装", LighterGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"QS");
+	Main.CreateButtonEx(1, 20, -50, 142, 64, 0, L"主要功能", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P1");//切换页面按钮
+	Main.CreateButtonEx(2, 220, -50, 142, 64, 0, L"小工具", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P2");//
+	Main.CreateButtonEx(3, -130, 0, 142, 64, 3, L"-", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P3");
+	Main.CreateButtonEx(4, 420, -50, 142, 64, 0, L"关于", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P4");
+	Main.CreateButtonEx(5, 620, -50, 142, 64, 0, L"设置", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"P5");
+	Main.CreateButtonEx(6, -2, -50, 142, 174,3, L"一键安装", LighterGreyBrush, LightBlueBrush, LighterBlueBrush, WhitePen, LightBluePen, LighterBluePen, 0, TRUE, 0, 0, L"QS");
 	Main.CurButton = 6;
-	Main.CreateLine(140, 51, 498, LINE_Y, 0, COLOR_NORMAL_GREY);
-	if (LowResource)Main.CreateLine(0, 51, 498, LINE_Y, 0, COLOR_NORMAL_GREY);//切换页面按钮边上的线
-	Main.CreateLine(0, 114, 139, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(0, 179, 139, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(0, 244, 139, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(0, 309, 139, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(0, 374, 139, LINE_X, 0, COLOR_NORMAL_GREY);
-	Main.CreateLine(DEFAULT_WIDTH + 1, 50, DEFAULT_HEIGHT + 1 - 50, LINE_Y, 0, COLOR_NORMAL_GREY);//页面最右边的线
+	Main.CreateLine(140, 51, 498, LINE_Y, 99, COLOR_NORMAL_GREY);
+	if (LowResource)Main.CreateLine(0, 51, 498, LINE_Y, 99, COLOR_NORMAL_GREY);//切换页面按钮边上的线
+	Main.CreateLine(0, 114, 139, LINE_X, 99, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 179, 139, LINE_X, 99, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 244, 139, LINE_X, 99, COLOR_NORMAL_GREY);
+	Main.CreateLine(0, 309, 139, LINE_X, 99, COLOR_NORMAL_GREY);
+	//Main.CreateLine(0, 374, 139, LINE_X, 0, COLOR_NORMAL_GREY);
+	Main.CreateLine(DEFAULT_WIDTH + 1, 50, DEFAULT_HEIGHT + 1 - 50, LINE_Y, 99, COLOR_NORMAL_GREY);//页面最右边的线
 
-	Main.CreateFrame(170, 75, 419, 95, 1, L" 进程方案 ");
-	Main.CreateButton(195, 100, 110, 50, 1, L"安装sethc", L"Sethc");//sethc
-	Main.CreateButton(325, 100, 110, 50, 1, L"全局键盘钩子", L"hook");//hook
+	Main.CreateFrame(170, 75, 524,135, 1, L" 进程方案 ");
+	Main.CreateButton(575, 92, 100, 45, 1, L"安装sethc", L"Sethc");//sethc
+	Main.CreateButton(575, 150, 100, 45, 1, L"键盘钩子", L"hook");//hook
 	if (SethcState)
 	{
 		WIN32_FIND_DATA fileInfo;
@@ -4485,31 +4477,31 @@ BOOL InitInstance()//和界面有关的初始化
 		FindClose(hFind);
 	}
 
-	Main.CreateFrame(170, 195, 419, 320, 1, L" 窗口方案 ");//虚拟桌面系列
-	Main.CreateButton(195, 220, 110, 50, 1, L"运行程序", L"runinVD");
-	Main.CreateButton(455, 220, 110, 50, 1, L"切换桌面", L"SwitchD");
+	Main.CreateFrame(170, 235, 524, 247, 1, L" 窗口方案 ");//虚拟桌面系列
+	Main.CreateButton(295, 220, 40, 40, 1, L"运行", L"runinVD");
+	Main.CreateButton(455, 220, 110, 50, 99, L"切换桌面", L"SwitchD");
 	Main.CreateText(195, 285, 1, L"Tctrl+b", COLOR_ORANGE);
-	Main.CreateLine(185, 315, 380, LINE_X, 1, COLOR_BLACK);
+	Main.CreateLine(355, 255, 220, LINE_Y, 1, COLOR_BLACK);
 
-	Main.CreateButton(195, 415, 110, 50, 1, L"捕捉窗口", L"CatchW");
-	Main.CreateButton(325, 415, 110, 50, 1, L"监视窗口", L"CopyW");//捕捉窗口系列
-	Main.CreateButton(455, 415, 110, 50, 1, L"释放窗口", L"ReturnW");
-	Main.CreateText(195, 328, 1, L"Processnam", COLOR_DARKER_GREY);//想要捕捉的进程名
-	Main.CreateText(455, 328, 1, L"Delay", COLOR_DARKER_GREY);//延迟时间
-	Main.CreateText(510, 370, 1, L"second", COLOR_DARKER_GREY);//s
+	Main.CreateButton(375, 415, 90, 50, 1, L"捕捉窗口", L"CatchW");
+	Main.CreateButton(480, 415, 90, 50, 1, L"监视窗口", L"CopyW");//捕捉窗口系列
+	Main.CreateButton(585, 415, 90, 50, 1, L"释放窗口", L"ReturnW");
+	Main.CreateText(375, 338, 1, L"Processnam", COLOR_DARKER_GREY);//想要捕捉的进程名
+	Main.CreateText(585, 338, 1, L"Delay", COLOR_DARKER_GREY);//延迟时间
+	Main.CreateText(635, 380, 1, L"second", COLOR_DARKER_GREY);//s
 	Main.CreateText(195, 480, 1, L"_Eat", COLOR_DARKER_BLUE);
 	Main.Button[BUT_RELS].Enabled = FALSE;
 
-	Main.CreateFrame(160, 75, 160, 146, 2, L" 频道工具 ");//极域"管理员设置"系列
-	Main.CreateFrame(345, 75, 250, 280, 2, L" 管理员密码工具 ");
+	Main.CreateFrame(160, 75, 160, 146, 12, L"  ");//极域"管理员设置"系列
+	Main.CreateFrame(345, 75, 250, 280, 2, L" 频道+密码工具 ");
 	Main.CreateText(365, 300, 2, L"Tcp1", COLOR_DARKEST_GREY);
 	Main.CreateText(365, 325, 2, L"Tcp2", COLOR_ORANGE);
 	Main.CreateLine(360, 160, 223, LINE_X, 2, COLOR_BLACK);
 
-	Main.CreateFrame(160, 385, 160, 130, 2, L" 极域进程工具 ");
-	Main.CreateText(175, 405, 2, L"TDState", 0);
-	Main.CreateText(175, 430, 2, L"TDPID", 0);
-	Main.CreateText(250, 405, 2, L"TcmdNO", COLOR_RED);
+	Main.CreateFrame(20, 365, 270, 130, 2, L" 极域进程工具 ");
+	Main.CreateText(40, 385, 2, L"TDState", 0);
+	Main.CreateText(40, 410, 2, L"TDPID", 0);
+	Main.CreateText(120, 385, 2, L"TcmdNO", COLOR_RED);
 
 	Main.CreateFrame(170, 75, 410, 150, 3, L" 文件粉碎机 ");
 	Main.CreateText(195, 185, 3, L"T.A.", 0);
@@ -4570,7 +4562,7 @@ BOOL InitInstance()//和界面有关的初始化
 		rgn = CreateRoundRectRgn(rc.left, rc.top, rc.right, rc.bottom, 10, 10);
 		SetWindowRgn(Main.hWnd, rgn, TRUE);
 
-		if (LanguageID == CHINESE_LANID && !FirstFlag && (Main.Timer % 34) == 0)
+		if (LanguageID == CHINESE_LANID && !FirstFlag && (Main.Timer % 33) == 0)
 		{
 			AutoRegisterHotKey(Main.hWnd, MAIN_HOTKEY_AUTOKILLTD, NULL, VK_SCROLL);//显示帮助时自动"一键安装"
 			SYSTEMTIME systm;
@@ -4594,11 +4586,11 @@ BOOL InitInstance()//和界面有关的初始化
 		Main.Redraw();
 	}
 
-	Main.CreateButton(185, 155, 110, 45, 2, L"应用", L"ApplyCh");//为了加快启动速度而在显示主窗口后创建的按钮
-	Main.CreateButtonEx(++Main.CurButton, 365, 102, 97, 45, 2, L"清空密码", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, BlackPen, BlackPen, BlackPen, 0, TRUE, TRUE, 0, L"ClearPass");
-	Main.CreateButton(477, 102, 97, 45, 2, L"查看密码", L"ViewPass");
-	Main.CreateButton(365, 237, 97, 50, 2, L"改密方案1", L"CP1");
-	Main.CreateButton(477, 237, 97, 50, 2, L"改密方案2", L"CP2");
+	Main.CreateButton(477, 102, 110, 45, 2, L"应用", L"ApplyCh");//为了加快启动速度而在显示主窗口后创建的按钮
+	Main.CreateButton(365, 102, 97, 45, 20, L"清空密码", L"ClearPass");
+	Main.CreateButton(477, 237, 97, 45, 2, L"查看密码", L"ViewPass");
+	Main.CreateButton(365, 237, 97, 50, 2, L"修改密码", L"CP1");
+	Main.CreateButton(477, 237, 97, 50, 20, L"改密方案2", L"CP2");
 
 	Main.CreateCheck(159, 238, 2, 120, L" 伪装工具条");
 	Main.CreateCheck(282, 238, 2, 50, L"旧版");
@@ -4607,27 +4599,26 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateCheck(159, 316, 2, 170, L" Ctrl+Y 启动极域");
 	Main.CreateCheck(159, 342, 2, 135, L" 防止掉线监控");
 
-	Main.CreateButton(175, 458, 60, 42, 2, L"结束", L"kill-TD");
+	Main.CreateButton(210, 382, 60, 42, 2, L"结束", L"kill-TD");
 	Main.Button[Main.CurButton].Enabled = FALSE;
-	Main.CreateButton(245, 458, 60, 42, 2, L"启动", L"re-TD");
+	Main.CreateButton(210, 438, 60, 42, 2, L"启动", L"re-TD");
 
-	Main.CreateButtonEx(++Main.CurButton, 345, 385, 115, 55, 2, L"自动捕捉极域", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, BlackPen, BlackPen, BlackPen, 0, TRUE, TRUE, 0, L"catchTD");
-	Main.CreateButton(480, 385, 115, 55, 2, L"防止教师关机", L"ANTI-");
+	Main.CreateButtonEx(++Main.CurButton, 345, 385, 115, 55, 20, L"自动捕捉极域", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, BlackPen, BlackPen, BlackPen, 0, TRUE, TRUE, 0, L"catchTD");
+	Main.CreateButton(565, 440, 115, 55, 2, L"防止教师关机", L"ANTI-");
+	Main.CreateButton(305, 440, 115, 55, 2, L"删除极域声音", L"delsound");
+	Main.CreateButton(435, 440, 115, 55, 2, L"自动防控制", L"auto-5");//24
 
-	Main.CreateButton(345, 460, 115, 55, 2, L"删除极域声音", L"delsound");
-	Main.CreateButton(480, 460, 115, 55, 2, L"自动防控制", L"auto-5");//24
+	Main.CreateButton(520, 102, 36, 36, 300, L"...", L"viewfile");
+	Main.CreateButton(436, 151, 120, 55, 300, L"打开文件夹", L"folder");
+	Main.CreateButtonEx(++Main.CurButton, 325, 151, 97, 55, 2, L"开始粉碎", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, BlackPen, BlackPen, BlackPen, 0, TRUE, TRUE, 0, L"Delete");
+	Main.CreateCheck(195, 160, 2, 100, L" 加载驱动");
 
-	Main.CreateButton(520, 102, 36, 36, 3, L"...", L"viewfile");
-	Main.CreateButton(436, 151, 120, 55, 3, L"打开文件夹", L"folder");
-	Main.CreateButtonEx(++Main.CurButton, 325, 151, 97, 55, 3, L"开始粉碎", LightestGreyBrush, LightBlueBrush, LighterBlueBrush, BlackPen, BlackPen, BlackPen, 0, TRUE, TRUE, 0, L"Delete");
-	Main.CreateCheck(195, 160, 3, 100, L" 加载驱动");
+	Main.CreateButton(192, 280, 115, 60, 300, L"BSOD(蓝屏)", L"BSOD");
+	Main.CreateButton(324, 280, 100, 60, 300, L"快速重启", L"Res");
 
-	Main.CreateButton(192, 280, 115, 60, 3, L"BSOD(蓝屏)", L"BSOD");
-	Main.CreateButton(324, 280, 100, 60, 3, L"快速重启", L"Res");
-
-	Main.CreateButton(192, 412, 100, 60, 3, L"ARP攻击", L"ARP");
-	Main.CreateButton(304, 412, 105, 60, 3, L"高权限CMD", L"sysCMD");
-	Main.CreateButton(420, 412, 140, 60, 3, L"显示于安全桌面", L"desktop");//32
+	Main.CreateButton(305, 365, 115, 55, 2, L"远程工具", L"ARP");
+	Main.CreateButton(435, 365, 115, 55, 2, L"高权限CMD", L"sysCMD");
+	Main.CreateButton(565, 365, 115, 55, 2, L"显示于安全桌面", L"desktop");//32
 
 	Main.CreateButton(490, 414, 100, 50, 4, L"帮助文档", L"more");
 	Main.CreateButton(490, 476, 100, 50, 4, L"系统信息", L"info");//34
@@ -4646,7 +4637,7 @@ BOOL InitInstance()//和界面有关的初始化
 	Main.CreateButton(470, 404, 105, 50, 5, L"永久隐藏", L"hidest");
 	Main.CreateButton(470, 464, 105, 50, 5, L"清理并退出", L"clearup");//36
 
-	Main.CreateButton(466, 255, 115, 106, 3, L"打游戏", L"Games");//37
+	Main.CreateButton(466, 255, 115, 106, 32, L"打游戏", L"Games");//37
 	Main.Button[BUT_GAMES].Enabled = FALSE;
 
 	if (LanguageID != CHINESE_LANID)//非中文系统自动切换成英文
@@ -4742,7 +4733,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 
 		if (Main.RedrawObject()) { goto finish; }
 
-		SelectObject(Main.hdc, WhiteBrush);//打印白色背景
+		SelectObject(Main.hdc, LLLLGreyBrush);//打印白色背景
 		SelectObject(Main.hdc, WhitePen);
 		Rectangle(Main.hdc, 0, 0, (int)(Main.Width * Main.DPI), (int)(Main.Height * Main.DPI + 1));
 
@@ -5181,10 +5172,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 		case BUT_RESTART: { Restart(); break; }//快速重启
 		case BUT_ARP:
 		{
-			if (Main.Button[BUT_ARP].Left == 192 && FT)mywcscpy(Main.Button[BUT_ARP].Name, Main.GetStr(L"starting")), Main.EnableButton(BUT_ARP, FALSE);
-			if (Main.Button[BUT_ARP].Left >= 466 && Main.Button[BUT_ARP].Left <= 481 &&
-				Main.Button[BUT_ARP].Top >= 255 && Main.Button[BUT_ARP].Top <= 301)
-				InitTDR();
+			InitTDR();
 			break;
 		}
 		case BUT_SYSCMD:
@@ -5294,7 +5282,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)/
 					SetTimer(FakeWnd, TIMER_TOOLBAR, 100, (TIMERPROC)TimerProc);
 				}
 				Main.Readd(REDRAW_CHECK, CHK_FTOLD); Main.Readd(REDRAW_CHECK, CHK_FTNEW);
-				Main.Redraw({ (long)(165 * Main.DPI),(long)(238 * Main.DPI),(long)(300 * Main.DPI),(long)(279 * Main.DPI) });
+				Main.Redraw({ (long)(125 * Main.DPI),(long)(238 * Main.DPI),(long)(300 * Main.DPI),(long)(279 * Main.DPI) });
 				ShowWindow(FakeWnd, SW_SHOW);
 				InvalidateRect(FakeWnd, nullptr, TRUE);
 				UpdateWindow(FakeWnd);
